@@ -11,7 +11,6 @@ import glob
 from aironsuit.utils import load_json, clear_session
 from aironsuit.callbacks import get_basic_callbacks
 
-from tensorflow.keras.optimizers import Adam
 from cave.utils import customized_net
 
 
@@ -143,7 +142,7 @@ class AIronSuit(object):
                 specs = pickle.load(f)
             best_model = self.__load_json(filepath=path + 'best_exp_' + net_name + '_json')
             best_model.load_weights(filepath=path + 'best_exp_' + net_name + '_weights')
-            best_model.compile(optimizer=Adam(learning_rate=specs['lr']), loss=specs['loss'])
+            best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])
 
             print('best hyperparameters: ' + str(best_hparams))
 
@@ -248,7 +247,7 @@ class AIronSuit(object):
     def clear_session(self):
         clear_session()
 
-    def compile(self, loss, metrics=None, lr=0.001):
-        self.__model.compile(optimizer=Adam(learning_rate=lr),
+    def compile(self, loss, optimizer, metrics=None):
+        self.__model.compile(optimizer=optimizer,
                              loss=loss,
                              metrics=metrics)
