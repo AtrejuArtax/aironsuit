@@ -8,10 +8,9 @@ import math
 import os
 import glob
 
-from aironsuit.utils import load_json
+from aironsuit.utils import load_json, clear_session
 from aironsuit.callbacks import get_basic_callbacks
 
-import tensorflow.keras.backend as K
 from tensorflow.keras.optimizers import Adam
 from cave.utils import customized_net
 
@@ -121,7 +120,7 @@ class AIronSuit(object):
                     np.savetxt(val_inference_in_path + 'val_target_inference.csv',
                                np.concatenate(y_inf, axis=1), delimiter=',')
 
-            K.clear_session()
+            clear_session()
             del model
 
             return {'loss': exp_loss, 'status': status}
@@ -247,7 +246,7 @@ class AIronSuit(object):
         self.__model = __load_json(filepath)
 
     def clear_session(self):
-        K.clear_session()
+        clear_session()
 
     def compile(self, loss, metrics=None, lr=0.001):
         self.__model.compile(optimizer=Adam(learning_rate=lr),
