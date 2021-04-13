@@ -1,17 +1,19 @@
 import numpy as np
-from cave.utils import customized_net
 from hyperopt import Trials, STATUS_OK, STATUS_FAIL
 import hyperopt
-from tensorflow.keras import callbacks
-from tensorflow.keras import models
-import tensorflow.keras.backend as K
-from tensorflow.keras.optimizers import Adam
 from sklearn import metrics
 import pandas as pd
 import pickle
 import math
 import os
 import glob
+
+from aironsuit.utils import load_json
+from aironsuit.callbacks import get_basic_callbacks
+
+import tensorflow.keras.backend as K
+from tensorflow.keras.optimizers import Adam
+from cave.utils import customized_net
 
 
 class AIronSuit(object):
@@ -27,7 +29,7 @@ class AIronSuit(object):
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, experiment_specs, path, max_evals,
                 tensor_board=False, metric=None, trials=None, net_name='NN', verbose=0, seed=None,
-                val_inference_in_path=None):
+                val_inference_in_path=None, callbacks=None):
 
         self.__parallel_models = model_specs['parallel_models']
         self.__device = model_specs['device']
@@ -60,7 +62,7 @@ class AIronSuit(object):
                          experiment_specs=experiment_specs,
                          mode='exploration',
                          path=path,
-                         use_callbacks=True,
+                         callbacks=callbacks,
                          verbose=verbose,
                          tensor_board=tensor_board,
                          batch_size=specs['batch_size'],
@@ -150,36 +152,16 @@ class AIronSuit(object):
 
         self.__model = optimize()
 
-    def __train(self, x_train, y_train, x_val, y_val, model, experiment_specs, mode, path, use_callbacks,
-                verbose, tensor_board, batch_size, ext=None):
+    def __train(self, x_train, y_train, x_val, y_val, model, experiment_specs, mode, path,
+                verbose, tensor_board, batch_size, ext=None, callbacks=None):
 
         best_model_name = path + 'best_epoch_model_' + mode
 
         # Callbacks
-        callbacks_list = []
-        if use_callbacks:
-            if tensor_board:
-                board_dir = path + mode + '_logs'
-                if ext is not None:
-                    board_dir += '_' + str(ext)
-                callbacks_list += [callbacks.TensorBoard(log_dir=board_dir)]
-            callbacks_list += [callbacks.ReduceLROnPlateau(
-                monitor='val_loss',
-                factor=0.2,
-                patience=int(experiment_specs['early_stopping'] / 2),
-                min_lr=0.0000001,
-                verbose=verbose)]
-            callbacks_list += [callbacks.EarlyStopping(
-                monitor='val_loss',
-                min_delta=0,
-                patience=experiment_specs['early_stopping'],
-                verbose=verbose,
-                mode='min')]
-            callbacks_list += [callbacks.ModelCheckpoint(
-                filepath=best_model_name,
-                save_best_only=True,
-                save_weights_only=True,
-                verbose=verbose)]
+        callbacks_ = []
+        if callbacks:
+            for callback_dict in callbacks:
+                callbacks_ += [callback_dict['callback'](callbacks_dict['kargs'])]
             best_model_files = glob.glob(best_model_name + '*')
             if len(best_model_files) > 0:
                 for filename in glob.glob(best_model_name + '*'):
@@ -201,7 +183,7 @@ class AIronSuit(object):
         model.fit(**kargs)
 
         # Best model
-        if use_callbacks:
+        if callbacks:
             best_model_files = glob.glob(best_model_name + '*')
             if len(best_model_files) > 0:
                 model.load_weights(filepath=best_model_name)
@@ -209,8 +191,8 @@ class AIronSuit(object):
                     os.remove(filename)
 
 
-    def train(self, x_train, y_train, experiment_specs, use_callbacks, batch_size=30, x_val=None, y_val=None, path=None,
-              verbose=0, tensor_board=False):
+    def train(self, x_train, y_train, experiment_specs, batch_size=30, x_val=None, y_val=None,
+              path=None, verbose=0, tensor_board=False, callbacks=None):
 
         # Train model
         self.__train(
@@ -222,7 +204,7 @@ class AIronSuit(object):
             experiment_specs=experiment_specs,
             mode='training',
             path=path,
-            use_callbacks=use_callbacks,
+            callbacks=callbacks,
             verbose=verbose,
             tensor_board=tensor_board,
             batch_size=batch_size)
@@ -262,13 +244,7 @@ class AIronSuit(object):
             json_file.write(model.to_json())
 
     def load_json(self, filepath):
-        self.__model = self.__load_json(filepath)
-
-    def __load_json(self, filepath):
-        json_file = open(filepath, 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
-        return models.model_from_json(loaded_model_json)
+        self.__model = __load_json(filepath)
 
     def clear_session(self):
         K.clear_session()
