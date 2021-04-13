@@ -11,19 +11,18 @@ import glob
 from aironsuit.utils import load_json, clear_session
 from aironsuit.callbacks import get_basic_callbacks
 
-from cave.utils import customized_net
-
 
 class AIronSuit(object):
 
-    def __init__(self):
+    def __init__(self, net_constructor):
 
         self.__model = None
         self.__parallel_models = None
         self.__device = None
+        self.__net_constructor = net_constructor
 
     def create(self, specs, metrics=None, net_name='NN'):
-        self.__model = customized_net(specs=specs, metrics=metrics, net_name=net_name)
+        self.__model = self.__net_constructor(specs=specs, metrics=metrics, net_name=net_name)
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, experiment_specs, path, max_evals,
                 tensor_board=False, metric=None, trials=None, net_name='NN', verbose=0, seed=None,
@@ -40,7 +39,7 @@ class AIronSuit(object):
             specs = space.copy()
             specs.update(model_specs)
             specs.update(experiment_specs)
-            model = customized_net(specs=specs, net_name=net_name,
+            model = self.__net_constructor(specs=specs, net_name=net_name,
                                    metrics=metric if metric is not None else specs['loss'])
 
             # Print some information
