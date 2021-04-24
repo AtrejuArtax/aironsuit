@@ -14,22 +14,23 @@ from aironsuit.callbacks import get_basic_callbacks
 
 class AIronSuit(object):
 
-    def __init__(self, net_constructor):
+    def __init__(self, net_constructor, net_constructor_specs):
 
         self.__model = None
         self.__parallel_models = None
         self.__device = None
         self.__net_constructor = net_constructor
+        self.__net_constructor_specs = net_constructor_specs
 
     def create(self, specs, metrics=None, net_name='NN'):
         self.__model = self.__net_constructor(specs=specs, metrics=metrics, net_name=net_name)
 
-    def explore(self, x_train, y_train, x_val, y_val, space, model_specs, experiment_specs, path, max_evals,
+    def explore(self, x_train, y_train, x_val, y_val, space, model_specs, exploration_specs, path, max_evals,
                 tensor_board=False, metric=None, trials=None, net_name='NN', verbose=0, seed=None,
                 val_inference_in_path=None, callbacks=None):
 
-        self.__parallel_models = model_specs['parallel_models']
-        self.__device = model_specs['device']
+        self.__parallel_models = exploration_specs['parallel_models']
+        self.__device = exploration_specs['device']
         if trials is None:
             trials = Trials()
 
@@ -38,9 +39,10 @@ class AIronSuit(object):
             # Create model
             specs = space.copy()
             specs.update(model_specs)
-            specs.update(experiment_specs)
-            model = self.__net_constructor(specs=specs, net_name=net_name,
-                                   metrics=metric if metric is not None else specs['loss'])
+            specs.update(exploration_specs)
+            # previous kargs: specs=specs, net_name=net_name,
+            #                                    metrics=metric if metric is not None else specs['loss']
+            model = self.__net_constructor(specs)
 
             # Print some information
             iteration = len(trials.losses())
@@ -56,7 +58,7 @@ class AIronSuit(object):
                          x_val=x_val,
                          y_val=y_val,
                          model=model,
-                         experiment_specs=experiment_specs,
+                         train_specs=exploration_specs,
                          mode='exploration',
                          path=path,
                          callbacks=callbacks,
@@ -149,7 +151,7 @@ class AIronSuit(object):
 
         self.__model = optimize()
 
-    def __train(self, x_train, y_train, x_val, y_val, model, experiment_specs, mode, path,
+    def __train(self, x_train, y_train, x_val, y_val, model, train_specs, mode, path,
                 verbose, tensor_board, batch_size, ext=None, callbacks=None):
 
         best_model_name = path + 'best_epoch_model_' + mode
@@ -165,11 +167,11 @@ class AIronSuit(object):
                     os.remove(filename)
 
         # Train model
-        class_weight = None if 'class_weight' not in experiment_specs.keys() \
-            else {output_name: experiment_specs['class_weight'] for output_name in model.output_names}
+        class_weight = None if 'class_weight' not in train_specs.keys() \
+            else {output_name: train_specs['class_weight'] for output_name in model.output_names}
         kargs = {'x': x_train,
                  'y': y_train,
-                 'epochs': experiment_specs['epochs'],
+                 'epochs': train_specs['epochs'],
                  'callbacks': callbacks_list,
                  'class_weight': class_weight,
                  'shuffle': True,
@@ -188,7 +190,7 @@ class AIronSuit(object):
                     os.remove(filename)
 
 
-    def train(self, x_train, y_train, experiment_specs, batch_size=30, x_val=None, y_val=None,
+    def train(self, x_train, y_train, train_specs, batch_size=30, x_val=None, y_val=None,
               path=None, verbose=0, tensor_board=False, callbacks=None):
 
         # Train model
@@ -198,7 +200,7 @@ class AIronSuit(object):
             x_val=x_val,
             y_val=y_val,
             model=self.__model,
-            experiment_specs=experiment_specs,
+            train_specs=train_specs,
             mode='training',
             path=path,
             callbacks=callbacks,
