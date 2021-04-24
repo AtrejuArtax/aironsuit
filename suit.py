@@ -6,24 +6,24 @@ import pandas as pd
 import pickle
 import math
 import os
-import glob
 
 from aironsuit.utils import load_json, clear_session
 from aironsuit.callbacks import get_basic_callbacks
+from aironsuit.trainers import airon_trainer
 
 
 class AIronSuit(object):
 
-    def __init__(self, net_constructor, net_constructor_specs):
+    def __init__(self, model_constructor, trainer=None):
 
         self.__model = None
         self.__parallel_models = None
         self.__device = None
-        self.__net_constructor = net_constructor
-        self.__net_constructor_specs = net_constructor_specs
+        self.__model_constructor = model_constructor
+        self.__trainer = airon_trainer if not trainer else trainer
 
     def create(self, specs, metrics=None, net_name='NN'):
-        self.__model = self.__net_constructor(specs=specs, metrics=metrics, net_name=net_name)
+        self.__model = self.__model_constructor(specs=specs, metrics=metrics, net_name=net_name)
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, exploration_specs, path, max_evals,
                 tensor_board=False, metric=None, trials=None, net_name='NN', verbose=0, seed=None,
@@ -42,7 +42,7 @@ class AIronSuit(object):
             specs.update(exploration_specs)
             # previous kargs: specs=specs, net_name=net_name,
             #                                    metrics=metric if metric is not None else specs['loss']
-            model = self.__net_constructor(specs)
+            model = self.__model_constructor(specs)
 
             # Print some information
             iteration = len(trials.losses())
@@ -53,19 +53,17 @@ class AIronSuit(object):
                 print(model.summary(line_length=200))
 
             # Train model
-            self.__train(x_train=x_train,
-                         y_train=y_train,
-                         x_val=x_val,
-                         y_val=y_val,
-                         model=model,
-                         train_specs=exploration_specs,
-                         mode='exploration',
-                         path=path,
-                         callbacks=callbacks,
-                         verbose=verbose,
-                         tensor_board=tensor_board,
-                         batch_size=specs['batch_size'],
-                         ext=iteration)
+            self.__trainer(x_train=x_train,
+                           y_train=y_train,
+                           x_val=x_val,
+                           y_val=y_val,
+                           model=model,
+                           train_specs=exploration_specs,
+                           mode='exploration',
+                           path=path,
+                           callbacks=callbacks,
+                           verbose=verbose,
+                           batch_size=specs['batch_size'])
 
             # Exploration loss
             total_n_models = self.__parallel_models * len(self.__device)
@@ -151,50 +149,11 @@ class AIronSuit(object):
 
         self.__model = optimize()
 
-    def __train(self, x_train, y_train, x_val, y_val, model, train_specs, mode, path,
-                verbose, tensor_board, batch_size, ext=None, callbacks=None):
-
-        best_model_name = path + 'best_epoch_model_' + mode
-
-        # Callbacks
-        callbacks_ = []
-        if callbacks:
-            for callback_dict in callbacks:
-                callbacks_ += [callback_dict['callback'](callbacks_dict['kargs'])]
-            best_model_files = glob.glob(best_model_name + '*')
-            if len(best_model_files) > 0:
-                for filename in glob.glob(best_model_name + '*'):
-                    os.remove(filename)
-
-        # Train model
-        class_weight = None if 'class_weight' not in train_specs.keys() \
-            else {output_name: train_specs['class_weight'] for output_name in model.output_names}
-        kargs = {'x': x_train,
-                 'y': y_train,
-                 'epochs': train_specs['epochs'],
-                 'callbacks': callbacks_list,
-                 'class_weight': class_weight,
-                 'shuffle': True,
-                 'verbose': verbose,
-                 'batch_size': batch_size}
-        if not any([val_ is None for val_ in [x_val, y_val]]):
-            kargs.update({'validation_data': (x_val, y_val)})
-        model.fit(**kargs)
-
-        # Best model
-        if callbacks:
-            best_model_files = glob.glob(best_model_name + '*')
-            if len(best_model_files) > 0:
-                model.load_weights(filepath=best_model_name)
-                for filename in glob.glob(best_model_name + '*'):
-                    os.remove(filename)
-
-
     def train(self, x_train, y_train, train_specs, batch_size=30, x_val=None, y_val=None,
               path=None, verbose=0, tensor_board=False, callbacks=None):
 
         # Train model
-        self.__train(
+        self.__trainer(
             x_train=x_train,
             y_train=y_train,
             x_val=x_val,
@@ -205,7 +164,6 @@ class AIronSuit(object):
             path=path,
             callbacks=callbacks,
             verbose=verbose,
-            tensor_board=tensor_board,
             batch_size=batch_size)
 
     def inference(self, x_pred):
