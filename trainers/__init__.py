@@ -3,4 +3,4 @@ BACKEND = get_backend()
 if BACKEND == 'tensorflow':
     from aironsuit.trainers.trainers_tf import *
 else:
-    pass
+    from aironsuit.trainers.trainers_tf import *

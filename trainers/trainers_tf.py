@@ -2,7 +2,7 @@ import os
 import glob
 
 
-def airon_trainer(x_train, y_train, x_val, y_val, model, train_specs, mode, path,
+def airon_trainer(model, x_train, y_train, x_val, y_val, train_specs, mode, path,
             verbose, batch_size, callbacks=None):
 
     best_model_name = path + 'best_epoch_model_' + mode

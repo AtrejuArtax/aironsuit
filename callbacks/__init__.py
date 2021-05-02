@@ -3,4 +3,4 @@ BACKEND = get_backend()
 if BACKEND == 'tensorflow':
     from aironsuit.callbacks.callbacks_tf import *
 else:
-    pass
+    from aironsuit.callbacks.callbacks_torch import *
