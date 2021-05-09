@@ -25,7 +25,6 @@ class AIronSuit(object):
         self.__trainer = airon_trainer if not trainer else trainer
         self.__cuda = None
         self.__devices = None
-        self.__parallel_models = None
         self.__total_n_models = None
 
     def create(self, specs, n_parallel_models=1, devices=None, cuda=None):
@@ -39,11 +38,9 @@ class AIronSuit(object):
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, path, max_evals, epochs,
                 metric=None, trials=None, net_name='NN', verbose=0, seed=None, val_inference_in_path=None,
-                callbacks=None, n_parallel_models=1, devices=None, cuda=None):
+                callbacks=None, cuda=None):
 
         self.__cuda = cuda
-        self.__devices = devices if devices else []
-        self.__total_n_models = n_parallel_models * len(self.__devices)
         if trials is None:
             trials = Trials()
 
@@ -75,22 +72,20 @@ class AIronSuit(object):
             trainer.fit(x_train, y_train, epochs=epochs)
 
             # Exploration loss
-            exp_loss = None
+            exp_loss = None # ToDo: compatible with custom metric
             if metric in [None, 'categorical_accuracy', 'accuracy']:
                 exp_loss = accuracy_score(y_val, trainer.predict(x_val))
                 # exp_loss = model.evaluate(x=x_val, y=y_val, verbose=verbose)
                 if isinstance(exp_loss, list):
                     exp_loss = sum(exp_loss)
-                exp_loss /= self.__total_n_models
-                if metric == 'categorical_accuracy':
-                    exp_loss = 1 - exp_loss
-            elif metric == 'i_auc':
+                exp_loss = 1 - exp_loss
+            elif metric == 'i_auc':  # ToDo: make this work
                 y_pred = model.predict(x_val)
                 if not isinstance(y_pred, list):
                     y_pred = [y_pred]
                 exp_loss = []
                 for i in np.arange(0, self.__total_n_models):
-                    if len(np.bincount(y_val[i][:,-1])) > 1 and not math.isnan(np.sum(y_pred[i])):
+                    if len(np.bincount(y_val[i][:, -1])) > 1 and not math.isnan(np.sum(y_pred[i])):
                         fpr, tpr, thresholds = metrics.roc_curve(y_val[i][:, -1], y_pred[i][:, -1])
                         exp_loss += [(1 - metrics.auc(fpr, tpr))]
                 exp_loss = np.mean(exp_loss) if len(exp_loss) > 0 else 1
@@ -108,7 +103,7 @@ class AIronSuit(object):
             best_exp_loss = None \
                 if not os.path.isfile(best_exp_losss_name) else pd.read_pickle(best_exp_losss_name).values[0][0]
             print('best val loss so far: ', best_exp_loss)
-            print('curren val loss: ', exp_loss)
+            print('current val loss: ', exp_loss)
             best_exp_loss_cond = best_exp_loss is None or exp_loss < best_exp_loss
             print('save: ', status, best_exp_loss_cond)
             if status == STATUS_OK and best_exp_loss_cond:
