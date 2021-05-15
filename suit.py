@@ -35,7 +35,7 @@ class AIronSuit(object):
         self.__total_n_models = n_parallel_models * len(self.__devices)
         self.__model = self.__model_constructor(**specs)
         if self.__model_constructer_wrapper:
-            self.__model = self.__model_constructer_wrapper(self.__model)
+            self.__model_constructer_wrapper(self.__model)
         if self.__cuda in specs and BACKEND != 'tensorflow':
             self.__model.cuda()
 
@@ -56,7 +56,7 @@ class AIronSuit(object):
             #                                    metrics=metric if metric is not None else specs['loss']
             model = self.__model_constructor(**specs)
             if self.__model_constructer_wrapper:
-                model = self.__model_constructer_wrapper(model)
+                self.__model_constructer_wrapper(model)
             if self.__cuda in specs and BACKEND != 'tensorflow':
                 model.cuda()
 
