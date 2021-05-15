@@ -18,11 +18,12 @@ BACKEND = get_backend()
 
 class AIronSuit(object):
 
-    def __init__(self, model_constructor, trainer=None):
+    def __init__(self, model_constructor, trainer=None, model_constructer_wrapper=None):
 
         self.__model = None
         self.__model_constructor = model_constructor
         self.__trainer = airon_trainer if not trainer else trainer
+        self.__model_constructer_wrapper = model_constructer_wrapper
         self.__cuda = None
         self.__devices = None
         self.__total_n_models = None
@@ -33,6 +34,8 @@ class AIronSuit(object):
         self.__devices = devices if devices else []
         self.__total_n_models = n_parallel_models * len(self.__devices)
         self.__model = self.__model_constructor(**specs)
+        if self.__model_constructer_wrapper:
+            self.__model = self.__model_constructer_wrapper(self.__model)
         if self.__cuda in specs and BACKEND != 'tensorflow':
             self.__model.cuda()
 
@@ -52,6 +55,8 @@ class AIronSuit(object):
             # previous kargs: specs=specs, net_name=net_name,
             #                                    metrics=metric if metric is not None else specs['loss']
             model = self.__model_constructor(**specs)
+            if self.__model_constructer_wrapper:
+                model = self.__model_constructer_wrapper(model)
             if self.__cuda in specs and BACKEND != 'tensorflow':
                 model.cuda()
 
