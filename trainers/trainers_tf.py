@@ -2,46 +2,62 @@ import os
 import glob
 
 
-def airon_trainer(model, x_train, y_train, x_val, y_val, epochs, verbose=0, callbacks=None, **train_specs):
+class AIronTrainer(object):
 
-    class_weight = {output_name: train_specs['class_weight'] for output_name in model.output_names} \
-        if 'class_weight' not in train_specs else None
-    mode = train_specs['mode'] if 'mode' in train_specs else None
-    path = train_specs['path'] if 'path' in train_specs else None
-    batch_size = train_specs['batch_size'] if 'batch_size' in train_specs else 32
+    def __init__(self, module, **kargs):
+        self.__module = module
+        available_kargs = ['verbose', 'callbacks', 'mode', 'class_weight', 'path', 'batch_size']
+        self.__verbose = 0
+        self.__callbacks = None
+        self.__mode = None
+        self.__class_weight = None
+        self.__path = None
+        self.__batch_size = 32
+        for karg in available_kargs:
+            assert karg in available_kargs
+            if karg in kargs:
+                locals()['__' + karg] = kargs[karg]
 
-    best_model_name = None
+    def fit(self, x_train, y_train, x_val=None, y_val=None, epochs=30):
 
-    # Callbacks
-    callbacks_ = []
-    if callbacks:
-        for callback_dict in callbacks:
-            if callback_dict['name'] == 'ModelCheckpoint':
-                ext = '_' + mode if mode else ''
-                best_model_name = path + 'best_epoch_model' + ext
-            callbacks_ += [callback_dict['callback'](callback_dict['kargs'])]
-        best_model_files = glob.glob(best_model_name + '*')
-        if len(best_model_files) > 0:
-            for filename in glob.glob(best_model_name + '*'):
-                os.remove(filename)
+        class_weight = {output_name: self.__class_weight for output_name in self.__module.output_names} \
+            if self.__class_weight else None
 
-    # Train model
-    kargs = {'x': x_train,
-             'y': y_train,
-             'epochs': epochs,
-             'callbacks': callbacks_,
-             'class_weight': class_weight,
-             'shuffle': True,
-             'verbose': verbose,
-             'batch_size': batch_size}
-    if not any([val_ is None for val_ in [x_val, y_val]]):
-        kargs.update({'validation_data': (x_val, y_val)})
-    model.fit(**kargs)
+        best_model_name = None
 
-    # Best model
-    if callbacks:
-        best_model_files = glob.glob(best_model_name + '*')
-        if len(best_model_files) > 0:
-            model.load_weights(filepath=best_model_name)
-            for filename in glob.glob(best_model_name + '*'):
-                os.remove(filename)
+        # Callbacks
+        callbacks_ = []
+        if self.__callbacks:
+            for callback_dict in self.__callbacks:
+                if callback_dict['name'] == 'ModelCheckpoint':
+                    ext = '_' + self.__mode if self.__mode else ''
+                    best_model_name = self.__path + 'best_epoch_model' + ext
+                callbacks_ += [callback_dict['callback'](callback_dict['kargs'])]
+            best_model_files = glob.glob(best_model_name + '*')
+            if len(best_model_files) > 0:
+                for filename in glob.glob(best_model_name + '*'):
+                    os.remove(filename)
+
+        # Train model
+        kargs = {'x': x_train,
+                 'y': y_train,
+                 'epochs': epochs,
+                 'callbacks': callbacks_,
+                 'class_weight': class_weight,
+                 'shuffle': True,
+                 'verbose': self.__verbose,
+                 'batch_size': self.__batch_size}
+        if not any([val_ is None for val_ in [x_val, y_val]]):
+            kargs.update({'validation_data': (x_val, y_val)})
+        self.__module.fit(**kargs)
+
+        # Best model
+        if self.__callbacks:
+            best_model_files = glob.glob(best_model_name + '*')
+            if len(best_model_files) > 0:
+                self.__module.load_weights(filepath=best_model_name)
+                for filename in glob.glob(best_model_name + '*'):
+                    os.remove(filename)
+
+    def predict(self, x):
+        self.__module.predict(x)

@@ -11,7 +11,7 @@ from sklearn.metrics import accuracy_score
 from aironsuit.backend import get_backend
 from aironsuit.utils import load_model, save_model, clear_session
 from aironsuit.callbacks import get_basic_callbacks
-from aironsuit.trainers import airon_trainer
+from aironsuit.trainers import AIronTrainer
 
 BACKEND = get_backend()
 
@@ -22,7 +22,7 @@ class AIronSuit(object):
 
         self.__model = None
         self.__model_constructor = model_constructor
-        self.__trainer = airon_trainer if not trainer else trainer
+        self.__trainer = AIronTrainer if not trainer else trainer
         self.__model_constructer_wrapper = model_constructer_wrapper
         self.__cuda = None
         self.__devices = None
@@ -175,8 +175,8 @@ class AIronSuit(object):
             verbose=verbose,
             batch_size=batch_size)
 
-    def inference(self, x_pred):
-        return self.__model.predict(x_pred)
+    def inference(self, x):
+        return self.__model.predict(x)
 
     def evaluate(self, x, y):
         return self.__model.evaluate(x=x, y=y)
