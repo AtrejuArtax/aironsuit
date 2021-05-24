@@ -10,7 +10,6 @@ from sklearn.metrics import accuracy_score
 
 from aironsuit.backend import get_backend
 from aironsuit.utils import load_model, save_model, clear_session
-from aironsuit.callbacks import get_basic_callbacks
 from aironsuit.trainers import AIronTrainer
 
 BACKEND = get_backend()
@@ -74,7 +73,11 @@ class AIronSuit(object):
             if callbacks:
                 trainer_kargs.update({'callbacks': callbacks})
             trainer = self.__trainer(**trainer_kargs)
-            trainer.fit(x_train, y_train, epochs=epochs)
+            train_kargs = {'x_train': x_train, 'y_train': y_train}
+            if not any([val_ is None for val_ in [x_val, y_val]]):
+                train_kargs.update({'x_val': x_train, 'y_val': y_train})
+            train_kargs.update({'epochs': epochs})
+            trainer.fit(**train_kargs)
 
             # Exploration loss
             exp_loss = None # ToDo: compatible with custom metric

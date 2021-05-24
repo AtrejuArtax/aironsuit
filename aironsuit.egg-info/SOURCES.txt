@@ -1,0 +1,16 @@
+LICENSE
+README.md
+setup.py
+aironsuit.egg-info/PKG-INFO
+aironsuit.egg-info/SOURCES.txt
+aironsuit.egg-info/dependency_links.txt
+aironsuit.egg-info/top_level.txt
+callbacks/__init__.py
+callbacks/callbacks_tf.py
+callbacks/callbacks_torch.py
+trainers/__init__.py
+trainers/trainers_tf.py
+trainers/trainers_torch.py
+utils/__init__.py
+utils/utils_tf.py
+utils/utils_torch.py
