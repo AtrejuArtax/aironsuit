@@ -51,8 +51,6 @@ class AIronSuit(object):
             # Create model
             specs = space.copy()
             specs.update(model_specs)
-            # previous kargs: specs=specs, net_name=net_name,
-            #                                    metrics=metric if metric is not None else specs['loss']
             model = self.__model_constructor(**specs)
             if self.__model_constructor_wrapper:
                 self.__model_constructor_wrapper(model)
@@ -119,14 +117,12 @@ class AIronSuit(object):
             print('current val loss: ', exp_loss)
             best_exp_loss_cond = best_exp_loss is None or exp_loss < best_exp_loss
             print('save: ', status, best_exp_loss_cond)
-
             if status == STATUS_OK and best_exp_loss_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
                 self.__save_model(model=model, name=path + 'best_exp_' + net_name + '_json')
-                for dict_, name in zip([specs, space], ['_specs', '_hparams']):
-                    with open(path + 'best_exp_' + net_name + name, 'wb') as f:
-                        pickle.dump(dict_, f, protocol=pickle.HIGHEST_PROTOCOL)
+                with open(path + 'best_exp_' + net_name + '_hparams', 'wb') as f:
+                    pickle.dump(space, f, protocol=pickle.HIGHEST_PROTOCOL)
                 if val_inference_in_path is not None:
                     y_val_ = np.concatenate(y_val, axis=1) if isinstance(y_val, list) else y_val
                     np.savetxt(val_inference_in_path + 'val_target.csv', y_val_, delimiter=',')
@@ -153,8 +149,8 @@ class AIronSuit(object):
                     return_argmin=False)
             with open(path + 'best_exp_' + net_name + '_hparams', 'rb') as f:
                 best_hparams = pickle.load(f)
-            with open(path + 'best_exp_' + net_name + '_specs', 'rb') as f:
-                specs = pickle.load(f)
+            specs = model_specs.copy()
+            specs.update(best_hparams)
             best_model = self.__load_model(name=path + 'best_exp_' + net_name + '_json')
             if BACKEND == 'tensorflow':
                 best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])

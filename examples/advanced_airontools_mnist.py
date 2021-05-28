@@ -25,12 +25,12 @@ project = 'mnist'
 working_path = '/opt/robot/'
 use_gpu = True
 max_n_samples = None
-max_evals = 1
-epochs = 1
+max_evals = 3
+epochs = 100
 batch_size = 32
 early_stopping = 3
 parallel_models = 2
-verbose = 1
+verbose = 0
 precision = 'float32'
 
 # Choose devices
@@ -162,7 +162,7 @@ encoder.fit(train_targets)
 test_targets = encoder.transform(test_targets)
 
 # From data frame to list
-x_test, _, y_test, _ = array_to_list(
+x_test, _, y_test, _, _ = array_to_list(
     input_data=test_dataset,
     output_data=test_targets,
     n_parallel_models=model_specs['parallel_models'] * len(model_specs['devices']),
