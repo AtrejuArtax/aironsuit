@@ -6,24 +6,19 @@ class AIronTrainer(object):
 
     def __init__(self, module, **kargs):
         self.__module = module
-        available_kargs = ['verbose', 'callbacks', 'mode', 'class_weight', 'path', 'batch_size']
+        available_kargs = ['callbacks', 'mode', 'class_weight', 'path', 'batch_size']
         for karg in kargs.keys():
             assert karg in available_kargs
-        self.__verbose = kargs['verbose'] if 'verbose' in kargs else 0
         self.__callbacks = kargs['callbacks'] if 'callbacks' in kargs else None
         self.__mode = kargs['mode'] if 'mode' in kargs else None
         self.__class_weight = kargs['class_weight'] if 'class_weight' in kargs else None
         self.__path = kargs['path'] if 'path' in kargs else None
         self.__batch_size = kargs['batch_size'] if 'batch_size' in kargs else 32
-        #for karg in kargs.keys():
-         #   assert karg in available_kargs
-          #  setattr(self, '__' + karg, kargs[karg])
-           # getattr(self, '__' + karg)
 
     def __setattr__(self, key, value):
         self.__dict__[key] = value
 
-    def fit(self, x_train, y_train, x_val=None, y_val=None, epochs=30):
+    def fit(self, x_train, y_train, x_val=None, y_val=None, epochs=30, verbose=0):
 
         class_weight = {output_name: self.__class_weight for output_name in self.__module.output_names} \
             if self.__class_weight else None
@@ -52,7 +47,7 @@ class AIronTrainer(object):
                  'callbacks': callbacks_,
                  'class_weight': class_weight,
                  'shuffle': True,
-                 'verbose': self.__verbose,
+                 'verbose': verbose,
                  'batch_size': self.__batch_size}
         if not any([val_ is None for val_ in [x_val, y_val]]):
             kargs.update({'validation_data': (x_val, y_val)})
@@ -67,4 +62,4 @@ class AIronTrainer(object):
                     os.remove(filename)
 
     def predict(self, x):
-        self.__module.predict(x)
+        return self.__module.predict(x)

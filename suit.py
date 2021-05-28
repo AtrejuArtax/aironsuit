@@ -7,7 +7,7 @@ import pickle
 import math
 import os
 from sklearn.metrics import accuracy_score
-
+from inspect import getargspec
 from aironsuit.backend import get_backend
 from aironsuit.utils import load_model, save_model, clear_session
 from aironsuit.trainers import AIronTrainer
@@ -17,12 +17,12 @@ BACKEND = get_backend()
 
 class AIronSuit(object):
 
-    def __init__(self, model_constructor, trainer=None, model_constructer_wrapper=None):
+    def __init__(self, model_constructor, trainer=None, model_constructor_wrapper=None):
 
         self.__model = None
         self.__model_constructor = model_constructor
         self.__trainer = AIronTrainer if not trainer else trainer
-        self.__model_constructer_wrapper = model_constructer_wrapper
+        self.__model_constructor_wrapper = model_constructor_wrapper
         self.__cuda = None
         self.__devices = None
         self.__total_n_models = None
@@ -33,8 +33,8 @@ class AIronSuit(object):
         self.__devices = devices if devices else []
         self.__total_n_models = n_parallel_models * len(self.__devices)
         self.__model = self.__model_constructor(**specs)
-        if self.__model_constructer_wrapper:
-            self.__model_constructer_wrapper(self.__model)
+        if self.__model_constructor_wrapper:
+            self.__model_constructor_wrapper(self.__model)
         if self.__cuda in specs and BACKEND != 'tensorflow':
             self.__model.cuda()
 
@@ -54,8 +54,8 @@ class AIronSuit(object):
             # previous kargs: specs=specs, net_name=net_name,
             #                                    metrics=metric if metric is not None else specs['loss']
             model = self.__model_constructor(**specs)
-            if self.__model_constructer_wrapper:
-                self.__model_constructer_wrapper(model)
+            if self.__model_constructor_wrapper:
+                self.__model_constructor_wrapper(model)
             if self.__cuda in specs and BACKEND != 'tensorflow':
                 model.cuda()
 
@@ -74,19 +74,24 @@ class AIronSuit(object):
                 trainer_kargs.update({'callbacks': callbacks})
             trainer = self.__trainer(**trainer_kargs)
             train_kargs = {'x_train': x_train, 'y_train': y_train}
+
             if not any([val_ is None for val_ in [x_val, y_val]]):
                 train_kargs.update({'x_val': x_train, 'y_val': y_train})
             train_kargs.update({'epochs': epochs})
+            for karg, val in zip(['verbose'], [verbose]):
+                if karg in list(getargspec(trainer.fit))[0]:
+                    train_kargs.update({'verbose': val})
             trainer.fit(**train_kargs)
 
             # Exploration loss
             exp_loss = None # ToDo: compatible with custom metric
             if metric in [None, 'categorical_accuracy', 'accuracy']:
-                exp_loss = accuracy_score(y_val, trainer.predict(x_val))
-                # exp_loss = model.evaluate(x=x_val, y=y_val, verbose=verbose)
-                if isinstance(exp_loss, list):
-                    exp_loss = sum(exp_loss)
-                exp_loss = 1 - exp_loss
+                y_val_ = np.argmax(np.mean(y_val, axis=0), axis=-1)
+                y_pred = trainer.predict(x_val)
+                if isinstance(y_pred, list):
+                    y_pred = np.mean(y_pred, axis=0)
+                y_pred = np.argmax(y_pred, axis=-1)
+                exp_loss = 1 - accuracy_score(y_val_, y_pred)
             elif metric == 'i_auc':  # ToDo: make this work
                 y_pred = model.predict(x_val)
                 if not isinstance(y_pred, list):
@@ -108,12 +113,13 @@ class AIronSuit(object):
 
             # Save model if it is the best so far
             best_exp_losss_name = path + 'best_' + net_name + '_exp_loss'
-            best_exp_loss = None \
-                if not os.path.isfile(best_exp_losss_name) else pd.read_pickle(best_exp_losss_name).values[0][0]
+            trials_losses = [loss_ for loss_ in trials.losses() if loss_]
+            best_exp_loss = min(trials_losses) if len(trials_losses) > 0 else None
             print('best val loss so far: ', best_exp_loss)
             print('current val loss: ', exp_loss)
             best_exp_loss_cond = best_exp_loss is None or exp_loss < best_exp_loss
             print('save: ', status, best_exp_loss_cond)
+
             if status == STATUS_OK and best_exp_loss_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)

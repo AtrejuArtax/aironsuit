@@ -11,7 +11,8 @@ os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.net_constructors import net_constructor
 from airontools.preprocessing.utils import array_to_list
-from airontools.tools import path_preparation
+from sklearn.metrics import classification_report
+from airontools.tools import path_management
 from airontools.utils import get_available_gpus
 from aironsuit.callbacks import get_basic_callbacks
 random.seed(0)
@@ -24,13 +25,13 @@ project = 'mnist'
 working_path = '/opt/robot/'
 use_gpu = True
 max_n_samples = None
-max_evals = 3
-epochs = 100
+max_evals = 1
+epochs = 1
 batch_size = 32
 early_stopping = 3
-parallel_models = 1
-verbose = 0
-precision = 'mixed_float16'
+parallel_models = 2
+verbose = 1
+precision = 'float32'
 
 # Choose devices
 if not use_gpu or len(get_available_gpus()) == 0:
@@ -94,12 +95,14 @@ hyperparam_space = {
     'bias_regularizer_l1': uniform('bias_regularizer_l1', 0., 0.001),
     'bias_regularizer_l2': uniform('bias_regularizer_l2', 0., 0.001),
     'compression': uniform('compression', 0.3, 0.98),
-    'i_n_layers': choice('i_n_layers', np.arange(1, 3)),
-    'c_n_layers': choice('c_n_layers', np.arange(1, 4))}
+    'i_n_layers': choice('i_n_layers', np.arange(1, 2)),
+    'c_n_layers': choice('c_n_layers', np.arange(1, 2))}
 hyperparam_space.update({'loss': choice('loss', ['mse', 'categorical_crossentropy'])})
 
 # Make/remove important paths
-path_preparation(paths=[prep_data_path, inference_data_path, results_path])
+path_modes = ['rm', 'make']
+for path in [prep_data_path, inference_data_path, results_path]:
+    path_management(path, modes=path_modes)
 
 # Exploration #
 
@@ -148,9 +151,29 @@ aironsuit.explore(
 
 # Test Evaluation #
 
-with open(results_path + 'best_exp_' + net_name + '_specs', 'rb') as handle:
-    specs = pickle.load(handle)
-aironsuit = AIronSuit(model_constructor=net_constructor)
-aironsuit.create(specs=specs)
-aironsuit.load_model(results_path + 'best_exp_' + net_name)
-aironsuit.compile(loss=specs['loss'], optimizer=specs['optimizer'])
+# Load and preprocess data
+(_, train_targets), (test_dataset, test_targets) = data_pointer.load_data()
+test_dataset = test_dataset / 255
+test_dataset = test_dataset.reshape((test_dataset.shape[0], test_dataset.shape[1] * test_dataset.shape[2]))
+encoder = OneHotEncoder(sparse=False)
+train_targets = train_targets.reshape((train_targets.shape[0], 1))
+test_targets = test_targets.reshape((test_targets.shape[0], 1))
+encoder.fit(train_targets)
+test_targets = encoder.transform(test_targets)
+
+# From data frame to list
+x_test, _, y_test, _ = array_to_list(
+    input_data=test_dataset,
+    output_data=test_targets,
+    n_parallel_models=model_specs['parallel_models'] * len(model_specs['devices']),
+    data_specs=data_specs,
+    val_ratio=0)
+y_test = y_test[0]
+y_pred = aironsuit.inference(x_test)
+y_pred = y_pred if not isinstance(y_pred, list) else np.mean([y_pred_ for y_pred_ in y_pred], axis=0)
+
+# Classification report
+test_report = classification_report(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
+print(test_report)
+with open(results_path + 'test_report', 'wb') as f:
+    pickle.dump(test_report, f, protocol=pickle.HIGHEST_PROTOCOL)
