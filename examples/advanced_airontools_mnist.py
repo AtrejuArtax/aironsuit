@@ -22,7 +22,7 @@ np.random.seed(0)
 # Example Set-Up #
 
 project = 'mnist'
-working_path = '/opt/robot/'
+working_path = os.path.join('opt', 'advanced_airontools_' + project)
 use_gpu = True
 max_n_samples = None
 max_evals = 3
@@ -47,21 +47,16 @@ net_name = project + '_NN'
 data_pointer = tf.keras.datasets.mnist
 
 # Paths
-prep_data_path = ''.join([working_path, 'PrepDatasets/', project]) + '/'
-inference_data_path = ''.join([working_path, 'Inference/', project]) + '/'
-results_path = ''.join([working_path, 'Results/', project]) + '/'
+prep_data_path = os.path.join(working_path, 'PrepDatasets', project)
+inference_data_path = os.path.join(working_path, 'Inference', project)
+results_path = os.path.join(working_path, 'Results', project)
 
 # Target names
 target_names = [str(i) for i in range(10)]
 
 # Input/Output Specs
 metric = 'categorical_accuracy' if project in ['fashion_mnist', 'mnist'] else None
-if project in ['fashion_mnist', 'mnist']:
-    input_specs = {'image': {'type': 'image', 'sequential': False, 'dim': 784}}
-elif project == 'wallmart':
-    input_specs = {'features': {'type': 'num', 'sequential': False, 'dim': None}}
-else:
-    input_specs = None
+input_specs = {'image': {'type': 'image', 'sequential': False, 'dim': 784}}
 output_specs = {'y': {'type': 'cat', 'sequential': False, 'dim': len(target_names)}}
 data_specs = {'input_specs': input_specs,
               'output_specs': output_specs}
@@ -73,7 +68,7 @@ train_specs = {
 callbacks_list = get_basic_callbacks(
     path=results_path,
     early_stopping=early_stopping,
-    model_name='MNIST_NN')
+    model_name=project + '_NN')
 
 # Model Specs
 model_specs = {
@@ -85,9 +80,8 @@ model_specs = {
     'parallel_models': parallel_models,
     'precision': precision,
     'sequential_block': False,
-    'optimizer': Adam(learning_rate=0.001)}
-if project in ['mnist', 'fashion_mnist']:
-    model_specs.update({'output_activation': 'softmax'})
+    'optimizer': Adam(learning_rate=0.001),
+    'output_activation': 'softmax'}
 hyperparam_space = {
     'dropout_rate': uniform('dropout_rate', 0., 0.4),
     'kernel_regularizer_l1': uniform('kernel_regularizer_l1', 0., 0.001),
@@ -148,6 +142,7 @@ aironsuit.explore(
     metric=metric,
     val_inference_in_path=results_path,
     callbacks=callbacks_list)
+del x_train, x_val, y_train, y_val
 
 # Test Evaluation #
 
