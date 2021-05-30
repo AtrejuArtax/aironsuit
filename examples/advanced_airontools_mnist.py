@@ -7,11 +7,11 @@ import os
 import tensorflow as tf
 from sklearn.preprocessing import OneHotEncoder
 from tensorflow.keras.optimizers import Adam
+from sklearn.metrics import classification_report
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.net_constructors import net_constructor
 from airontools.preprocessing.utils import array_to_list
-from sklearn.metrics import classification_report
 from airontools.tools import path_management
 from airontools.utils import get_available_gpus
 from aironsuit.callbacks import get_basic_callbacks
@@ -166,6 +166,8 @@ x_test, _, y_test, _, _ = array_to_list(
     data_specs=data_specs,
     val_ratio=0)
 y_test = y_test[0]
+
+# Inference
 y_pred = aironsuit.inference(x_test)
 y_pred = y_pred if not isinstance(y_pred, list) else np.mean([y_pred_ for y_pred_ in y_pred], axis=0)
 
