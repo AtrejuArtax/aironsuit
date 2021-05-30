@@ -17,12 +17,14 @@ from airontools.utils import get_available_gpus
 from aironsuit.callbacks import get_basic_callbacks
 random.seed(0)
 np.random.seed(0)
+HOME = os.path.expanduser("~")
+OS_SEP = os.path.sep
 
 
 # Example Set-Up #
 
 project = 'mnist'
-working_path = os.path.join('opt', 'advanced_airontools_' + project)
+working_path = os.path.join(HOME, 'advanced_airontools_' + project)
 use_gpu = True
 max_n_samples = None
 max_evals = 3
