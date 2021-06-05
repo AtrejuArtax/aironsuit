@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: aironsuit
-Version: 0.1
+Version: 0.1.0
 Summary: A model wrapper for hyper-parameter optimization and visualization purposes.
 Home-page: https://github.com/AtrejuArtax/aironsuit
 Author: Claudi Ruiz Camps
