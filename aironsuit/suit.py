@@ -5,7 +5,6 @@ from sklearn import metrics
 import pandas as pd
 import pickle
 import math
-import os
 from sklearn.metrics import accuracy_score
 from inspect import getargspec
 from aironsuit.backend import get_backend
@@ -16,6 +15,16 @@ BACKEND = get_backend()
 
 
 class AIronSuit(object):
+    """AIronSuit is a model wrapper that takes care of the hyper-parameter optimization problem, training and inference
+    among other things.
+
+    :param model_constructor: A model constructor function.
+    :type model_constructor: function:`airontools.net_constructors.net_constructor`
+    :param trainer: A class that trains the model constructed by model_constructor.
+    :type trainer: class:`aironsuit.trainers.AIronTrainer`
+    :param model_constructor_wrapper: A function that wraps the output model of the model_constructor.
+    :type model_constructor_wrapper: function
+    """
 
     def __init__(self, model_constructor, trainer=None, model_constructor_wrapper=None):
 
@@ -28,7 +37,13 @@ class AIronSuit(object):
         self.__total_n_models = None
 
     def create(self, specs, n_parallel_models=1, devices=None, cuda=None):
+        """
 
+        :param specs:
+        :param n_parallel_models:
+        :param devices:
+        :param cuda:
+        """
         self.__cuda = cuda
         self.__devices = devices if devices else []
         self.__total_n_models = n_parallel_models * len(self.__devices)
@@ -41,7 +56,28 @@ class AIronSuit(object):
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, path, max_evals, epochs,
                 metric=None, trials=None, net_name='NN', verbose=0, seed=None, val_inference_in_path=None,
                 callbacks=None, cuda=None):
+        """
 
+        :param x_train:
+        :param y_train:
+        :param x_val:
+        :param y_val:
+        :param space:
+        :param model_specs:
+        :param train_specs:
+        :param path:
+        :param max_evals:
+        :param epochs:
+        :param metric:
+        :param trials:
+        :param net_name:
+        :param verbose:
+        :param seed:
+        :param val_inference_in_path:
+        :param callbacks:
+        :param cuda:
+        :return:
+        """
         self.__cuda = cuda
         if trials is None:
             trials = Trials()
@@ -165,7 +201,18 @@ class AIronSuit(object):
 
     def train(self, x_train, y_train, train_specs, batch_size=30, x_val=None, y_val=None,
               path=None, verbose=0, callbacks=None):
+        """
 
+        :param x_train:
+        :param y_train:
+        :param train_specs:
+        :param batch_size:
+        :param x_val:
+        :param y_val:
+        :param path:
+        :param verbose:
+        :param callbacks:
+        """
         # Train model
         self.__trainer(
             self.__model,
@@ -181,21 +228,49 @@ class AIronSuit(object):
             batch_size=batch_size)
 
     def inference(self, x):
+        """
+
+        :param x:
+        :return:
+        """
         return self.__model.predict(x)
 
     def evaluate(self, x, y):
+        """
+
+        :param x:
+        :param y:
+        :return:
+        """
         return self.__model.evaluate(x=x, y=y)
 
     def save_model(self, name):
+        """
+
+        :param name:
+        """
         self.__save_model(model=self.__model, name=name)
 
     def load_model(self, name):
+        """
+
+        :param name:
+        """
         self.__model = load_model(name)
 
     def clear_session(self):
+        """
+
+        """
         clear_session()
 
     def compile(self, loss, optimizer, metrics=None):
+        """
+
+        :param loss:
+        :param optimizer:
+        :param metrics:
+        """
         self.__model.compile(optimizer=optimizer,
                              loss=loss,
                              metrics=metrics)
