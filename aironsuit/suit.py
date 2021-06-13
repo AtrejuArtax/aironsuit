@@ -6,7 +6,7 @@ import pandas as pd
 import pickle
 import math
 from sklearn.metrics import accuracy_score
-from inspect import getargspec
+from inspect import getfullargspec
 from aironsuit.backend import get_backend
 from aironsuit.utils import load_model, save_model, clear_session
 from aironsuit.trainers import AIronTrainer
@@ -23,14 +23,15 @@ class AIronSuit(object):
     :param trainer: A class that trains the model constructed by model_constructor.
     :type trainer: class:`aironsuit.trainers.AIronTrainer`
     :param model_constructor_wrapper: A function that wraps the output model of the model_constructor.
-    :type model_constructor_wrapper: function
+    :type model_constructor_wrapper: function, optional
     """
 
     def __init__(self, model_constructor, trainer=None, model_constructor_wrapper=None):
 
         self.__model = None
+        self.__trainer = None
         self.__model_constructor = model_constructor
-        self.__trainer = AIronTrainer if not trainer else trainer
+        self.__trainer_class = AIronTrainer if not trainer else trainer
         self.__model_constructor_wrapper = model_constructor_wrapper
         self.__cuda = None
         self.__devices = None
@@ -106,26 +107,37 @@ class AIronSuit(object):
             trainer_kargs.update({'module': model})
             if callbacks:
                 trainer_kargs.update({'callbacks': callbacks})
-            trainer = self.__trainer(**trainer_kargs)
-            train_kargs = {'x_train': x_train, 'y_train': y_train}
-
-            if not any([val_ is None for val_ in [x_val, y_val]]):
+            trainer = self.__trainer_class(**trainer_kargs)
+            train_kargs = {}
+            if not any([val_ is None for val_ in [x_val, y_val]]) and \
+                    all([val_ in list(getfullargspec(trainer.fit))[0] for val_ in ['x_val', 'y_val']]):
                 train_kargs.update({'x_val': x_train, 'y_val': y_train})
             train_kargs.update({'epochs': epochs})
             for karg, val in zip(['verbose'], [verbose]):
-                if karg in list(getargspec(trainer.fit))[0]:
+                if karg in list(getfullargspec(trainer.fit))[0]:
                     train_kargs.update({'verbose': val})
-            trainer.fit(**train_kargs)
+            trainer.fit(x_train, y_train, **train_kargs)
 
             # Exploration loss
-            exp_loss = None # ToDo: compatible with custom metric
+            exp_loss = None  # ToDo: compatible with custom metric
             if metric in [None, 'categorical_accuracy', 'accuracy']:
-                y_val_ = np.argmax(np.mean(y_val, axis=0), axis=-1)
-                y_pred = trainer.predict(x_val)
-                if isinstance(y_pred, list):
-                    y_pred = np.mean(y_pred, axis=0)
-                y_pred = np.argmax(y_pred, axis=-1)
-                exp_loss = 1 - accuracy_score(y_val_, y_pred)
+                def prepare_for_acc(x):
+                    if not isinstance(x, list):
+                        x_ = [x]
+                    else:
+                        x_ = x.copy()
+                    for i in range(len(x_)):
+                        if len(x_[i].shape) == 1:
+                            x_[i] = np.where(x_[i] > 0.5, 1, 0)
+                        else:
+                            x_[i] = np.argmax(x_[i], axis=-1)
+                    return x_
+                y_pred = prepare_for_acc(trainer.predict(x_val))
+                y_val_ = prepare_for_acc(y_val)
+                acc_score = []
+                for i in range(len(y_pred)):
+                    acc_score.append(accuracy_score(y_pred[i],  y_val_[i]))
+                exp_loss = 1 - np.mean(acc_score)
             elif metric == 'i_auc':  # ToDo: make this work
                 y_pred = model.predict(x_val)
                 if not isinstance(y_pred, list):
@@ -185,6 +197,8 @@ class AIronSuit(object):
                     return_argmin=False)
             with open(path + 'best_exp_' + net_name + '_hparams', 'rb') as f:
                 best_hparams = pickle.load(f)
+
+            # Best model
             specs = model_specs.copy()
             specs.update(best_hparams)
             best_model = self.__load_model(name=path + 'best_exp_' + net_name + '_json')
@@ -192,57 +206,37 @@ class AIronSuit(object):
                 best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])
             else:
                 best_model.cuda()
-
             print('best hyperparameters: ' + str(best_hparams))
 
-            return best_model
+            # Trainer
+            trainer_kargs = train_specs.copy()
+            trainer_kargs.update({'module': best_model})
+            if callbacks:
+                trainer_kargs.update({'callbacks': callbacks})
+            trainer = self.__trainer_class(**trainer_kargs)
+            if hasattr(trainer, 'initialize') and callable(trainer.initialize):
+                trainer.initialize()
 
-        self.__model = optimize()
+            return best_model, trainer
 
-    def train(self, x_train, y_train, train_specs, batch_size=30, x_val=None, y_val=None,
-              path=None, verbose=0, callbacks=None):
-        """
+        self.__model, self.__trainer = optimize()
 
-        :param x_train:
-        :param y_train:
-        :param train_specs:
-        :param batch_size:
-        :param x_val:
-        :param y_val:
-        :param path:
-        :param verbose:
-        :param callbacks:
-        """
-        # Train model
-        self.__trainer(
-            self.__model,
-            x_train=x_train,
-            y_train=y_train,
-            x_val=x_val,
-            y_val=y_val,
-            train_specs=train_specs,
-            mode='training',
-            path=path,
-            callbacks=callbacks,
-            verbose=verbose,
-            batch_size=batch_size)
-
-    def inference(self, x):
+    def inference(self, x, use_trainer=False):
         """
 
         :param x:
         :return:
         """
-        return self.__model.predict(x)
-
-    def evaluate(self, x, y):
-        """
-
-        :param x:
-        :param y:
-        :return:
-        """
-        return self.__model.evaluate(x=x, y=y)
+        if use_trainer:
+            if self.__trainer:
+                inf_instance = self.__trainer
+            else:
+                inf_instance = self.__trainer_class(module=self.__model)
+                if hasattr(inf_instance, 'initialize') and callable(inf_instance.initialize):
+                    inf_instance.initialize()
+        else:
+            inf_instance = self.__model
+        return inf_instance.predict(x)
 
     def save_model(self, name):
         """
