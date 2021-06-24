@@ -1,4 +1,7 @@
 import setuptools
+import os
+
+PACKAGE_NAME = 'aironsuit'
 
 with open('README.md', 'r') as fh:
     long_description = fh.read()
@@ -14,7 +17,9 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/AtrejuArtax/aironsuit',
-    packages=setuptools.find_packages(include=['aironsuit']),
+    packages=setuptools.find_packages(include=[PACKAGE_NAME] +
+                                              [name for name in os.listdir(os.path.join(os.getcwd(), PACKAGE_NAME))
+                                               if not any([str_ in name for str_ in ['.py', '__']])]),
     install_requires=['tensorflow', 'sklearn', 'hyperopt'],
     classifiers=['Programming Language :: Python :: 3',
                  'License :: OSI Approved :: BSD License',
