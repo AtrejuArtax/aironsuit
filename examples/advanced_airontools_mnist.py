@@ -11,7 +11,7 @@ from sklearn.metrics import classification_report
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.net_constructors import net_constructor
-from airontools.preprocessing.utils import array_to_list
+from airontools.preprocessing import array_to_list
 from airontools.tools import path_management
 from airontools.utils import get_available_gpus
 from aironsuit.callbacks import get_basic_callbacks
