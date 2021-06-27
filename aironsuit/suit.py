@@ -7,9 +7,8 @@ import pickle
 import math
 from sklearn.metrics import accuracy_score
 from inspect import getfullargspec
-from aironsuit.backend import get_backend
 from aironsuit.utils import load_model, save_model, clear_session
-from aironsuit.trainers import AIronTrainer
+from aironsuit.trainers import *
 
 BACKEND = get_backend()
 
