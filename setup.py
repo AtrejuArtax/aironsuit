@@ -14,7 +14,7 @@ else:
 
 setuptools.setup(
     name=PACKAGE_NAME,
-    version='0.1.0',
+    version='0.1.1',
     scripts=[],
     author='Claudi Ruiz Camps',
     author_email='claudi_ruiz@hotmail.com',
