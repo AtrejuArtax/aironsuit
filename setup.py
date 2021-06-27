@@ -23,7 +23,8 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url='https://github.com/AtrejuArtax/aironsuit',
     packages=setuptools.find_packages(
-        include=[PACKAGE_NAME] + [name for name in os.listdir(os.path.join(os.getcwd(), PACKAGE_NAME))
+        include=[PACKAGE_NAME] + [PACKAGE_NAME + '.' + name
+                                  for name in os.listdir(os.path.join(os.getcwd(), PACKAGE_NAME))
                                   if not any([str_ in name for str_ in ['.py', '__']])]),
     install_requires=['sklearn', 'hyperopt'] + EXTRA_PKGS,
     classifiers=['Programming Language :: Python :: 3',
