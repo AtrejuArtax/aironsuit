@@ -8,7 +8,7 @@ from aironsuit.suit import AIronSuit
 num_classes = 10
 input_shape = (28, 28, 1)
 batch_size = 128
-epochs = 15
+epochs = 10
 
 # Load data
 (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
@@ -34,12 +34,12 @@ model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accur
 # Training
 aironsuit = AIronSuit(model=model)
 aironsuit.train(
+    model=model,
+    epochs=epochs,
     x_train=x_train,
-    y_train=y_train,
-    x_val=x_val,
-    y_val=y_val)
+    y_train=y_train)
 
 # Evaluate
-score = aironsuit.evaluate(x_test, y_test, verbose=0)
+score = aironsuit.model.evaluate(x_test, y_test, verbose=0)
 print("Test loss:", score[0])
 print("Test accuracy:", score[1])

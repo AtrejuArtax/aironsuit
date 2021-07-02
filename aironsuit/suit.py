@@ -25,11 +25,12 @@ class AIronSuit(object):
     :type model_constructor_wrapper: function, optional
     """
 
-    def __init__(self, model_constructor, trainer=None, model_constructor_wrapper=None):
+    def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None):
 
-        self.__model = None
-        self.__trainer = None
+        self.model = None
         self.__model_constructor = model_constructor
+        self.__model = model
+        self.__trainer = None
         self.__trainer_class = AIronTrainer if not trainer else trainer
         self.__model_constructor_wrapper = model_constructor_wrapper
         self.__cuda = None
@@ -102,20 +103,16 @@ class AIronSuit(object):
                 print(model.summary(line_length=200))
 
             # Train model
-            trainer_kargs = train_specs.copy()
-            trainer_kargs.update({'module': model})
-            if callbacks:
-                trainer_kargs.update({'callbacks': callbacks})
-            trainer = self.__trainer_class(**trainer_kargs)
-            train_kargs = {}
-            if not any([val_ is None for val_ in [x_val, y_val]]) and \
-                    all([val_ in list(getfullargspec(trainer.fit))[0] for val_ in ['x_val', 'y_val']]):
-                train_kargs.update({'x_val': x_train, 'y_val': y_train})
-            train_kargs.update({'epochs': epochs})
-            for karg, val in zip(['verbose'], [verbose]):
-                if karg in list(getfullargspec(trainer.fit))[0]:
-                    train_kargs.update({'verbose': val})
-            trainer.fit(x_train, y_train, **train_kargs)
+            trainer = self.__train(
+                train_specs=train_specs,
+                model=model,
+                epochs=epochs,
+                x_train=x_train,
+                y_train=y_train,
+                x_val=x_val,
+                y_val=y_val,
+                callbacks=callbacks,
+                verbose=verbose)
 
             # Exploration loss
             exp_loss = None  # ToDo: compatible with custom metric
@@ -219,6 +216,24 @@ class AIronSuit(object):
             return best_model, trainer
 
         self.__model, self.__trainer = optimize()
+        self.model = self.__model
+
+    def train(self, model, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
+              results_path=None, verbose=None):
+        train_specs = {
+            'batch_size': batch_size,
+            'path': results_path}
+        self.__trainer = self.__train(
+                train_specs=train_specs,
+                model=model,
+                epochs=epochs,
+                x_train=x_train,
+                y_train=y_train,
+                x_val=x_val,
+                y_val=y_val,
+                callbacks=callbacks,
+                verbose=verbose)
+        self.model = model
 
     def inference(self, x, use_trainer=False):
         """
@@ -273,3 +288,21 @@ class AIronSuit(object):
 
     def __load_model(self, name):
         return load_model(name=name)
+
+    def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
+                verbose=None):
+        trainer_kargs = train_specs.copy()
+        trainer_kargs.update({'module': model})
+        if callbacks:
+            trainer_kargs.update({'callbacks': callbacks})
+        trainer = self.__trainer_class(**trainer_kargs)
+        train_kargs = {}
+        if not any([val_ is None for val_ in [x_val, y_val]]) and \
+                all([val_ in list(getfullargspec(trainer.fit))[0] for val_ in ['x_val', 'y_val']]):
+            train_kargs.update({'x_val': x_train, 'y_val': y_train})
+        train_kargs.update({'epochs': epochs})
+        for karg, val in zip(['verbose'], [verbose]):
+            if karg in list(getfullargspec(trainer.fit))[0]:
+                train_kargs.update({'verbose': val})
+        trainer.fit(x_train, y_train, **train_kargs)
+        return trainer
