@@ -1,45 +1,28 @@
-**Edit a file, create a new file, and clone from Bitbucket in under 2 minutes**
+# AIronSuit
 
-When you're done, you can delete the content in this README and update the file with details for others getting started with your repository.
+AIronSuit (Beta) is a Python library for automatic model design/selection and visualization purposes built to work with 
+[tensoflow](https://github.com/tensorflow/tensorflow) (or [pytorch](https://github.com/pytorch/pytorch) in the future) 
+as a backend. It aims to accelerate
+the development of deep learning approaches for research/development purposes by providing components relying on cutting 
+edge approaches. It is flexible and its components can be 
+replaced by customized ones from the user. The user mostly focuses on defining the input and output, 
+and AIronSuit takes care of its optimal mapping. 
 
-*We recommend that you open this README in another tab as you perform the tasks below. You can [watch our video](https://youtu.be/0ocf7u76WSo) for a full demo of all the steps in this tutorial. Open the video in a new tab to avoid leaving Bitbucket.*
+Key features:
 
----
+1. Automatic model design/selection by using [hyperopt](https://github.com/hyperopt/hyperopt). 
+2. Parallel computing for multiple models across multiple gpus when using a k-fold approach.
+3. Built in model trainer that saves training progression to be visualized with 
+   [TensorBoard](https://github.com/tensorflow/tensorboard).
+4. Machine learning tools from [AIronTools](https://github.com/AtrejuArtax/airontools): net constructor, custom_block, 
+   custom_layer, preprocesing, etc
+5. Flexibility, the user can replace AIronSuit components by a user customized one. For instance,
+    the net constructor can be easily replaced by a user customized one.
+   
+### Installation
 
-## Edit a file
+pip install aironsuit
 
-You’ll start by editing this README file to learn how to edit a file in Bitbucket.
+### Examples
 
-1. Click **Source** on the left side.
-2. Click the README.md link from the list of files.
-3. Click the **Edit** button.
-4. Delete the following text: *Delete this line to make a change to the README from Bitbucket.*
-5. After making your change, click **Commit** and then **Commit** again in the dialog. The commit page will open and you’ll see the change you just made.
-6. Go back to the **Source** page.
-
----
-
-## Create a file
-
-Next, you’ll add a new file to this repository.
-
-1. Click the **New file** button at the top of the **Source** page.
-2. Give the file a filename of **contributors.txt**.
-3. Enter your name in the empty file space.
-4. Click **Commit** and then **Commit** again in the dialog.
-5. Go back to the **Source** page.
-
-Before you move on, go ahead and explore the repository. You've already seen the **Source** page, but check out the **Commits**, **Branches**, and **Settings** pages.
-
----
-
-## Clone a repository
-
-Use these steps to clone from SourceTree, our client for using the repository command-line free. Cloning allows you to work on your files locally. If you don't yet have SourceTree, [download and install first](https://www.sourcetreeapp.com/). If you prefer to clone from the command line, see [Clone a repository](https://confluence.atlassian.com/x/4whODQ).
-
-1. You’ll see the clone button under the **Source** heading. Click that button.
-2. Now click **Check out in SourceTree**. You may need to create a SourceTree account or log in.
-3. When you see the **Clone New** dialog in SourceTree, update the destination path and name if you’d like to and then click **Clone**.
-4. Open the directory you just created to see your repository’s files.
-
-Now that you're more familiar with your Bitbucket repository, go ahead and add a new file locally. You can [push your change back to Bitbucket with SourceTree](https://confluence.atlassian.com/x/iqyBMg), or you can [add, commit,](https://confluence.atlassian.com/x/8QhODQ) and [push from the command line](https://confluence.atlassian.com/x/NQ0zDQ).
+see usage examples in [aironsuit/examples](https://github.com/AtrejuArtax/aironsuit/tree/master/examples)
