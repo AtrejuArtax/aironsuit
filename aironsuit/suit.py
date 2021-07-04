@@ -9,27 +9,30 @@ from sklearn.metrics import accuracy_score
 from inspect import getfullargspec
 from aironsuit.utils import load_model, save_model, clear_session
 from aironsuit.trainers import *
+from tensorflow.keras import Model
 
 BACKEND = get_backend()
 
 
 class AIronSuit(object):
-    """AIronSuit is a model wrapper that takes care of the hyper-parameter optimization problem, training and inference
+    """ AIronSuit is a model wrapper that takes care of the hyper-parameter optimization problem, training and inference
     among other things.
-
-    :param model_constructor: A model constructor function.
-    :type model_constructor: function:`airontools.net_constructors.net_constructor`
-    :param trainer: A class that trains the model constructed by model_constructor.
-    :type trainer: class:`aironsuit.trainers.AIronTrainer`
-    :param model_constructor_wrapper: A function that wraps the output model of the model_constructor.
-    :type model_constructor_wrapper: function, optional
     """
 
-    def __init__(self, model_constructor, trainer=None, model_constructor_wrapper=None):
+    def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None):
 
-        self.__model = None
-        self.__trainer = None
+        """
+            Parameters:
+                model_constructor (function): Function that returns a model.
+                model (Model): User customized model.
+                trainer (AIronTrainer): Model trainer.
+                model_constructor_wrapper (function): Model constructor wrapper.
+        """
+
+        self.model = None
         self.__model_constructor = model_constructor
+        self.__model = model
+        self.__trainer = None
         self.__trainer_class = AIronTrainer if not trainer else trainer
         self.__model_constructor_wrapper = model_constructor_wrapper
         self.__cuda = None
@@ -37,12 +40,13 @@ class AIronSuit(object):
         self.__total_n_models = None
 
     def create(self, specs, n_parallel_models=1, devices=None, cuda=None):
-        """
+        """ Creates a model.
 
-        :param specs:
-        :param n_parallel_models:
-        :param devices:
-        :param cuda:
+            Parameters:
+                specs (dict): A dictionary containing the model specifications.
+                n_parallel_models (int): An integer specifying the amount of parallel models to be created.
+                devices (list): A list of devices to use.
+                cuda (boolean): Whether cuda is available or not.
         """
         self.__cuda = cuda
         self.__devices = devices if devices else []
@@ -56,27 +60,27 @@ class AIronSuit(object):
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, path, max_evals, epochs,
                 metric=None, trials=None, net_name='NN', verbose=0, seed=None, val_inference_in_path=None,
                 callbacks=None, cuda=None):
-        """
+        """ Explore the hyper parameter space to find optimal candidates.
 
-        :param x_train:
-        :param y_train:
-        :param x_val:
-        :param y_val:
-        :param space:
-        :param model_specs:
-        :param train_specs:
-        :param path:
-        :param max_evals:
-        :param epochs:
-        :param metric:
-        :param trials:
-        :param net_name:
-        :param verbose:
-        :param seed:
-        :param val_inference_in_path:
-        :param callbacks:
-        :param cuda:
-        :return:
+            Parameters:
+                x_train (list, np.array): Input data for training.
+                y_train (list, np.array): Output data for training.
+                x_val (list, np.array): Input data for validation.
+                y_val (list, np.array): Output data for validation.
+                space (dict): Hyper parameter space to explore.
+                model_specs (dict): Model specifications.
+                train_specs (dict): Training specifications.
+                path (str): Path to save (temporary) results.
+                max_evals (integer): Maximum number of evaluations.
+                epochs (int): Number of epochs for model training.
+                metric (str): Metric to be used for exploration. If None validation loss is used.
+                trials (Trials): Object with exploration information.
+                net_name (str): Name of the network.
+                verbose (int): Verbosity.
+                seed (int): Seed for reproducible results.
+                val_inference_in_path (str): Path where to save validation inference.
+                callbacks (dict): Dictionary of callbacks.
+                cuda (boolean): Whether cuda is available or not.
         """
         self.__cuda = cuda
         if trials is None:
@@ -102,20 +106,16 @@ class AIronSuit(object):
                 print(model.summary(line_length=200))
 
             # Train model
-            trainer_kargs = train_specs.copy()
-            trainer_kargs.update({'module': model})
-            if callbacks:
-                trainer_kargs.update({'callbacks': callbacks})
-            trainer = self.__trainer_class(**trainer_kargs)
-            train_kargs = {}
-            if not any([val_ is None for val_ in [x_val, y_val]]) and \
-                    all([val_ in list(getfullargspec(trainer.fit))[0] for val_ in ['x_val', 'y_val']]):
-                train_kargs.update({'x_val': x_train, 'y_val': y_train})
-            train_kargs.update({'epochs': epochs})
-            for karg, val in zip(['verbose'], [verbose]):
-                if karg in list(getfullargspec(trainer.fit))[0]:
-                    train_kargs.update({'verbose': val})
-            trainer.fit(x_train, y_train, **train_kargs)
+            trainer = self.__train(
+                train_specs=train_specs,
+                model=model,
+                epochs=epochs,
+                x_train=x_train,
+                y_train=y_train,
+                x_val=x_val,
+                y_val=y_val,
+                callbacks=callbacks,
+                verbose=verbose)
 
             # Exploration loss
             exp_loss = None  # ToDo: compatible with custom metric
@@ -219,12 +219,45 @@ class AIronSuit(object):
             return best_model, trainer
 
         self.__model, self.__trainer = optimize()
+        self.model = self.__model
+
+    def train(self, model, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
+              results_path=None, verbose=None):
+        """ Weight optimization.
+
+            Parameters:
+                model (Model): User customized model.
+                epochs (int): Number of epochs for model training.
+                x_train (list, np.array): Input data for training.
+                y_train (list, np.array): Output data for training.
+                x_val (list, np.array): Input data for validation.
+                y_val (list, np.array): Output data for validation.
+                batch_size (int): Batch size.
+                callbacks (dict): Dictionary of callbacks.
+                results_path (str): Path where to save results.
+                verbose (int): Verbosity.
+        """
+        train_specs = {
+            'batch_size': batch_size,
+            'path': results_path}
+        self.__trainer = self.__train(
+                train_specs=train_specs,
+                model=model,
+                epochs=epochs,
+                x_train=x_train,
+                y_train=y_train,
+                x_val=x_val,
+                y_val=y_val,
+                callbacks=callbacks,
+                verbose=verbose)
+        self.model = model
 
     def inference(self, x, use_trainer=False):
-        """
+        """ Inference.
 
-        :param x:
-        :return:
+            Parameters:
+                x (list, np.array): Input data for training.
+                use_trainer (boolean): Whether to use the current trainer or not.
         """
         if use_trainer:
             if self.__trainer:
@@ -238,31 +271,26 @@ class AIronSuit(object):
         return inf_instance.predict(x)
 
     def save_model(self, name):
-        """
+        """ Save the model.
 
-        :param name:
+            Parameters:
+                name (str): Model name.
         """
         self.__save_model(model=self.__model, name=name)
 
     def load_model(self, name):
-        """
+        """ Load the model.
 
-        :param name:
+            Parameters:
+                name (str): Model name.
         """
         self.__model = load_model(name)
 
     def clear_session(self):
-        """
-
-        """
         clear_session()
 
     def compile(self, loss, optimizer, metrics=None):
-        """
-
-        :param loss:
-        :param optimizer:
-        :param metrics:
+        """ Compile the model.
         """
         self.__model.compile(optimizer=optimizer,
                              loss=loss,
@@ -273,3 +301,21 @@ class AIronSuit(object):
 
     def __load_model(self, name):
         return load_model(name=name)
+
+    def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
+                verbose=None):
+        trainer_kargs = train_specs.copy()
+        trainer_kargs.update({'module': model})
+        if callbacks:
+            trainer_kargs.update({'callbacks': callbacks})
+        trainer = self.__trainer_class(**trainer_kargs)
+        train_kargs = {}
+        if not any([val_ is None for val_ in [x_val, y_val]]) and \
+                all([val_ in list(getfullargspec(trainer.fit))[0] for val_ in ['x_val', 'y_val']]):
+            train_kargs.update({'x_val': x_train, 'y_val': y_train})
+        train_kargs.update({'epochs': epochs})
+        for karg, val in zip(['verbose'], [verbose]):
+            if karg in list(getfullargspec(trainer.fit))[0]:
+                train_kargs.update({'verbose': val})
+        trainer.fit(x_train, y_train, **train_kargs)
+        return trainer

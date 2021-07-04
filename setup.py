@@ -14,11 +14,11 @@ else:
 
 setuptools.setup(
     name=PACKAGE_NAME,
-    version='0.1.0',
+    version='0.1.2',
     scripts=[],
     author='Claudi Ruiz Camps',
     author_email='claudi_ruiz@hotmail.com',
-    description='A model wrapper for hyper-parameter optimization and visualization purposes.',
+    description='A model wrapper for automatic model design and visualization purposes.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/AtrejuArtax/aironsuit',
