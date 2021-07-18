@@ -10,6 +10,8 @@ if 'AIRONSUIT_BACKEND' in os.environ:
     EXTRA_PKGS = [os.environ['AIRONSUIT_BACKEND']]
 else:
     EXTRA_PKGS = ['tensorflow', 'torch']
+if 'tensorflow' in EXTRA_PKGS:
+    EXTRA_PKGS += ['tensorboard']
 
 
 setuptools.setup(
