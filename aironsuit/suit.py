@@ -261,14 +261,14 @@ class AIronSuit(object):
         """
         return self.__get_model_interactor(use_trainer).predict(x)
 
-    def evaluate(self, x, use_trainer=False):
+    def evaluate(self, x, y, use_trainer=False):
         """ Evaluate.
 
             Parameters:
                 x (list, np.array): Input data for training.
                 use_trainer (boolean): Whether to use the current trainer or not.
         """
-        return self.__get_model_interactor(use_trainer).evaluate(x)
+        return self.__get_model_interactor(use_trainer).evaluate(x, y)
 
     def save_model(self, name):
         """ Save the model.

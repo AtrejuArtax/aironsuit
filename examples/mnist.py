@@ -42,6 +42,6 @@ aironsuit.train(
     y_train=y_train)
 
 # Evaluate
-score = aironsuit.model.evaluate(x_test, y_test, verbose=0)
+score = aironsuit.evaluate(x_test, y_test)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
