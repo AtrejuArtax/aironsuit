@@ -259,16 +259,16 @@ class AIronSuit(object):
                 x (list, np.array): Input data for training.
                 use_trainer (boolean): Whether to use the current trainer or not.
         """
-        if use_trainer:
-            if self.__trainer:
-                inference_instance = self.__trainer
-            else:
-                inference_instance = self.__trainer_class(module=self.__model)
-                if hasattr(inference_instance, 'initialize') and callable(inference_instance.initialize):
-                    inference_instance.initialize()
-        else:
-            inference_instance = self.__model
-        return inference_instance.predict(x)
+        return self.__get_model_interactor(use_trainer).predict(x)
+
+    def evaluate(self, x, use_trainer=False):
+        """ Evaluate.
+
+            Parameters:
+                x (list, np.array): Input data for training.
+                use_trainer (boolean): Whether to use the current trainer or not.
+        """
+        return self.__get_model_interactor(use_trainer).evaluate(x)
 
     def save_model(self, name):
         """ Save the model.
@@ -319,3 +319,15 @@ class AIronSuit(object):
                 train_kargs.update({'verbose': val})
         trainer.fit(x_train, y_train, **train_kargs)
         return trainer
+
+    def __get_model_interactor(self, use_trainer):
+        if use_trainer:
+            if self.__trainer:
+                instance = self.__trainer
+            else:
+                instance = self.__trainer_class(module=self.__model)
+                if hasattr(instance, 'initialize') and callable(instance.initialize):
+                    instance.initialize()
+        else:
+            instance = self.__model
+        return instance
