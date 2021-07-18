@@ -79,7 +79,7 @@ class AIronSuit(object):
                 verbose (int): Verbosity.
                 seed (int): Seed for reproducible results.
                 val_inference_in_path (str): Path where to save validation inference.
-                callbacks (dict): Dictionary of callbacks.
+                callbacks (list): Dictionary of callbacks.
                 cuda (boolean): Whether cuda is available or not.
         """
         self.__cuda = cuda
@@ -261,14 +261,14 @@ class AIronSuit(object):
         """
         if use_trainer:
             if self.__trainer:
-                inf_instance = self.__trainer
+                inference_instance = self.__trainer
             else:
-                inf_instance = self.__trainer_class(module=self.__model)
-                if hasattr(inf_instance, 'initialize') and callable(inf_instance.initialize):
-                    inf_instance.initialize()
+                inference_instance = self.__trainer_class(module=self.__model)
+                if hasattr(inference_instance, 'initialize') and callable(inference_instance.initialize):
+                    inference_instance.initialize()
         else:
-            inf_instance = self.__model
-        return inf_instance.predict(x)
+            inference_instance = self.__model
+        return inference_instance.predict(x)
 
     def save_model(self, name):
         """ Save the model.
