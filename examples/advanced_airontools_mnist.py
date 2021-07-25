@@ -1,3 +1,4 @@
+# Databricks notebook source
 import numpy as np
 from hyperopt.hp import uniform, choice
 from hyperopt import Trials
@@ -20,6 +21,7 @@ np.random.seed(0)
 HOME = os.path.expanduser("~")
 OS_SEP = os.path.sep
 
+# COMMAND ----------
 
 # Example Set-Up #
 
@@ -34,6 +36,8 @@ early_stopping = 3
 parallel_models = 2
 verbose = 0
 precision = 'float32'
+
+# COMMAND ----------
 
 # Choose devices
 if not use_gpu or len(get_available_gpus()) == 0:
@@ -100,6 +104,8 @@ path_modes = ['rm', 'make']
 for path in [prep_data_path, inference_data_path, results_path]:
     path_management(path, modes=path_modes)
 
+# COMMAND ----------
+
 # Exploration #
 
 # Load and preprocess data
@@ -145,6 +151,8 @@ aironsuit.explore(
     val_inference_in_path=results_path,
     callbacks=callbacks_dict)
 del x_train, x_val, y_train, y_val
+
+# COMMAND ----------
 
 # Test Evaluation #
 
