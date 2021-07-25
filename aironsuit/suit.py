@@ -29,9 +29,8 @@ class AIronSuit(object):
                 model_constructor_wrapper (function): Model constructor wrapper.
         """
 
-        self.model = None
+        self.model = model
         self.__model_constructor = model_constructor
-        self.__model = model
         self.__trainer = None
         self.__trainer_class = AIronTrainer if not trainer else trainer
         self.__model_constructor_wrapper = model_constructor_wrapper
@@ -51,11 +50,11 @@ class AIronSuit(object):
         self.__cuda = cuda
         self.__devices = devices if devices else []
         self.__total_n_models = n_parallel_models * len(self.__devices)
-        self.__model = self.__model_constructor(**specs)
+        self.model = self.__model_constructor(**specs)
         if self.__model_constructor_wrapper:
-            self.__model_constructor_wrapper(self.__model)
+            self.__model_constructor_wrapper(self.model)
         if self.__cuda in specs and BACKEND != 'tensorflow':
-            self.__model.cuda()
+            self.model.cuda()
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, path, max_evals, epochs,
                 metric=None, trials=None, net_name='NN', verbose=0, seed=None, val_inference_in_path=None,
@@ -218,8 +217,7 @@ class AIronSuit(object):
 
             return best_model, trainer
 
-        self.__model, self.__trainer = optimize()
-        self.model = self.__model
+        self.model, self.__trainer = optimize()
 
     def train(self, model, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
               results_path=None, verbose=None):
@@ -276,7 +274,7 @@ class AIronSuit(object):
             Parameters:
                 name (str): Model name.
         """
-        self.__save_model(model=self.__model, name=name)
+        self.__save_model(model=self.model, name=name)
 
     def load_model(self, name):
         """ Load the model.
@@ -284,7 +282,7 @@ class AIronSuit(object):
             Parameters:
                 name (str): Model name.
         """
-        self.__model = load_model(name)
+        self.model = load_model(name)
 
     def clear_session(self):
         clear_session()
@@ -292,7 +290,7 @@ class AIronSuit(object):
     def compile(self, loss, optimizer, metrics=None):
         """ Compile the model.
         """
-        self.__model.compile(optimizer=optimizer,
+        self.model.compile(optimizer=optimizer,
                              loss=loss,
                              metrics=metrics)
 
@@ -302,10 +300,10 @@ class AIronSuit(object):
     def __load_model(self, name):
         return load_model(name=name)
 
-    def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
+    def __train(self, train_specs, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
                 verbose=None):
         trainer_kargs = train_specs.copy()
-        trainer_kargs.update({'module': model})
+        trainer_kargs.update({'module': self.model})
         if callbacks:
             trainer_kargs.update({'callbacks': callbacks})
         trainer = self.__trainer_class(**trainer_kargs)
@@ -325,9 +323,9 @@ class AIronSuit(object):
             if self.__trainer:
                 instance = self.__trainer
             else:
-                instance = self.__trainer_class(module=self.__model)
+                instance = self.__trainer_class(module=self.model)
                 if hasattr(instance, 'initialize') and callable(instance.initialize):
                     instance.initialize()
         else:
-            instance = self.__model
+            instance = self.model
         return instance
