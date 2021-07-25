@@ -90,11 +90,11 @@ class AIronSuit(object):
             # Create model
             specs = space.copy()
             specs.update(model_specs)
-            model = self.__model_constructor(**specs)
+            self.model = self.__model_constructor(**specs)
             if self.__model_constructor_wrapper:
-                self.__model_constructor_wrapper(model)
+                self.__model_constructor_wrapper(self.model)
             if self.__cuda in specs and BACKEND != 'tensorflow':
-                model.cuda()
+                self.model.cuda()
 
             # Print some information
             iteration = len(trials.losses())
@@ -102,7 +102,7 @@ class AIronSuit(object):
                 print('\n')
                 print('iteration : {}'.format(0 if trials.losses() is None else iteration))
                 [print('{}: {}'.format(key, value)) for key, value in specs.items()]
-                print(model.summary(line_length=200))
+                print(self.model.summary(line_length=200))
 
             # Train model
             trainer = self.__train(
@@ -136,7 +136,7 @@ class AIronSuit(object):
                     acc_score.append(accuracy_score(y_pred[i],  y_val_[i]))
                 exp_loss = 1 - np.mean(acc_score)
             elif metric == 'i_auc':  # ToDo: make this work
-                y_pred = model.predict(x_val)
+                y_pred = self.model.predict(x_val)
                 if not isinstance(y_pred, list):
                     y_pred = [y_pred]
                 exp_loss = []
@@ -165,7 +165,7 @@ class AIronSuit(object):
             if status == STATUS_OK and best_exp_loss_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
-                self.__save_model(model=model, name=path + 'best_exp_' + net_name + '_json')
+                self.__save_model(model=self.model, name=path + 'best_exp_' + net_name + '_json')
                 with open(path + 'best_exp_' + net_name + '_hparams', 'wb') as f:
                     pickle.dump(space, f, protocol=pickle.HIGHEST_PROTOCOL)
                 if val_inference_in_path is not None:
@@ -176,7 +176,7 @@ class AIronSuit(object):
                     np.savetxt(val_inference_in_path + 'val_target_inference.csv', y_inf, delimiter=',')
 
             clear_session()
-            del model
+            del self.model
 
             return {'loss': exp_loss, 'status': status}
 
@@ -218,7 +218,7 @@ class AIronSuit(object):
 
         self.model, self.__trainer = optimize()
 
-    def train(self, model, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
+    def train(self, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
               results_path=None, verbose=None):
         """ Weight optimization.
 
@@ -246,7 +246,6 @@ class AIronSuit(object):
                 y_val=y_val,
                 callbacks=callbacks,
                 verbose=verbose)
-        self.model = model
 
     def inference(self, x, use_trainer=False):
         """ Inference.
