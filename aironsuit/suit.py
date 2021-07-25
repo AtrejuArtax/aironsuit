@@ -107,7 +107,6 @@ class AIronSuit(object):
             # Train model
             trainer = self.__train(
                 train_specs=train_specs,
-                model=model,
                 epochs=epochs,
                 x_train=x_train,
                 y_train=y_train,
@@ -240,7 +239,6 @@ class AIronSuit(object):
             'path': results_path}
         self.__trainer = self.__train(
                 train_specs=train_specs,
-                model=model,
                 epochs=epochs,
                 x_train=x_train,
                 y_train=y_train,
