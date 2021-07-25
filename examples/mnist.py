@@ -45,7 +45,6 @@ model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accur
 # Training
 aironsuit = AIronSuit(model=model)
 aironsuit.train(
-    model=model,
     epochs=epochs,
     x_train=x_train,
     y_train=y_train)
