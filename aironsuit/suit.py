@@ -107,6 +107,7 @@ class AIronSuit(object):
             # Train model
             trainer = self.__train(
                 train_specs=train_specs,
+                model=self.model,
                 epochs=epochs,
                 x_train=x_train,
                 y_train=y_train,
@@ -239,6 +240,7 @@ class AIronSuit(object):
             'path': results_path}
         self.__trainer = self.__train(
                 train_specs=train_specs,
+                model=self.model,
                 epochs=epochs,
                 x_train=x_train,
                 y_train=y_train,
@@ -297,10 +299,10 @@ class AIronSuit(object):
     def __load_model(self, name):
         return load_model(name=name)
 
-    def __train(self, train_specs, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
+    def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
                 verbose=None):
         trainer_kargs = train_specs.copy()
-        trainer_kargs.update({'module': self.model})
+        trainer_kargs.update({'module': model})
         if callbacks:
             trainer_kargs.update({'callbacks': callbacks})
         trainer = self.__trainer_class(**trainer_kargs)
