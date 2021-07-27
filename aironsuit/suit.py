@@ -309,7 +309,7 @@ class AIronSuit(object):
         train_kargs = {}
         if not any([val_ is None for val_ in [x_val, y_val]]) and \
                 all([val_ in list(getfullargspec(trainer.fit))[0] for val_ in ['x_val', 'y_val']]):
-            train_kargs.update({'x_val': x_train, 'y_val': y_train})
+            train_kargs.update({'x_val': x_val, 'y_val': y_val})
         train_kargs.update({'epochs': epochs})
         for karg, val in zip(['verbose'], [verbose]):
             if karg in list(getfullargspec(trainer.fit))[0]:
