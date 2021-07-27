@@ -29,9 +29,8 @@ class AIronSuit(object):
                 model_constructor_wrapper (function): Model constructor wrapper.
         """
 
-        self.model = None
+        self.model = model
         self.__model_constructor = model_constructor
-        self.__model = model
         self.__trainer = None
         self.__trainer_class = AIronTrainer if not trainer else trainer
         self.__model_constructor_wrapper = model_constructor_wrapper
@@ -51,11 +50,11 @@ class AIronSuit(object):
         self.__cuda = cuda
         self.__devices = devices if devices else []
         self.__total_n_models = n_parallel_models * len(self.__devices)
-        self.__model = self.__model_constructor(**specs)
+        self.model = self.__model_constructor(**specs)
         if self.__model_constructor_wrapper:
-            self.__model_constructor_wrapper(self.__model)
+            self.__model_constructor_wrapper(self.model)
         if self.__cuda in specs and BACKEND != 'tensorflow':
-            self.__model.cuda()
+            self.model.cuda()
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, path, max_evals, epochs,
                 metric=None, trials=None, net_name='NN', verbose=0, seed=None, val_inference_in_path=None,
@@ -79,7 +78,7 @@ class AIronSuit(object):
                 verbose (int): Verbosity.
                 seed (int): Seed for reproducible results.
                 val_inference_in_path (str): Path where to save validation inference.
-                callbacks (dict): Dictionary of callbacks.
+                callbacks (list): Dictionary of callbacks.
                 cuda (boolean): Whether cuda is available or not.
         """
         self.__cuda = cuda
@@ -91,11 +90,11 @@ class AIronSuit(object):
             # Create model
             specs = space.copy()
             specs.update(model_specs)
-            model = self.__model_constructor(**specs)
+            self.model = self.__model_constructor(**specs)
             if self.__model_constructor_wrapper:
-                self.__model_constructor_wrapper(model)
+                self.__model_constructor_wrapper(self.model)
             if self.__cuda in specs and BACKEND != 'tensorflow':
-                model.cuda()
+                self.model.cuda()
 
             # Print some information
             iteration = len(trials.losses())
@@ -103,12 +102,12 @@ class AIronSuit(object):
                 print('\n')
                 print('iteration : {}'.format(0 if trials.losses() is None else iteration))
                 [print('{}: {}'.format(key, value)) for key, value in specs.items()]
-                print(model.summary(line_length=200))
+                print(self.model.summary(line_length=200))
 
             # Train model
             trainer = self.__train(
                 train_specs=train_specs,
-                model=model,
+                model=self.model,
                 epochs=epochs,
                 x_train=x_train,
                 y_train=y_train,
@@ -138,7 +137,7 @@ class AIronSuit(object):
                     acc_score.append(accuracy_score(y_pred[i],  y_val_[i]))
                 exp_loss = 1 - np.mean(acc_score)
             elif metric == 'i_auc':  # ToDo: make this work
-                y_pred = model.predict(x_val)
+                y_pred = self.model.predict(x_val)
                 if not isinstance(y_pred, list):
                     y_pred = [y_pred]
                 exp_loss = []
@@ -167,7 +166,7 @@ class AIronSuit(object):
             if status == STATUS_OK and best_exp_loss_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
-                self.__save_model(model=model, name=path + 'best_exp_' + net_name + '_json')
+                self.__save_model(model=self.model, name=path + 'best_exp_' + net_name + '_json')
                 with open(path + 'best_exp_' + net_name + '_hparams', 'wb') as f:
                     pickle.dump(space, f, protocol=pickle.HIGHEST_PROTOCOL)
                 if val_inference_in_path is not None:
@@ -178,7 +177,7 @@ class AIronSuit(object):
                     np.savetxt(val_inference_in_path + 'val_target_inference.csv', y_inf, delimiter=',')
 
             clear_session()
-            del model
+            del self.model
 
             return {'loss': exp_loss, 'status': status}
 
@@ -218,10 +217,9 @@ class AIronSuit(object):
 
             return best_model, trainer
 
-        self.__model, self.__trainer = optimize()
-        self.model = self.__model
+        self.model, self.__trainer = optimize()
 
-    def train(self, model, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
+    def train(self, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
               results_path=None, verbose=None):
         """ Weight optimization.
 
@@ -242,7 +240,7 @@ class AIronSuit(object):
             'path': results_path}
         self.__trainer = self.__train(
                 train_specs=train_specs,
-                model=model,
+                model=self.model,
                 epochs=epochs,
                 x_train=x_train,
                 y_train=y_train,
@@ -250,7 +248,6 @@ class AIronSuit(object):
                 y_val=y_val,
                 callbacks=callbacks,
                 verbose=verbose)
-        self.model = model
 
     def inference(self, x, use_trainer=False):
         """ Inference.
@@ -259,16 +256,16 @@ class AIronSuit(object):
                 x (list, np.array): Input data for training.
                 use_trainer (boolean): Whether to use the current trainer or not.
         """
-        if use_trainer:
-            if self.__trainer:
-                inf_instance = self.__trainer
-            else:
-                inf_instance = self.__trainer_class(module=self.__model)
-                if hasattr(inf_instance, 'initialize') and callable(inf_instance.initialize):
-                    inf_instance.initialize()
-        else:
-            inf_instance = self.__model
-        return inf_instance.predict(x)
+        return self.__get_model_interactor(use_trainer).predict(x)
+
+    def evaluate(self, x, y, use_trainer=False):
+        """ Evaluate.
+
+            Parameters:
+                x (list, np.array): Input data for training.
+                use_trainer (boolean): Whether to use the current trainer or not.
+        """
+        return self.__get_model_interactor(use_trainer).evaluate(x, y)
 
     def save_model(self, name):
         """ Save the model.
@@ -276,7 +273,7 @@ class AIronSuit(object):
             Parameters:
                 name (str): Model name.
         """
-        self.__save_model(model=self.__model, name=name)
+        self.__save_model(model=self.model, name=name)
 
     def load_model(self, name):
         """ Load the model.
@@ -284,7 +281,7 @@ class AIronSuit(object):
             Parameters:
                 name (str): Model name.
         """
-        self.__model = load_model(name)
+        self.model = load_model(name)
 
     def clear_session(self):
         clear_session()
@@ -292,7 +289,7 @@ class AIronSuit(object):
     def compile(self, loss, optimizer, metrics=None):
         """ Compile the model.
         """
-        self.__model.compile(optimizer=optimizer,
+        self.model.compile(optimizer=optimizer,
                              loss=loss,
                              metrics=metrics)
 
@@ -312,10 +309,22 @@ class AIronSuit(object):
         train_kargs = {}
         if not any([val_ is None for val_ in [x_val, y_val]]) and \
                 all([val_ in list(getfullargspec(trainer.fit))[0] for val_ in ['x_val', 'y_val']]):
-            train_kargs.update({'x_val': x_train, 'y_val': y_train})
+            train_kargs.update({'x_val': x_val, 'y_val': y_val})
         train_kargs.update({'epochs': epochs})
         for karg, val in zip(['verbose'], [verbose]):
             if karg in list(getfullargspec(trainer.fit))[0]:
                 train_kargs.update({'verbose': val})
         trainer.fit(x_train, y_train, **train_kargs)
         return trainer
+
+    def __get_model_interactor(self, use_trainer):
+        if use_trainer:
+            if self.__trainer:
+                instance = self.__trainer
+            else:
+                instance = self.__trainer_class(module=self.model)
+                if hasattr(instance, 'initialize') and callable(instance.initialize):
+                    instance.initialize()
+        else:
+            instance = self.model
+        return instance

@@ -1,3 +1,4 @@
+# Databricks notebook source
 import numpy as np
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -5,12 +6,16 @@ import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 
+# COMMAND ----------
+
 # Example Set-Up #
 
 num_classes = 10
 input_shape = (28, 28, 1)
 batch_size = 128
 epochs = 10
+
+# COMMAND ----------
 
 # Load data
 (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
@@ -20,6 +25,8 @@ x_train = np.expand_dims(x_train.astype('float32') / 255, -1)
 x_test = np.expand_dims(x_test.astype('float32') / 255, -1)
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
+
+# COMMAND ----------
 
 # Create model
 model = keras.Sequential([
@@ -33,15 +40,18 @@ model = keras.Sequential([
     layers.Dense(num_classes, activation='softmax')])
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
+# COMMAND ----------
+
 # Training
 aironsuit = AIronSuit(model=model)
 aironsuit.train(
-    model=model,
     epochs=epochs,
     x_train=x_train,
     y_train=y_train)
 
+# COMMAND ----------
+
 # Evaluate
-score = aironsuit.model.evaluate(x_test, y_test, verbose=0)
+score = aironsuit.evaluate(x_test, y_test)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
