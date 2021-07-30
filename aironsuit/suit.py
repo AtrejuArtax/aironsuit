@@ -7,7 +7,7 @@ import pickle
 import math
 from sklearn.metrics import accuracy_score
 from inspect import getfullargspec
-from aironsuit.utils import load_model, save_model, clear_session
+from aironsuit.utils import load_model, save_model, clear_session, summary
 from aironsuit.trainers import *
 from tensorflow.keras import Model
 
@@ -292,6 +292,12 @@ class AIronSuit(object):
         self.model.compile(optimizer=optimizer,
                              loss=loss,
                              metrics=metrics)
+
+    def summary(self):
+        """ Show model summary.
+        """
+        if self.model:
+            summary(self.model)
 
     def __save_model(self, model, name):
         save_model(model=model, name=name)

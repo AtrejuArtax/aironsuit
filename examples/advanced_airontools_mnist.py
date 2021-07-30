@@ -150,6 +150,7 @@ aironsuit.explore(
     metric=metric,
     val_inference_in_path=results_path,
     callbacks=callbacks_dict)
+aironsuit.summary()
 del x_train, x_val, y_train, y_val
 
 # COMMAND ----------
