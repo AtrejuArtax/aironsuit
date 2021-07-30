@@ -118,7 +118,7 @@ class AIronSuit(object):
 
             # Exploration loss
             exp_loss = None  # ToDo: compatible with custom metric
-            if metric in [None, 'categorical_accuracy', 'accuracy']:
+            if metric in ['categorical_accuracy', 'accuracy']:
                 def prepare_for_acc(x):
                     if not isinstance(x, list):
                         x_ = [x]
@@ -146,6 +146,11 @@ class AIronSuit(object):
                         fpr, tpr, thresholds = metrics.roc_curve(y_val[i][:, -1], y_pred[i][:, -1])
                         exp_loss += [(1 - metrics.auc(fpr, tpr))]
                 exp_loss = np.mean(exp_loss) if len(exp_loss) > 0 else 1
+            else:
+                exp_loss = self.model.evaluate(x_val, y_val)
+                if isinstance(exp_loss, list):
+                    exp_loss = exp_loss[0]
+
             if verbose > 0:
                 print('\n')
                 print('Exploration Loss: ', exp_loss)
