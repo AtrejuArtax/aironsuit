@@ -275,13 +275,15 @@ class AIronSuit(object):
         """
         self.__save_model(model=self.model, name=name)
 
-    def load_model(self, name):
+    def load_model(self, name, custom_objects=None):
         """ Load the model.
 
             Parameters:
                 name (str): Model name.
+                custom_objects (dict): Custom layers instances tu use when loading a custom model.
+                {'custom_layer_name': custom_layer}
         """
-        self.model = load_model(name)
+        self.model = load_model(name=name, custom_objects=custom_objects)
 
     def clear_session(self):
         clear_session()
@@ -302,8 +304,8 @@ class AIronSuit(object):
     def __save_model(self, model, name):
         save_model(model=model, name=name)
 
-    def __load_model(self, name):
-        return load_model(name=name)
+    def __load_model(self, name, custom_objects=None):
+        return load_model(name=name, custom_objects=custom_objects)
 
     def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
                 verbose=None):

@@ -3,11 +3,11 @@ import tensorflow.keras.backend as bcknd
 from inspect import getfullargspec
 
 
-def load_model(name):
+def load_model(name, custom_objects=None):
     json_file = open(name + '_topology', 'r')
     loaded_model_json = json_file.read()
     json_file.close()
-    model = model_from_json(loaded_model_json)
+    model = model_from_json(loaded_model_json, custom_objects)
     model.load_weights(filepath=name + '_weights')
     return model
 
