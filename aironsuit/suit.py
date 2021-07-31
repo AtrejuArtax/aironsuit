@@ -9,7 +9,7 @@ from sklearn.metrics import accuracy_score
 from inspect import getfullargspec
 from aironsuit.utils import load_model, save_model, clear_session, summary
 from aironsuit.trainers import *
-from tensorflow.keras import Model
+from aironsuit.models import Model, get_latent_model
 
 BACKEND = get_backend()
 
@@ -30,6 +30,7 @@ class AIronSuit(object):
         """
 
         self.model = model
+        self.latent_model = None
         self.__model_constructor = model_constructor
         self.__trainer = None
         self.__trainer_class = AIronTrainer if not trainer else trainer
@@ -117,7 +118,7 @@ class AIronSuit(object):
                 verbose=verbose)
 
             # Exploration loss
-            exp_loss = None  # ToDo: compatible with custom metric
+            # ToDo: compatible with custom metric
             if metric in ['categorical_accuracy', 'accuracy']:
                 def prepare_for_acc(x):
                     if not isinstance(x, list):
@@ -262,6 +263,27 @@ class AIronSuit(object):
                 use_trainer (boolean): Whether to use the current trainer or not.
         """
         return self.__get_model_interactor(use_trainer).predict(x)
+    
+    def latent_inference(self, x, layer_names=None):
+        """ Latent inference.
+
+            Parameters:
+                x (list, np.array): Input data for training.
+                layer_names (str): Layer names.
+        """
+        assert all([var is not None for var in [layer_names, self.latent_model]])
+        if layer_names:
+            self.latent_model = get_latent_model(self.model, layer_names)
+        return self.latent_model.predict(x)
+    
+    def create_latent_model(self, layer_names):
+        """ Create latent model given a model and layer names.
+
+            Parameters:
+                layer_names (str): Layer names.
+        """
+        assert self.model is not None
+        self.latent_model = get_latent_model(self.model, layer_names)
 
     def evaluate(self, x, y, use_trainer=False):
         """ Evaluate.
