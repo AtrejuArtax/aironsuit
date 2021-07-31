@@ -35,8 +35,8 @@ def summary(model):
     print('\n')
     print('_________________ Layers/Sub-Models Summaries ___________________')
     for layer in model.layers:
-            print(layer.name)
-            try:
-                print(layer.summary())
-            except:
-                pass
+        print(layer.name)
+        try:
+            print(layer.summary())
+        except:
+            pass

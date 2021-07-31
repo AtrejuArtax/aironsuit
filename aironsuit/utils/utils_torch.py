@@ -13,3 +13,7 @@ def load_model(name, custom_objects=None):
 
 def clear_session():
     pass
+
+
+def summary(model):
+    pass
