@@ -31,7 +31,6 @@ class AIronSuit(object):
     """
 
     def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None):
-
         """
             Parameters:
                 model_constructor (function): Function that returns a model.
@@ -73,7 +72,7 @@ class AIronSuit(object):
                 seed (int): Seed for reproducible results.
                 val_inference_in_path (str): Path where to save validation inference.
                 callbacks (list): Dictionary of callbacks.
-                cuda (boolean): Whether cuda is available or not.
+                cuda (bool): Whether cuda is available or not.
         """
         self.__cuda = cuda
         if trials is None:
@@ -248,7 +247,7 @@ class AIronSuit(object):
 
             Parameters:
                 x (list, np.array): Input data for training.
-                use_trainer (boolean): Whether to use the current trainer or not.
+                use_trainer (bool): Whether to use the current trainer or not.
         """
         return self.__get_model_interactor(use_trainer).predict(x)
     
@@ -278,7 +277,7 @@ class AIronSuit(object):
 
             Parameters:
                 x (list, np.array): Input data for training.
-                use_trainer (boolean): Whether to use the current trainer or not.
+                use_trainer (bool): Whether to use the current trainer or not.
         """
         return self.__get_model_interactor(use_trainer).evaluate(x, y)
 
