@@ -17,6 +17,17 @@ BACKEND = get_backend()
 class AIronSuit(object):
     """ AIronSuit is a model wrapper that takes care of the hyper-parameter optimization problem, training and inference
     among other things.
+
+        Attributes:
+            model (Model): NN model.
+            latent_model (Model): Latent NN model.
+            __model_constructor (function): NN model constructor.
+            __trainer (object): NN model constructor instance.
+            __trainer_class (AIronTrainer): NN model trainer.
+            __cuda (bool): Whether to use cuda or not.
+            __devices (list): Devices where to make the computations.
+            __total_n_models (int): Total number of models in parallel.
+
     """
 
     def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None):
@@ -208,7 +219,6 @@ class AIronSuit(object):
         """ Weight optimization.
 
             Parameters:
-                model (Model): User customized model.
                 epochs (int): Number of epochs for model training.
                 x_train (list, np.array): Input data for training.
                 y_train (list, np.array): Output data for training.
