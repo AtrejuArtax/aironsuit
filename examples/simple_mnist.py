@@ -73,6 +73,7 @@ del aironsuit, model
 # Re-Invoke AIronSuit and load model
 aironsuit = AIronSuit()
 aironsuit.load_model(os.path.join(os.path.expanduser('~'), project_name + '_model'))
+aironsuit.model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 # Further Training
 aironsuit.train(

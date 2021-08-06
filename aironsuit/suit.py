@@ -301,13 +301,6 @@ class AIronSuit(object):
     def clear_session(self):
         clear_session()
 
-    def compile(self, loss, optimizer, metrics=None):
-        """ Compile the model.
-        """
-        self.model.compile(optimizer=optimizer,
-                             loss=loss,
-                             metrics=metrics)
-
     def summary(self):
         """ Show model summary.
         """

@@ -177,7 +177,6 @@ x_test, _, y_test, _, _ = array_to_list(
     input_data=test_dataset,
     output_data=test_targets,
     n_parallel_models=model_specs['parallel_models'] * len(model_specs['devices']),
-    data_specs=data_specs,
     val_ratio=0)
 y_test = y_test[0]
 
