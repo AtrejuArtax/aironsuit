@@ -39,14 +39,6 @@ class AIronSuit(object):
         self.__devices = None
         self.__total_n_models = None
 
-    def create(self, **kwargs):
-        """ Creates a model.
-
-            Parameters:
-                specs (dict): A dictionary containing the model specifications.
-        """
-        self.__create(**kwargs)
-
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, path, max_evals, epochs,
                 metric=None, trials=None, net_name='NN', verbose=0, seed=None, val_inference_in_path=None,
                 callbacks=None, cuda=None):
