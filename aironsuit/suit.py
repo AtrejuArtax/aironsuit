@@ -39,23 +39,13 @@ class AIronSuit(object):
         self.__devices = None
         self.__total_n_models = None
 
-    def create(self, specs, n_parallel_models=1, devices=None, cuda=None):
+    def create(self, **kwargs):
         """ Creates a model.
 
             Parameters:
                 specs (dict): A dictionary containing the model specifications.
-                n_parallel_models (int): An integer specifying the amount of parallel models to be created.
-                devices (list): A list of devices to use.
-                cuda (boolean): Whether cuda is available or not.
         """
-        self.__cuda = cuda
-        self.__devices = devices if devices else []
-        self.__total_n_models = n_parallel_models * len(self.__devices)
-        self.model = self.__model_constructor(**specs)
-        if self.__model_constructor_wrapper:
-            self.__model_constructor_wrapper(self.model)
-        if self.__cuda in specs and BACKEND != 'tensorflow':
-            self.model.cuda()
+        self.__create(**kwargs)
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, path, max_evals, epochs,
                 metric=None, trials=None, net_name='NN', verbose=0, seed=None, val_inference_in_path=None,
@@ -91,11 +81,7 @@ class AIronSuit(object):
             # Create model
             specs = space.copy()
             specs.update(model_specs)
-            self.model = self.__model_constructor(**specs)
-            if self.__model_constructor_wrapper:
-                self.__model_constructor_wrapper(self.model)
-            if self.__cuda in specs and BACKEND != 'tensorflow':
-                self.model.cuda()
+            self.__create(**specs)
 
             # Print some information
             iteration = len(trials.losses())
@@ -363,3 +349,10 @@ class AIronSuit(object):
         else:
             instance = self.model
         return instance
+
+    def __create(self, **kwargs):
+        self.model = self.__model_constructor(**kwargs)
+        if self.__model_constructor_wrapper:
+            self.__model_constructor_wrapper(self.model)
+        if self.__cuda in kwargs and BACKEND != 'tensorflow':
+            self.model.cuda()
