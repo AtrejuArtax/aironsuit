@@ -17,10 +17,20 @@ BACKEND = get_backend()
 class AIronSuit(object):
     """ AIronSuit is a model wrapper that takes care of the hyper-parameter optimization problem, training and inference
     among other things.
+
+        Attributes:
+            model (Model): NN model.
+            latent_model (Model): Latent NN model.
+            __model_constructor (function): NN model constructor.
+            __trainer (object): NN model constructor instance.
+            __trainer_class (AIronTrainer): NN model trainer.
+            __cuda (bool): Whether to use cuda or not.
+            __devices (list): Devices where to make the computations.
+            __total_n_models (int): Total number of models in parallel.
+
     """
 
     def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None):
-
         """
             Parameters:
                 model_constructor (function): Function that returns a model.
@@ -38,24 +48,6 @@ class AIronSuit(object):
         self.__cuda = None
         self.__devices = None
         self.__total_n_models = None
-
-    def create(self, specs, n_parallel_models=1, devices=None, cuda=None):
-        """ Creates a model.
-
-            Parameters:
-                specs (dict): A dictionary containing the model specifications.
-                n_parallel_models (int): An integer specifying the amount of parallel models to be created.
-                devices (list): A list of devices to use.
-                cuda (boolean): Whether cuda is available or not.
-        """
-        self.__cuda = cuda
-        self.__devices = devices if devices else []
-        self.__total_n_models = n_parallel_models * len(self.__devices)
-        self.model = self.__model_constructor(**specs)
-        if self.__model_constructor_wrapper:
-            self.__model_constructor_wrapper(self.model)
-        if self.__cuda in specs and BACKEND != 'tensorflow':
-            self.model.cuda()
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, path, max_evals, epochs,
                 metric=None, trials=None, net_name='NN', verbose=0, seed=None, val_inference_in_path=None,
@@ -80,7 +72,7 @@ class AIronSuit(object):
                 seed (int): Seed for reproducible results.
                 val_inference_in_path (str): Path where to save validation inference.
                 callbacks (list): Dictionary of callbacks.
-                cuda (boolean): Whether cuda is available or not.
+                cuda (bool): Whether cuda is available or not.
         """
         self.__cuda = cuda
         if trials is None:
@@ -91,11 +83,7 @@ class AIronSuit(object):
             # Create model
             specs = space.copy()
             specs.update(model_specs)
-            self.model = self.__model_constructor(**specs)
-            if self.__model_constructor_wrapper:
-                self.__model_constructor_wrapper(self.model)
-            if self.__cuda in specs and BACKEND != 'tensorflow':
-                self.model.cuda()
+            self.__create(**specs)
 
             # Print some information
             iteration = len(trials.losses())
@@ -230,7 +218,6 @@ class AIronSuit(object):
         """ Weight optimization.
 
             Parameters:
-                model (Model): User customized model.
                 epochs (int): Number of epochs for model training.
                 x_train (list, np.array): Input data for training.
                 y_train (list, np.array): Output data for training.
@@ -260,7 +247,7 @@ class AIronSuit(object):
 
             Parameters:
                 x (list, np.array): Input data for training.
-                use_trainer (boolean): Whether to use the current trainer or not.
+                use_trainer (bool): Whether to use the current trainer or not.
         """
         return self.__get_model_interactor(use_trainer).predict(x)
     
@@ -290,7 +277,7 @@ class AIronSuit(object):
 
             Parameters:
                 x (list, np.array): Input data for training.
-                use_trainer (boolean): Whether to use the current trainer or not.
+                use_trainer (bool): Whether to use the current trainer or not.
         """
         return self.__get_model_interactor(use_trainer).evaluate(x, y)
 
@@ -314,13 +301,6 @@ class AIronSuit(object):
 
     def clear_session(self):
         clear_session()
-
-    def compile(self, loss, optimizer, metrics=None):
-        """ Compile the model.
-        """
-        self.model.compile(optimizer=optimizer,
-                             loss=loss,
-                             metrics=metrics)
 
     def summary(self):
         """ Show model summary.
@@ -363,3 +343,10 @@ class AIronSuit(object):
         else:
             instance = self.model
         return instance
+
+    def __create(self, **kwargs):
+        self.model = self.__model_constructor(**kwargs)
+        if self.__model_constructor_wrapper:
+            self.__model_constructor_wrapper(self.model)
+        if self.__cuda in kwargs and BACKEND != 'tensorflow':
+            self.model.cuda()
