@@ -275,7 +275,7 @@ class AIronSuit(object):
         if layer_names:
             self.latent_model = get_latent_model(self.model, layer_names)
         return self.latent_model.predict(x)
-    
+
     def create_latent_model(self, layer_names):
         """ Create latent model given a model and layer names.
 
