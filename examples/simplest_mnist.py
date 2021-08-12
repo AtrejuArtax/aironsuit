@@ -10,6 +10,7 @@ from aironsuit.suit import AIronSuit
 
 # Example Set-Up #
 
+project_name = 'simplest_mnist'
 num_classes = 10
 input_shape = (28, 28, 1)
 batch_size = 128
@@ -42,8 +43,13 @@ model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accur
 
 # COMMAND ----------
 
-# Training
+# Invoke AIronSuit
 aironsuit = AIronSuit(model=model)
+aironsuit.summary()
+
+# COMMAND ----------
+
+# Training
 aironsuit.train(
     epochs=epochs,
     x_train=x_train,
@@ -55,3 +61,8 @@ aironsuit.train(
 score = aironsuit.evaluate(x_test, y_test)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
+
+# COMMAND ----------
+
+# Save Model
+aironsuit.save_model(os.path.join(os.path.expanduser("~"), project_name + '_model'))

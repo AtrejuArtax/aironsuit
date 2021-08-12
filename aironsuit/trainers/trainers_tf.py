@@ -4,16 +4,16 @@ import glob
 
 class AIronTrainer(object):
 
-    def __init__(self, module, **kargs):
+    def __init__(self, module, **kwargs):
         self.__module = module
         available_kargs = ['callbacks', 'mode', 'class_weight', 'path', 'batch_size']
-        for karg in kargs.keys():
-            assert karg in available_kargs
-        self.__callbacks = kargs['callbacks'] if 'callbacks' in kargs else None
-        self.__mode = kargs['mode'] if 'mode' in kargs else None
-        self.__class_weight = kargs['class_weight'] if 'class_weight' in kargs else None
-        self.__path = kargs['path'] if 'path' in kargs else None
-        self.__batch_size = kargs['batch_size'] if 'batch_size' in kargs else 32
+        for wkarg in kwargs.keys():
+            assert wkarg in available_kargs
+        self.__callbacks = kwargs['callbacks'] if 'callbacks' in kwargs else None
+        self.__mode = kwargs['mode'] if 'mode' in kwargs else None
+        self.__class_weight = kwargs['class_weight'] if 'class_weight' in kwargs else None
+        self.__path = kwargs['path'] if 'path' in kwargs else None
+        self.__batch_size = kwargs['batch_size'] if 'batch_size' in kwargs else 32
 
     def __setattr__(self, key, value):
         self.__dict__[key] = value

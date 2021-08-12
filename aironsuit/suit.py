@@ -7,9 +7,9 @@ import pickle
 import math
 from sklearn.metrics import accuracy_score
 from inspect import getfullargspec
-from aironsuit.utils import load_model, save_model, clear_session
+from aironsuit.utils import load_model, save_model, clear_session, summary
 from aironsuit.trainers import *
-from tensorflow.keras import Model
+from aironsuit.models import Model, get_latent_model
 
 BACKEND = get_backend()
 
@@ -17,10 +17,20 @@ BACKEND = get_backend()
 class AIronSuit(object):
     """ AIronSuit is a model wrapper that takes care of the hyper-parameter optimization problem, training and inference
     among other things.
+
+        Attributes:
+            model (Model): NN model.
+            latent_model (Model): Latent NN model.
+            __model_constructor (function): NN model constructor.
+            __trainer (object): NN model constructor instance.
+            __trainer_class (AIronTrainer): NN model trainer.
+            __cuda (bool): Whether to use cuda or not.
+            __devices (list): Devices where to make the computations.
+            __total_n_models (int): Total number of models in parallel.
+
     """
 
     def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None):
-
         """
             Parameters:
                 model_constructor (function): Function that returns a model.
@@ -30,6 +40,7 @@ class AIronSuit(object):
         """
 
         self.model = model
+        self.latent_model = None
         self.__model_constructor = model_constructor
         self.__trainer = None
         self.__trainer_class = AIronTrainer if not trainer else trainer
@@ -37,24 +48,6 @@ class AIronSuit(object):
         self.__cuda = None
         self.__devices = None
         self.__total_n_models = None
-
-    def create(self, specs, n_parallel_models=1, devices=None, cuda=None):
-        """ Creates a model.
-
-            Parameters:
-                specs (dict): A dictionary containing the model specifications.
-                n_parallel_models (int): An integer specifying the amount of parallel models to be created.
-                devices (list): A list of devices to use.
-                cuda (boolean): Whether cuda is available or not.
-        """
-        self.__cuda = cuda
-        self.__devices = devices if devices else []
-        self.__total_n_models = n_parallel_models * len(self.__devices)
-        self.model = self.__model_constructor(**specs)
-        if self.__model_constructor_wrapper:
-            self.__model_constructor_wrapper(self.model)
-        if self.__cuda in specs and BACKEND != 'tensorflow':
-            self.model.cuda()
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, path, max_evals, epochs,
                 metric=None, trials=None, net_name='NN', verbose=0, seed=None, val_inference_in_path=None,
@@ -79,7 +72,7 @@ class AIronSuit(object):
                 seed (int): Seed for reproducible results.
                 val_inference_in_path (str): Path where to save validation inference.
                 callbacks (list): Dictionary of callbacks.
-                cuda (boolean): Whether cuda is available or not.
+                cuda (bool): Whether cuda is available or not.
         """
         self.__cuda = cuda
         if trials is None:
@@ -90,11 +83,7 @@ class AIronSuit(object):
             # Create model
             specs = space.copy()
             specs.update(model_specs)
-            self.model = self.__model_constructor(**specs)
-            if self.__model_constructor_wrapper:
-                self.__model_constructor_wrapper(self.model)
-            if self.__cuda in specs and BACKEND != 'tensorflow':
-                self.model.cuda()
+            self.__create(**specs)
 
             # Print some information
             iteration = len(trials.losses())
@@ -117,8 +106,8 @@ class AIronSuit(object):
                 verbose=verbose)
 
             # Exploration loss
-            exp_loss = None  # ToDo: compatible with custom metric
-            if metric in [None, 'categorical_accuracy', 'accuracy']:
+            # ToDo: compatible with custom metric
+            if metric in ['categorical_accuracy', 'accuracy']:
                 def prepare_for_acc(x):
                     if not isinstance(x, list):
                         x_ = [x]
@@ -146,6 +135,11 @@ class AIronSuit(object):
                         fpr, tpr, thresholds = metrics.roc_curve(y_val[i][:, -1], y_pred[i][:, -1])
                         exp_loss += [(1 - metrics.auc(fpr, tpr))]
                 exp_loss = np.mean(exp_loss) if len(exp_loss) > 0 else 1
+            else:
+                exp_loss = self.model.evaluate(x_val, y_val)
+                if isinstance(exp_loss, list):
+                    exp_loss = exp_loss[0]
+
             if verbose > 0:
                 print('\n')
                 print('Exploration Loss: ', exp_loss)
@@ -224,7 +218,6 @@ class AIronSuit(object):
         """ Weight optimization.
 
             Parameters:
-                model (Model): User customized model.
                 epochs (int): Number of epochs for model training.
                 x_train (list, np.array): Input data for training.
                 y_train (list, np.array): Output data for training.
@@ -254,16 +247,37 @@ class AIronSuit(object):
 
             Parameters:
                 x (list, np.array): Input data for training.
-                use_trainer (boolean): Whether to use the current trainer or not.
+                use_trainer (bool): Whether to use the current trainer or not.
         """
         return self.__get_model_interactor(use_trainer).predict(x)
+    
+    def latent_inference(self, x, layer_names=None):
+        """ Latent inference.
+
+            Parameters:
+                x (list, np.array): Input data for training.
+                layer_names (str): Layer names.
+        """
+        assert all([var is not None for var in [layer_names, self.latent_model]])
+        if layer_names:
+            self.latent_model = get_latent_model(self.model, layer_names)
+        return self.latent_model.predict(x)
+
+    def create_latent_model(self, layer_names):
+        """ Create latent model given a model and layer names.
+
+            Parameters:
+                layer_names (str): Layer names.
+        """
+        assert self.model is not None
+        self.latent_model = get_latent_model(self.model, layer_names)
 
     def evaluate(self, x, y, use_trainer=False):
         """ Evaluate.
 
             Parameters:
                 x (list, np.array): Input data for training.
-                use_trainer (boolean): Whether to use the current trainer or not.
+                use_trainer (bool): Whether to use the current trainer or not.
         """
         return self.__get_model_interactor(use_trainer).evaluate(x, y)
 
@@ -275,29 +289,30 @@ class AIronSuit(object):
         """
         self.__save_model(model=self.model, name=name)
 
-    def load_model(self, name):
+    def load_model(self, name, custom_objects=None):
         """ Load the model.
 
             Parameters:
                 name (str): Model name.
+                custom_objects (dict): Custom layers instances tu use when loading a custom model.
+                {'custom_layer_name': custom_layer}
         """
-        self.model = load_model(name)
+        self.model = load_model(name=name, custom_objects=custom_objects)
 
     def clear_session(self):
         clear_session()
 
-    def compile(self, loss, optimizer, metrics=None):
-        """ Compile the model.
+    def summary(self):
+        """ Show model summary.
         """
-        self.model.compile(optimizer=optimizer,
-                             loss=loss,
-                             metrics=metrics)
+        if self.model:
+            summary(self.model)
 
     def __save_model(self, model, name):
         save_model(model=model, name=name)
 
-    def __load_model(self, name):
-        return load_model(name=name)
+    def __load_model(self, name, custom_objects=None):
+        return load_model(name=name, custom_objects=custom_objects)
 
     def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
                 verbose=None):
@@ -328,3 +343,10 @@ class AIronSuit(object):
         else:
             instance = self.model
         return instance
+
+    def __create(self, **kwargs):
+        self.model = self.__model_constructor(**kwargs)
+        if self.__model_constructor_wrapper:
+            self.__model_constructor_wrapper(self.model)
+        if self.__cuda in kwargs and BACKEND != 'tensorflow':
+            self.model.cuda()

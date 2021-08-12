@@ -106,6 +106,11 @@ for path in [prep_data_path, inference_data_path, results_path]:
 
 # COMMAND ----------
 
+# Invoke AIronSuit
+aironsuit = AIronSuit(model_constructor=net_constructor)
+
+# COMMAND ----------
+
 # Exploration #
 
 # Load and preprocess data
@@ -125,13 +130,13 @@ x_train, x_val, y_train, y_val, train_val_inds = array_to_list(
     input_data=train_dataset,
     output_data=train_targets,
     n_parallel_models=model_specs['parallel_models'],
-    data_specs=data_specs,
     do_kfolds=False if model_specs['parallel_models'] == 1 else True)
+
+# COMMAND ----------
 
 # Exploration
 print('\n')
 print('Exploring \n')
-aironsuit = AIronSuit(model_constructor=net_constructor)
 aironsuit.explore(
     x_train=x_train,
     y_train=y_train,
@@ -150,6 +155,7 @@ aironsuit.explore(
     metric=metric,
     val_inference_in_path=results_path,
     callbacks=callbacks_dict)
+aironsuit.summary()
 del x_train, x_val, y_train, y_val
 
 # COMMAND ----------
@@ -171,7 +177,6 @@ x_test, _, y_test, _, _ = array_to_list(
     input_data=test_dataset,
     output_data=test_targets,
     n_parallel_models=model_specs['parallel_models'] * len(model_specs['devices']),
-    data_specs=data_specs,
     val_ratio=0)
 y_test = y_test[0]
 
