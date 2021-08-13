@@ -8,8 +8,10 @@ import math
 from sklearn.metrics import accuracy_score
 from inspect import getfullargspec
 from aironsuit.utils import load_model, save_model, clear_session, summary
-from aironsuit.trainers import *
+from aironsuit.trainers import AIronTrainer
 from aironsuit.models import Model, get_latent_model
+from aironsuit.callbacks import init_callbacks
+from aironsuit.backend import get_backend
 
 BACKEND = get_backend()
 
@@ -102,7 +104,7 @@ class AIronSuit(object):
                 y_train=y_train,
                 x_val=x_val,
                 y_val=y_val,
-                callbacks=callbacks,
+                callbacks=init_callbacks(callbacks),
                 verbose=verbose)
 
             # Exploration loss
@@ -202,7 +204,7 @@ class AIronSuit(object):
 
             # Trainer
             trainer_kargs = train_specs.copy()
-            trainer_kargs.update({'module': best_model})
+            trainer_kargs.update({'model': best_model})
             if callbacks:
                 trainer_kargs.update({'callbacks': callbacks})
             trainer = self.__trainer_class(**trainer_kargs)
@@ -317,19 +319,19 @@ class AIronSuit(object):
     def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
                 verbose=None):
         trainer_kargs = train_specs.copy()
-        trainer_kargs.update({'module': model})
+        trainer_kargs.update({'model': model})
         if callbacks:
             trainer_kargs.update({'callbacks': callbacks})
         trainer = self.__trainer_class(**trainer_kargs)
         train_kargs = {}
         if not any([val_ is None for val_ in [x_val, y_val]]) and \
-                all([val_ in list(getfullargspec(trainer.fit))[0] for val_ in ['x_val', 'y_val']]):
+                all([val_ in list(getfullargspec(trainer.train))[0] for val_ in ['x_val', 'y_val']]):
             train_kargs.update({'x_val': x_val, 'y_val': y_val})
         train_kargs.update({'epochs': epochs})
         for karg, val in zip(['verbose'], [verbose]):
-            if karg in list(getfullargspec(trainer.fit))[0]:
+            if karg in list(getfullargspec(trainer.train))[0]:
                 train_kargs.update({'verbose': val})
-        trainer.fit(x_train, y_train, **train_kargs)
+        trainer.train(x_train, y_train, **train_kargs)
         return trainer
 
     def __get_model_interactor(self, use_trainer):
@@ -337,7 +339,7 @@ class AIronSuit(object):
             if self.__trainer:
                 instance = self.__trainer
             else:
-                instance = self.__trainer_class(module=self.model)
+                instance = self.__trainer_class(model=self.model)
                 if hasattr(instance, 'initialize') and callable(instance.initialize):
                     instance.initialize()
         else:

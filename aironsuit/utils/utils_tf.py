@@ -1,6 +1,5 @@
 from tensorflow.keras.models import model_from_json, Model
 import tensorflow.keras.backend as bcknd
-from inspect import getfullargspec
 
 
 def load_model(name, custom_objects=None):
