@@ -1,7 +1,7 @@
 from tensorflow.keras import callbacks
 
 
-def get_basic_callbacks(path, patience, model_name=None, ext=None, verbose=0):
+def get_basic_callbacks(path, patience, model_name=None, ext=None, verbose=0, epochs=None):
     basic_callbacks = []
     board_dir = path
     model_name_ = model_name if model_name else 'NN'

@@ -157,7 +157,7 @@ class AIronSuit(object):
                 pickle.dump(trials, f)
 
             # Save model if it is the best so far
-            best_exp_losss_name = path + 'best_' + net_name + '_exp_loss'
+            best_exp_losss_name = path + 'best_' + model_name + '_exp_loss'
             trials_losses = [loss_ for loss_ in trials.losses() if loss_]
             best_exp_loss = min(trials_losses) if len(trials_losses) > 0 else None
             print('best val loss so far: ', best_exp_loss)
@@ -167,8 +167,8 @@ class AIronSuit(object):
             if status == STATUS_OK and best_exp_loss_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
-                self.__save_model(model=self.model, name=path + 'best_exp_' + net_name + '_json')
-                with open(path + 'best_exp_' + net_name + '_hparams', 'wb') as f:
+                self.__save_model(model=self.model, name=path + 'best_exp_' + model_name + '_json')
+                with open(path + 'best_exp_' + model_name + '_hparams', 'wb') as f:
                     pickle.dump(space, f, protocol=pickle.HIGHEST_PROTOCOL)
                 if val_inference_in_path is not None:
                     y_val_ = np.concatenate(y_val, axis=1) if isinstance(y_val, list) else y_val
@@ -194,13 +194,13 @@ class AIronSuit(object):
                     trials=trials,
                     verbose=True,
                     return_argmin=False)
-            with open(path + 'best_exp_' + net_name + '_hparams', 'rb') as f:
+            with open(path + 'best_exp_' + model_name + '_hparams', 'rb') as f:
                 best_hparams = pickle.load(f)
 
             # Best model
             specs = model_specs.copy()
             specs.update(best_hparams)
-            best_model = self.__load_model(name=path + 'best_exp_' + net_name + '_json')
+            best_model = self.__load_model(name=path + 'best_exp_' + model_name + '_json')
             if BACKEND == 'tensorflow':
                 best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])
             elif cuda:

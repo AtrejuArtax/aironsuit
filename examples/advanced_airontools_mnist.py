@@ -47,7 +47,7 @@ else:
     devices = [gpu_name.replace('/device:GPU:', '/gpu:') for gpu_name in get_available_gpus()]
 
 # Net name
-net_name = project + '_NN'
+model_name = project + '_NN'
 
 # Data pointer
 data_pointer = tf.keras.datasets.mnist
@@ -149,7 +149,7 @@ aironsuit.explore(
     max_evals=max_evals,
     epochs=epochs,
     trials=Trials(),
-    net_name=net_name,
+    model_name=model_name,
     verbose=verbose,
     seed=0,
     metric=metric,
