@@ -26,7 +26,6 @@ class AIronTrainer(object):
         assert all([kwarg in available_kwargs for kwarg in kwargs.keys()])
         self.model = model
         self.best_model_name = None
-        self.__callbacks = kwargs['callbacks'] if 'callbacks' in kwargs else None
         self.__class_weight = kwargs['class_weight'] if 'class_weight' in kwargs else None
         self.__path = kwargs['path'] if 'path' in kwargs else None
 

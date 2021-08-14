@@ -10,7 +10,7 @@ from inspect import getfullargspec
 from aironsuit.utils import load_model, save_model, clear_session, summary
 from aironsuit.trainers import AIronTrainer
 from aironsuit.models import Model, get_latent_model
-from aironsuit.callbacks import init_callbacks
+from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.backend import get_backend
 
 BACKEND = get_backend()
@@ -53,7 +53,7 @@ class AIronSuit(object):
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, path, max_evals, epochs,
                 metric=None, trials=None, net_name='NN', verbose=0, seed=None, val_inference_in_path=None,
-                callbacks=None, cuda=None):
+                raw_callbacks=None, cuda=None, use_basic_callbacks=True):
         """ Explore the hyper parameter space to find optimal candidates.
 
             Parameters:
@@ -73,12 +73,14 @@ class AIronSuit(object):
                 verbose (int): Verbosity.
                 seed (int): Seed for reproducible results.
                 val_inference_in_path (str): Path where to save validation inference.
-                callbacks (list): Dictionary of callbacks.
+                raw_callbacks (list): Dictionary of raw callbacks.
                 cuda (bool): Whether cuda is available or not.
+                use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
         """
         self.__cuda = cuda
         if trials is None:
             trials = Trials()
+        raw_callbacks = raw_callbacks if raw_callbacks else get_basic_callbacks if use_basic_callbacks else None
 
         def objective(space):
 
@@ -104,7 +106,7 @@ class AIronSuit(object):
                 y_train=y_train,
                 x_val=x_val,
                 y_val=y_val,
-                callbacks=init_callbacks(callbacks),
+                callbacks=init_callbacks(raw_callbacks) if raw_callbacks else None,
                 verbose=verbose)
 
             # Exploration loss
@@ -205,8 +207,8 @@ class AIronSuit(object):
             # Trainer
             trainer_kargs = train_specs.copy()
             trainer_kargs.update({'model': best_model})
-            if callbacks:
-                trainer_kargs.update({'callbacks': callbacks})
+            if raw_callbacks:
+                trainer_kargs.update({'callbacks': init_callbacks(raw_callbacks)})
             trainer = self.__trainer_class(**trainer_kargs)
             if hasattr(trainer, 'initialize') and callable(trainer.initialize):
                 trainer.initialize()
@@ -216,7 +218,7 @@ class AIronSuit(object):
         self.model, self.__trainer = optimize()
 
     def train(self, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
-              results_path=None, verbose=None):
+              results_path=None, verbose=None, use_basic_callbacks=True):
         """ Weight optimization.
 
             Parameters:
@@ -229,6 +231,7 @@ class AIronSuit(object):
                 callbacks (dict): Dictionary of callbacks.
                 results_path (str): Path where to save results.
                 verbose (int): Verbosity.
+                use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
         """
         train_specs = {
             'batch_size': batch_size,
@@ -241,7 +244,7 @@ class AIronSuit(object):
                 y_train=y_train,
                 x_val=x_val,
                 y_val=y_val,
-                callbacks=callbacks,
+                callbacks=callbacks if callbacks else init_callbacks(get_basic_callbacks) if use_basic_callbacks else None,
                 verbose=verbose)
 
     def inference(self, x, use_trainer=False):
