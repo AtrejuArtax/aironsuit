@@ -1,5 +1,3 @@
-import os
-import glob
 from tensorflow.keras import callbacks
 
 
@@ -12,10 +10,10 @@ def get_basic_callbacks(path, early_stopping, model_name=None, ext=None, verbose
         board_dir += '_' + str(ext)
     basic_callbacks.append({'TensorBoard':
                                 {'callback': callbacks.TensorBoard,
-                                 'kargs': dict(log_dir=board_dir)}})
+                                 'kwargs': dict(log_dir=board_dir)}})
     basic_callbacks.append({'ReduceLROnPlateau':
                                 {'callback': callbacks.ReduceLROnPlateau,
-                                 'kargs': dict(
+                                 'kwargs': dict(
                                      monitor='val_loss',
                                      factor=0.2,
                                      patience=int(early_stopping / 2),
@@ -23,7 +21,7 @@ def get_basic_callbacks(path, early_stopping, model_name=None, ext=None, verbose
                                      verbose=verbose)}})
     basic_callbacks.append({'EarlyStopping':
                                 {'callback': callbacks.EarlyStopping,
-                                 'kargs': dict(
+                                 'kwargs': dict(
                                      monitor='val_loss',
                                      min_delta=0,
                                      patience=early_stopping,
@@ -31,27 +29,9 @@ def get_basic_callbacks(path, early_stopping, model_name=None, ext=None, verbose
                                      mode='min')}})
     basic_callbacks.append({'ModelCheckpoint':
                                 {'callback': callbacks.ModelCheckpoint,
-                                 'kargs': dict(
+                                 'kwargs': dict(
                                      filepath=path + model_name_,
                                      save_best_only=True,
                                      save_weights_only=True,
                                      verbose=verbose)}})
     return basic_callbacks
-
-
-
-def init_callbacks(raw_callbacks, path=None):
-    callbacks_ = []
-    if isinstance(raw_callbacks, list):
-        for callback_dict in raw_callbacks:
-            callback_name = list(callback_dict.keys())[0]
-            callback_dict_ = callback_dict[callback_name]
-            if callback_name == 'ModelCheckpoint':
-                best_model_name = os.path.join(path, 'best_epoch_model')
-                best_model_files = glob.glob(best_model_name + '*')
-                if len(best_model_files) > 0:
-                    for filename in glob.glob(best_model_name + '*'):
-                        os.remove(filename)
-                del best_model_files
-            callbacks_ += [callback_dict_['callback'](**callback_dict_['kwargs'])]
-    return callbacks_
