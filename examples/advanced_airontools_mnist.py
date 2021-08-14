@@ -71,7 +71,7 @@ data_specs = {'input_specs': input_specs,
 train_specs = {
     'batch_size': batch_size,
     'path': results_path}
-callbacks_dict = get_basic_callbacks(
+raw_callbacks = get_basic_callbacks(
     path=results_path,
     early_stopping=early_stopping,
     model_name=project + '_NN')
@@ -154,7 +154,7 @@ aironsuit.explore(
     seed=0,
     metric=metric,
     val_inference_in_path=results_path,
-    callbacks=callbacks_dict)
+    raw_callbacks=raw_callbacks)
 aironsuit.summary()
 del x_train, x_val, y_train, y_val
 

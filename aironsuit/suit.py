@@ -23,7 +23,7 @@ class AIronSuit(object):
         Attributes:
             model (Model): NN model.
             latent_model (Model): Latent NN model.
-            __model_constructor (function): NN model constructor.
+            __model_constructor (): NN model constructor.
             __trainer (object): NN model constructor instance.
             __trainer_class (AIronTrainer): NN model trainer.
             __cuda (bool): Whether to use cuda or not.
@@ -35,10 +35,10 @@ class AIronSuit(object):
     def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None):
         """
             Parameters:
-                model_constructor (function): Function that returns a model.
+                model_constructor (): Function that returns a model.
                 model (Model): User customized model.
                 trainer (AIronTrainer): Model trainer.
-                model_constructor_wrapper (function): Model constructor wrapper.
+                model_constructor_wrapper (): Model constructor wrapper.
         """
 
         self.model = model
@@ -200,13 +200,13 @@ class AIronSuit(object):
             best_model = self.__load_model(name=path + 'best_exp_' + net_name + '_json')
             if BACKEND == 'tensorflow':
                 best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])
-            else:
+            elif cuda:
                 best_model.cuda()
-            print('best hyperparameters: ' + str(best_hparams))
+            print('best hyper-parameters: ' + str(best_hparams))
 
             # Trainer
             trainer_kwargs = train_specs.copy()
-            trainer_kwargs.update({'model': best_model})
+            trainer_kwargs.update({'module': best_model})
             if raw_callbacks:
                 trainer_kwargs.update({'callbacks': init_callbacks(raw_callbacks)})
             trainer = self.__trainer_class(**trainer_kwargs)
