@@ -1,13 +1,11 @@
 from tensorflow.keras import callbacks
 
 
-def get_basic_callbacks(path, patience, model_name=None, ext=None, verbose=0, epochs=None):
+def get_basic_callbacks(path, patience, model_name=None, verbose=0, epochs=None):
     basic_callbacks = []
     board_dir = path
     model_name_ = model_name if model_name else 'NN'
     board_dir += model_name_ + '_logs'
-    if ext:
-        board_dir += '_' + str(ext)
     basic_callbacks.append({'TensorBoard':
                                 {'callback': callbacks.TensorBoard,
                                  'kwargs': dict(log_dir=board_dir)}})
