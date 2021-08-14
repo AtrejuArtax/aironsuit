@@ -52,8 +52,8 @@ class AIronSuit(object):
         self.__total_n_models = None
 
     def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, path, max_evals, epochs,
-                metric=None, trials=None, net_name='NN', verbose=0, seed=None, val_inference_in_path=None,
-                raw_callbacks=None, cuda=None, use_basic_callbacks=True):
+                metric=None, trials=None, model_name='NN', verbose=0, seed=None, val_inference_in_path=None,
+                raw_callbacks=None, cuda=None, use_basic_callbacks=True, patience=3):
         """ Explore the hyper parameter space to find optimal candidates.
 
             Parameters:
@@ -69,18 +69,21 @@ class AIronSuit(object):
                 epochs (int): Number of epochs for model training.
                 metric (str): Metric to be used for exploration. If None validation loss is used.
                 trials (Trials): Object with exploration information.
-                net_name (str): Name of the network.
+                model_name (str): Name of the model.
                 verbose (int): Verbosity.
                 seed (int): Seed for reproducible results.
                 val_inference_in_path (str): Path where to save validation inference.
                 raw_callbacks (list): Dictionary of raw callbacks.
                 cuda (bool): Whether cuda is available or not.
                 use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
+                patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
         """
         self.__cuda = cuda
         if trials is None:
             trials = Trials()
-        raw_callbacks = raw_callbacks if raw_callbacks else get_basic_callbacks if use_basic_callbacks else None
+        raw_callbacks = raw_callbacks if raw_callbacks else \
+            get_basic_callbacks(path=path, patience=patience, model_name=model_name, verbose=verbose, epochs=epochs) \
+                if use_basic_callbacks else None
 
         def objective(space):
 
@@ -218,7 +221,7 @@ class AIronSuit(object):
         self.model, self.__trainer = optimize()
 
     def train(self, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
-              results_path=None, verbose=None, use_basic_callbacks=True):
+              results_path=None, verbose=None, use_basic_callbacks=True, path=None, model_name='NN', patience=3):
         """ Weight optimization.
 
             Parameters:
@@ -232,10 +235,16 @@ class AIronSuit(object):
                 results_path (str): Path where to save results.
                 verbose (int): Verbosity.
                 use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
+                path (str): Path to save (temporary) results.
+                model_name (str): Name of the model.
+                patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
         """
         train_specs = {
             'batch_size': batch_size,
             'path': results_path}
+        callbacks_ = callbacks if callbacks else \
+            get_basic_callbacks(path=path, patience=patience, model_name=model_name, verbose=verbose, epochs=epochs) \
+                if use_basic_callbacks else None
         self.__trainer = self.__train(
                 train_specs=train_specs,
                 model=self.model,
@@ -244,7 +253,7 @@ class AIronSuit(object):
                 y_train=y_train,
                 x_val=x_val,
                 y_val=y_val,
-                callbacks=callbacks if callbacks else init_callbacks(get_basic_callbacks) if use_basic_callbacks else None,
+                callbacks=callbacks_,
                 verbose=verbose)
 
     def inference(self, x, use_trainer=False):

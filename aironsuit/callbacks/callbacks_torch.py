@@ -1,7 +1,7 @@
 from skorch import callbacks
 
 
-def get_basic_callbacks(path, early_stopping, model_name=None, ext=None, verbose=0, epochs=None):
+def get_basic_callbacks(path=None, patience=3, model_name=None, ext=None, verbose=0, epochs=None):
     basic_callbacks = []
     board_dir = path
     model_name_ = model_name if model_name else 'NN'
@@ -17,7 +17,7 @@ def get_basic_callbacks(path, early_stopping, model_name=None, ext=None, verbose
                                 {'callback': callbacks.EarlyStopping,
                                  'kwargs': dict(
                                      monitor='val_loss',
-                                     patience=early_stopping,
+                                     patience=patience,
                                      verbose=verbose,
                                      lower_is_better=True)}})
     basic_callbacks.append({'Checkpoint':

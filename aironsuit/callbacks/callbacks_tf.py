@@ -1,7 +1,7 @@
 from tensorflow.keras import callbacks
 
 
-def get_basic_callbacks(path, early_stopping, model_name=None, ext=None, verbose=0):
+def get_basic_callbacks(path, patience, model_name=None, ext=None, verbose=0):
     basic_callbacks = []
     board_dir = path
     model_name_ = model_name if model_name else 'NN'
@@ -16,7 +16,7 @@ def get_basic_callbacks(path, early_stopping, model_name=None, ext=None, verbose
                                  'kwargs': dict(
                                      monitor='val_loss',
                                      factor=0.2,
-                                     patience=int(early_stopping / 2),
+                                     patience=int(patience / 2),
                                      min_lr=0.0000001,
                                      verbose=verbose)}})
     basic_callbacks.append({'EarlyStopping':
@@ -24,7 +24,7 @@ def get_basic_callbacks(path, early_stopping, model_name=None, ext=None, verbose
                                  'kwargs': dict(
                                      monitor='val_loss',
                                      min_delta=0,
-                                     patience=early_stopping,
+                                     patience=patience,
                                      verbose=verbose,
                                      mode='min')}})
     basic_callbacks.append({'ModelCheckpoint':
