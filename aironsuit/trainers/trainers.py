@@ -32,8 +32,8 @@ class AIronTrainer(object):
     def __setattr__(self, key, value):
         self.__dict__[key] = value
 
-    def train(self, x_train, y_train, x_val=None, y_val=None, **kwargs):
-        """ Model training.
+    def fit(self, x_train, y_train, x_val=None, y_val=None, **kwargs):
+        """ Model fitting.
 
             Parameters:
                 x_train (list, np.array): Input data for training.

@@ -322,19 +322,20 @@ class AIronSuit(object):
     def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
                 verbose=None):
         trainer_kwargs = train_specs.copy()
-        trainer_kwargs.update({'model': model})
+        trainer_kwargs.update({'module': model})
         if callbacks:
             trainer_kwargs.update({'callbacks': callbacks})
         trainer = self.__trainer_class(**trainer_kwargs)
+        trainer_fullargspec = list(getfullargspec(trainer.fit))[0]
         train_kwargs = {}
         if not any([val_ is None for val_ in [x_val, y_val]]) and \
-                all([val_ in list(getfullargspec(trainer.train))[0] for val_ in ['x_val', 'y_val']]):
+                all([val_ in trainer_fullargspec for val_ in ['x_val', 'y_val']]):
             train_kwargs.update({'x_val': x_val, 'y_val': y_val})
         train_kwargs.update({'epochs': epochs})
         for karg, val in zip(['verbose'], [verbose]):
-            if karg in list(getfullargspec(trainer.train))[0]:
+            if karg in trainer_fullargspec:
                 train_kwargs.update({'verbose': val})
-        trainer.train(x_train, y_train, **train_kwargs)
+        trainer.fit(x_train, y_train, **train_kwargs)
         return trainer
 
     def __get_model_interactor(self, use_trainer):
