@@ -22,7 +22,10 @@ def init_callbacks(raw_callbacks, path=None):
                         for filename in glob.glob(best_model_name + '*'):
                             os.remove(filename)
                     del best_model_files
-                callbacks_ += [callback_['callback'](**callback_['kwargs'])]
+                if 'kwargs' in callback_.keys():
+                    callbacks_ += [callback_['callback'](**callback_['kwargs'])]
+                else:
+                    callbacks_ += [callback_['callback']()]
             else:
                 callbacks_ += [raw_callback]
 
