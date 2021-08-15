@@ -19,7 +19,5 @@ def get_basic_callbacks(path=None, patience=3, model_name=None, verbose=0, epoch
     basic_callbacks.append({'Checkpoint':
                                 {'callback': callbacks.Checkpoint,
                                  'kwargs': dict(
-                                     dirname=path + model_name_,
-                                     save_best_only=True,
-                                     save_weights_only=True)}})
+                                     dirname=path + model_name_)}})
     return basic_callbacks

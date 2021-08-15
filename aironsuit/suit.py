@@ -37,7 +37,7 @@ class AIronSuit(object):
             Parameters:
                 model_constructor (): Function that returns a model.
                 model (Model): User customized model.
-                trainer (AIronTrainer): Model trainer.
+                trainer (): Model trainer.
                 model_constructor_wrapper (): Model constructor wrapper.
         """
 
