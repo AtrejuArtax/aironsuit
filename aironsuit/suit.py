@@ -5,6 +5,7 @@ from sklearn import metrics
 import pandas as pd
 import pickle
 import math
+import tempfile
 from sklearn.metrics import accuracy_score
 from inspect import getfullargspec
 from aironsuit.utils import load_model, save_model, clear_session, summary
@@ -51,8 +52,8 @@ class AIronSuit(object):
         self.__devices = None
         self.__total_n_models = None
 
-    def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, path, max_evals, epochs,
-                metric=None, trials=None, model_name='NN', verbose=0, seed=None, val_inference_in_path=None,
+    def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, max_evals, epochs,
+                path=tempfile.gettempdir(), metric=None, trials=None, model_name='NN', verbose=0, seed=None, val_inference_in_path=None,
                 raw_callbacks=None, cuda=None, use_basic_callbacks=True, patience=3):
         """ Explore the hyper parameter space to find optimal candidates.
 
@@ -221,7 +222,8 @@ class AIronSuit(object):
         self.model, self.__trainer = optimize()
 
     def train(self, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
-              results_path=None, verbose=None, use_basic_callbacks=True, path=None, model_name='NN', patience=3):
+              results_path=tempfile.gettempdir(), verbose=None, use_basic_callbacks=True, path=tempfile.gettempdir(),
+              model_name='NN', patience=3):
         """ Weight optimization.
 
             Parameters:

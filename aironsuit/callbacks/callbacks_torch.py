@@ -1,11 +1,10 @@
+import tempfile
 from skorch import callbacks
 
 
-def get_basic_callbacks(path=None, patience=3, model_name=None, verbose=0, epochs=None):
+def get_basic_callbacks(path=tempfile.gettempdir(), patience=3, model_name=None, verbose=0, epochs=None):
     basic_callbacks = []
-    board_dir = path
     model_name_ = model_name if model_name else 'NN'
-    board_dir += model_name_ + '_logs'
     basic_callbacks.append({'LRScheduler':
                                 {'callback': callbacks.LRScheduler,
                                  'kwargs': dict(policy='CosineAnnealingLR',

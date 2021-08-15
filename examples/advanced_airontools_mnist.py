@@ -32,7 +32,7 @@ max_n_samples = None
 max_evals = 3
 epochs = 100
 batch_size = 32
-early_stopping = 3
+patience = 3
 parallel_models = 2
 verbose = 0
 precision = 'float32'
@@ -71,10 +71,6 @@ data_specs = {'input_specs': input_specs,
 train_specs = {
     'batch_size': batch_size,
     'path': results_path}
-raw_callbacks = get_basic_callbacks(
-    path=results_path,
-    early_stopping=early_stopping,
-    model_name=project + '_NN')
 
 # Model Specs
 model_specs = {
@@ -154,7 +150,7 @@ aironsuit.explore(
     seed=0,
     metric=metric,
     val_inference_in_path=results_path,
-    raw_callbacks=raw_callbacks)
+    patience=patience)
 aironsuit.summary()
 del x_train, x_val, y_train, y_val
 
