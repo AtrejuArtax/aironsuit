@@ -1,5 +1,3 @@
-import os
-import glob
 from aironsuit.backend import get_backend
 BACKEND = get_backend()
 if BACKEND == 'tensorflow':
@@ -33,7 +31,7 @@ class AIronTrainer(object):
         self.__dict__[key] = value
 
     def fit(self, x_train, y_train, x_val=None, y_val=None, **kwargs):
-        """ Module fitting.
+        """ Module for fitting.
 
             Parameters:
                 x_train (list, np.array): Input data for training.
@@ -41,22 +39,16 @@ class AIronTrainer(object):
                 x_val (list, np.array): Input data for validation.
                 y_val (list, np.array): Output data for validation.
         """
+        fit(module=self.module, x_train=x_train, y_train=y_train, x_val=x_val, y_val=y_val, **kwargs)
 
-        # Train module
-        training_kwargs = kwargs.copy()
-        training_kwargs.update({'x': x_train,
-                                'y': y_train})
-        if not any([val_ is None for val_ in [x_val, y_val]]):
-            training_kwargs.update({'validation_data': (x_val, y_val)})
-        self.module.fit(**training_kwargs)
+    def evaluate(self, x_val, y_val):
+        """ Module for evaluation.
 
-        # Best module
-        if self.best_module_name:
-            best_module_files = glob.glob(self.best_module_name + '*')
-            if len(best_module_files) > 0:
-                self.module.load_weights(filepath=self.best_module_name)
-                for filename in glob.glob(self.best_module_name + '*'):
-                    os.remove(filename)
+            Parameters:
+                x_val (list, np.array): Input data for validation.
+                y_val (list, np.array): Output data for validation.
+        """
+        evaluate(module=self.module, x_val=x_val, y_val=y_val)
 
     def predict(self, x, **kwargs):
         """ Module prediction.
