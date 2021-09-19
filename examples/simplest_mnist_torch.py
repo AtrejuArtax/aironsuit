@@ -46,10 +46,6 @@ x_train = x_train.reshape((x_train.shape[0], x_train.shape[-1], x_train.shape[1]
 x_test = np.expand_dims(np.array(x_test).astype('float32') / 255, -1)
 y_train = np.array(y_train).reshape((len(y_train),))
 y_test = np.array(y_train).reshape((len(y_test),))
-# enc = OneHotEncoder()
-# enc.fit(y_train)
-# y_train = enc.transform(y_train).toarray()
-# y_test = enc.transform(y_test).toarray()
 
 # COMMAND ----------
 
@@ -78,21 +74,21 @@ class LitMNIST(LightningModule):
 
         return x
 
-    def training_step(self, batch, batch_idx):
-        return self._compute_loss(batch, batch_idx)
+    def training_step(self, batch, batch_idx=None):
+        return {'loss': self._compute_loss(batch, batch_idx)}
 
-    def validation_step(self, batch, batch_idx):
-        return self._compute_loss(batch, batch_idx)
+    def validation_step(self, batch, batch_idx=None):
+        return {'val_loss': self._compute_loss(batch, batch_idx)}
 
     def validation_epoch_end(self, outputs):
-        return {'val_loss': torch.stack([x for x in outputs]).mean()}
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        return {'avg_val_loss': avg_loss}
 
-    def _compute_loss(self, batch, batch_idx):
+    def _compute_loss(self, batch, batch_idx=None):
         x, y = batch
         y = y.type(torch.LongTensor)
         loss_f = nn.CrossEntropyLoss()
-        loss = loss_f(self(x), y)
-        return loss
+        return loss_f(self(x), y)
 
     def configure_optimizers(self):
         return optim.Adam(self.parameters(), lr=1e-3)
