@@ -20,7 +20,7 @@ project_name = 'simplest_mnist'
 num_classes = 10
 input_shape = (28, 28, 1)
 batch_size = 128
-epochs = 1
+epochs = 10
 
 # COMMAND ----------
 
@@ -114,8 +114,7 @@ aironsuit.train(
 
 # Evaluate
 score = aironsuit.evaluate(x_test, y_test, use_trainer=True)
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
+print('Test loss:', score)
 
 # COMMAND ----------
 
