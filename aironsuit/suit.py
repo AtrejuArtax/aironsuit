@@ -33,13 +33,14 @@ class AIronSuit(object):
 
     """
 
-    def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None):
-        """
-            Parameters:
+    def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None,
+                 custom_objects=None):
+        """ Parameters:
                 model_constructor (): Function that returns a model.
                 model (Model): User customized model.
                 trainer (): Model trainer.
                 model_constructor_wrapper (): Model constructor wrapper.
+                custom_objects (dict): Custom objects when loading Keras models.
         """
 
         self.model = model
@@ -48,6 +49,7 @@ class AIronSuit(object):
         self.__trainer = None
         self.__trainer_class = AIronTrainer if not trainer else trainer
         self.__model_constructor_wrapper = model_constructor_wrapper
+        self.__custom_objects = custom_objects
         self.__cuda = None
         self.__devices = None
         self.__total_n_models = None
@@ -327,8 +329,8 @@ class AIronSuit(object):
     def __save_model(self, model, name):
         save_model(model=model, name=name)
 
-    def __load_model(self, name, custom_objects=None):
-        return load_model(name=name, custom_objects=custom_objects)
+    def __load_model(self, name):
+        return load_model(name=name, custom_objects=self.__custom_objects)
 
     def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
                 verbose=None):
