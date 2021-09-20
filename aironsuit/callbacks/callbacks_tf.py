@@ -2,7 +2,7 @@ import tempfile
 from tensorflow.keras import callbacks
 
 
-def get_basic_callbacks(path=tempfile.gettempdir(), patience=3, model_name=None, verbose=0):
+def get_basic_callbacks(path=tempfile.gettempdir(), patience=3, model_name=None, verbose=0, epochs=None):
     basic_callbacks = []
     model_name_ = model_name if model_name else 'NN'
     basic_callbacks.append({'TensorBoard':
