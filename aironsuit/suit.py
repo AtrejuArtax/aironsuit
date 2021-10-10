@@ -5,11 +5,14 @@ from sklearn import metrics
 import pandas as pd
 import pickle
 import math
+import tempfile
 from sklearn.metrics import accuracy_score
 from inspect import getfullargspec
 from aironsuit.utils import load_model, save_model, clear_session, summary
-from aironsuit.trainers import *
+from aironsuit.trainers import AIronTrainer
 from aironsuit.models import Model, get_latent_model
+from aironsuit.callbacks import init_callbacks, get_basic_callbacks
+from aironsuit.backend import get_backend
 
 BACKEND = get_backend()
 
@@ -21,7 +24,7 @@ class AIronSuit(object):
         Attributes:
             model (Model): NN model.
             latent_model (Model): Latent NN model.
-            __model_constructor (function): NN model constructor.
+            __model_constructor (): NN model constructor.
             __trainer (object): NN model constructor instance.
             __trainer_class (AIronTrainer): NN model trainer.
             __cuda (bool): Whether to use cuda or not.
@@ -30,13 +33,14 @@ class AIronSuit(object):
 
     """
 
-    def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None):
-        """
-            Parameters:
-                model_constructor (function): Function that returns a model.
+    def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None,
+                 custom_objects=None):
+        """ Parameters:
+                model_constructor (): Function that returns a model.
                 model (Model): User customized model.
-                trainer (AIronTrainer): Model trainer.
-                model_constructor_wrapper (function): Model constructor wrapper.
+                trainer (): Model trainer.
+                model_constructor_wrapper (): Model constructor wrapper.
+                custom_objects (dict): Custom objects when loading Keras models.
         """
 
         self.model = model
@@ -45,13 +49,14 @@ class AIronSuit(object):
         self.__trainer = None
         self.__trainer_class = AIronTrainer if not trainer else trainer
         self.__model_constructor_wrapper = model_constructor_wrapper
+        self.__custom_objects = custom_objects
         self.__cuda = None
         self.__devices = None
         self.__total_n_models = None
 
-    def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, path, max_evals, epochs,
-                metric=None, trials=None, net_name='NN', verbose=0, seed=None, val_inference_in_path=None,
-                callbacks=None, cuda=None):
+    def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, max_evals, epochs,
+                path=tempfile.gettempdir(), metric=None, trials=None, model_name='NN', verbose=0, seed=None, val_inference_in_path=None,
+                raw_callbacks=None, cuda=None, use_basic_callbacks=True, patience=3):
         """ Explore the hyper parameter space to find optimal candidates.
 
             Parameters:
@@ -67,16 +72,21 @@ class AIronSuit(object):
                 epochs (int): Number of epochs for model training.
                 metric (str): Metric to be used for exploration. If None validation loss is used.
                 trials (Trials): Object with exploration information.
-                net_name (str): Name of the network.
+                model_name (str): Name of the model.
                 verbose (int): Verbosity.
                 seed (int): Seed for reproducible results.
                 val_inference_in_path (str): Path where to save validation inference.
-                callbacks (list): Dictionary of callbacks.
+                raw_callbacks (list): Dictionary of raw callbacks.
                 cuda (bool): Whether cuda is available or not.
+                use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
+                patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
         """
         self.__cuda = cuda
         if trials is None:
             trials = Trials()
+        raw_callbacks = raw_callbacks if raw_callbacks else \
+            get_basic_callbacks(path=path, patience=patience, model_name=model_name, verbose=verbose, epochs=epochs) \
+                if use_basic_callbacks else None
 
         def objective(space):
 
@@ -102,7 +112,7 @@ class AIronSuit(object):
                 y_train=y_train,
                 x_val=x_val,
                 y_val=y_val,
-                callbacks=callbacks,
+                callbacks=init_callbacks(raw_callbacks) if raw_callbacks else None,
                 verbose=verbose)
 
             # Exploration loss
@@ -150,7 +160,7 @@ class AIronSuit(object):
                 pickle.dump(trials, f)
 
             # Save model if it is the best so far
-            best_exp_losss_name = path + 'best_' + net_name + '_exp_loss'
+            best_exp_losss_name = path + 'best_' + model_name + '_exp_loss'
             trials_losses = [loss_ for loss_ in trials.losses() if loss_]
             best_exp_loss = min(trials_losses) if len(trials_losses) > 0 else None
             print('best val loss so far: ', best_exp_loss)
@@ -160,8 +170,8 @@ class AIronSuit(object):
             if status == STATUS_OK and best_exp_loss_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
-                self.__save_model(model=self.model, name=path + 'best_exp_' + net_name + '_json')
-                with open(path + 'best_exp_' + net_name + '_hparams', 'wb') as f:
+                self.__save_model(model=self.model, name=path + 'best_exp_' + model_name + '_json')
+                with open(path + 'best_exp_' + model_name + '_hparams', 'wb') as f:
                     pickle.dump(space, f, protocol=pickle.HIGHEST_PROTOCOL)
                 if val_inference_in_path is not None:
                     y_val_ = np.concatenate(y_val, axis=1) if isinstance(y_val, list) else y_val
@@ -187,25 +197,25 @@ class AIronSuit(object):
                     trials=trials,
                     verbose=True,
                     return_argmin=False)
-            with open(path + 'best_exp_' + net_name + '_hparams', 'rb') as f:
+            with open(path + 'best_exp_' + model_name + '_hparams', 'rb') as f:
                 best_hparams = pickle.load(f)
 
             # Best model
             specs = model_specs.copy()
             specs.update(best_hparams)
-            best_model = self.__load_model(name=path + 'best_exp_' + net_name + '_json')
+            best_model = self.__load_model(name=path + 'best_exp_' + model_name + '_json')
             if BACKEND == 'tensorflow':
                 best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])
-            else:
+            elif cuda:
                 best_model.cuda()
-            print('best hyperparameters: ' + str(best_hparams))
+            print('best hyper-parameters: ' + str(best_hparams))
 
             # Trainer
-            trainer_kargs = train_specs.copy()
-            trainer_kargs.update({'module': best_model})
-            if callbacks:
-                trainer_kargs.update({'callbacks': callbacks})
-            trainer = self.__trainer_class(**trainer_kargs)
+            trainer_kwargs = train_specs.copy()
+            trainer_kwargs.update({'module': best_model})
+            if raw_callbacks:
+                trainer_kwargs.update({'callbacks': init_callbacks(raw_callbacks)})
+            trainer = self.__trainer_class(**trainer_kwargs)
             if hasattr(trainer, 'initialize') and callable(trainer.initialize):
                 trainer.initialize()
 
@@ -214,7 +224,8 @@ class AIronSuit(object):
         self.model, self.__trainer = optimize()
 
     def train(self, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
-              results_path=None, verbose=None):
+              results_path=tempfile.gettempdir(), verbose=None, use_basic_callbacks=True, path=tempfile.gettempdir(),
+              model_name='NN', patience=3):
         """ Weight optimization.
 
             Parameters:
@@ -227,10 +238,17 @@ class AIronSuit(object):
                 callbacks (dict): Dictionary of callbacks.
                 results_path (str): Path where to save results.
                 verbose (int): Verbosity.
+                use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
+                path (str): Path to save (temporary) results.
+                model_name (str): Name of the model.
+                patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
         """
         train_specs = {
             'batch_size': batch_size,
             'path': results_path}
+        callbacks_ = callbacks if callbacks else \
+            get_basic_callbacks(path=path, patience=patience, model_name=model_name, verbose=verbose, epochs=epochs) \
+                if use_basic_callbacks else None
         self.__trainer = self.__train(
                 train_specs=train_specs,
                 model=self.model,
@@ -239,7 +257,7 @@ class AIronSuit(object):
                 y_train=y_train,
                 x_val=x_val,
                 y_val=y_val,
-                callbacks=callbacks,
+                callbacks=callbacks_,
                 verbose=verbose)
 
     def inference(self, x, use_trainer=False):
@@ -311,25 +329,26 @@ class AIronSuit(object):
     def __save_model(self, model, name):
         save_model(model=model, name=name)
 
-    def __load_model(self, name, custom_objects=None):
-        return load_model(name=name, custom_objects=custom_objects)
+    def __load_model(self, name):
+        return load_model(name=name, custom_objects=self.__custom_objects)
 
     def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
                 verbose=None):
-        trainer_kargs = train_specs.copy()
-        trainer_kargs.update({'module': model})
+        trainer_kwargs = train_specs.copy()
+        trainer_kwargs.update({'module': model})
         if callbacks:
-            trainer_kargs.update({'callbacks': callbacks})
-        trainer = self.__trainer_class(**trainer_kargs)
-        train_kargs = {}
+            trainer_kwargs.update({'callbacks': callbacks})
+        trainer = self.__trainer_class(**trainer_kwargs)
+        trainer_fullargspec = list(getfullargspec(trainer.fit))[0]
+        train_kwargs = {}
         if not any([val_ is None for val_ in [x_val, y_val]]) and \
-                all([val_ in list(getfullargspec(trainer.fit))[0] for val_ in ['x_val', 'y_val']]):
-            train_kargs.update({'x_val': x_val, 'y_val': y_val})
-        train_kargs.update({'epochs': epochs})
+                all([val_ in trainer_fullargspec for val_ in ['x_val', 'y_val']]):
+            train_kwargs.update({'x_val': x_val, 'y_val': y_val})
+        train_kwargs.update({'epochs': epochs})
         for karg, val in zip(['verbose'], [verbose]):
-            if karg in list(getfullargspec(trainer.fit))[0]:
-                train_kargs.update({'verbose': val})
-        trainer.fit(x_train, y_train, **train_kargs)
+            if karg in trainer_fullargspec:
+                train_kwargs.update({'verbose': val})
+        trainer.fit(x_train, y_train, **train_kwargs)
         return trainer
 
     def __get_model_interactor(self, use_trainer):
@@ -337,7 +356,7 @@ class AIronSuit(object):
             if self.__trainer:
                 instance = self.__trainer
             else:
-                instance = self.__trainer_class(module=self.model)
+                instance = self.__trainer_class(model=self.model)
                 if hasattr(instance, 'initialize') and callable(instance.initialize):
                     instance.initialize()
         else:

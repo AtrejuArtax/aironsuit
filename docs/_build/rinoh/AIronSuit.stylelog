@@ -612,10 +612,10 @@
                               MixedStyledText('None')   <inline>
                                 SingleStyledText('None')
                             SingleStyledText(', ')
-                            MixedStyledText('net_name='NN'', style='parameter')   <desc_parameter>
+                            MixedStyledText('model_name='NN'', style='parameter')   <desc_parameter>
                                  > (0,0,3,0,6) object parameter [Sphinx] > object parameter (no emphasis)
-                              MixedStyledText('net_name')   <inline>
-                                SingleStyledText('net_name')
+                              MixedStyledText('model_name')   <inline>
+                                SingleStyledText('model_name')
                               MixedStyledText('=')   <inline>
                                 SingleStyledText('=')
                               MixedStyledText(''NN'')   <inline>
@@ -970,14 +970,14 @@
                               SingleStyledText('')
                         StaticGroupedFlowables()
                              > (0,0,0,0,3) list item body [Sphinx] > DEFAULT
-                          Paragraph('net_name – ')   <paragraph>
+                          Paragraph('model_name – ')   <paragraph>
                                > (0,0,0,0,5) list item paragraph [Sphinx] > default
                                  (0,0,0,0,2) body [Sphinx] > default
-                              MixedStyledText('net_name – ')
-                                MixedStyledText('net_name – ')
-                                  MixedStyledText('net_name', style='literal strong')   <literal_strong>
+                              MixedStyledText('model_name – ')
+                                MixedStyledText('model_name – ')
+                                  MixedStyledText('model_name', style='literal strong')   <literal_strong>
                                        > (0,0,1,0,1) literal strong [Sphinx] > strong
-                                    SingleStyledText('net_name')
+                                    SingleStyledText('model_name')
                                   SingleStyledText(' – ')
                       ListItem()   <list_item>
                            x (0,0,1,0,4) bulleted list item

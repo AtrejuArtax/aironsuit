@@ -15,7 +15,6 @@ from airontools.net_constructors import net_constructor
 from airontools.preprocessing import array_to_list
 from airontools.tools import path_management
 from airontools.utils import get_available_gpus
-from aironsuit.callbacks import get_basic_callbacks
 random.seed(0)
 np.random.seed(0)
 HOME = os.path.expanduser("~")
@@ -32,7 +31,7 @@ max_n_samples = None
 max_evals = 3
 epochs = 100
 batch_size = 32
-early_stopping = 3
+patience = 3
 parallel_models = 2
 verbose = 0
 precision = 'float32'
@@ -47,7 +46,7 @@ else:
     devices = [gpu_name.replace('/device:GPU:', '/gpu:') for gpu_name in get_available_gpus()]
 
 # Net name
-net_name = project + '_NN'
+model_name = project + '_NN'
 
 # Data pointer
 data_pointer = tf.keras.datasets.mnist
@@ -71,10 +70,6 @@ data_specs = {'input_specs': input_specs,
 train_specs = {
     'batch_size': batch_size,
     'path': results_path}
-callbacks_dict = get_basic_callbacks(
-    path=results_path,
-    early_stopping=early_stopping,
-    model_name=project + '_NN')
 
 # Model Specs
 model_specs = {
@@ -149,12 +144,12 @@ aironsuit.explore(
     max_evals=max_evals,
     epochs=epochs,
     trials=Trials(),
-    net_name=net_name,
+    model_name=model_name,
     verbose=verbose,
     seed=0,
     metric=metric,
     val_inference_in_path=results_path,
-    callbacks=callbacks_dict)
+    patience=patience)
 aironsuit.summary()
 del x_train, x_val, y_train, y_val
 
