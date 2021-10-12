@@ -13,6 +13,7 @@ from aironsuit.trainers import AIronTrainer
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.backend import get_backend
 from airontools.net_constructors import Model, get_latent_model
+from airontools.visualization import get_insights
 
 BACKEND = get_backend()
 
@@ -325,6 +326,9 @@ class AIronSuit(object):
         """
         if self.model:
             summary(self.model)
+
+    def get_insights(self, x, **kwargs):
+        get_insights(x, self.model, **kwargs)
 
     def __save_model(self, model, name):
         save_model(model=model, name=name)
