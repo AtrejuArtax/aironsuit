@@ -282,14 +282,14 @@ class AIronSuit(object):
             self.latent_model = get_latent_model(self.model, layer_names)
         return self.latent_model.predict(x)
 
-    def create_latent_model(self, layer_names):
-        """ Create latent model given a model and layer names.
+    def create_latent_model(self, hidden_layer_names):
+        """ Create latent model given a model and hidden layer names.
 
             Parameters:
-                layer_names (str): Layer names.
+                hidden_layer_names (str): Layer names.
         """
         assert self.model is not None
-        self.latent_model = get_latent_model(self.model, layer_names)
+        self.latent_model = get_latent_model(self.model, hidden_layer_names)
 
     def evaluate(self, x, y, use_trainer=False):
         """ Evaluate.
@@ -319,6 +319,8 @@ class AIronSuit(object):
         self.model = load_model(name=name, custom_objects=custom_objects)
 
     def clear_session(self):
+        """ Clear session.
+        """
         clear_session()
 
     def summary(self):
@@ -327,8 +329,20 @@ class AIronSuit(object):
         if self.model:
             summary(self.model)
 
-    def get_insights(self, x, **kwargs):
-        get_insights(x, self.model, **kwargs)
+    def get_latent_insights(self, x, **kwargs):
+        """ Get insights of latent layers.
+
+            Parameters:
+                x (list, array): Data to be mapped to latent representations.
+                hidden_layer_names (str, list): Names of the hidden layers ti get insights from.
+                embeddings (list, array): Embeddings to be saved.
+                embeddings_names (list, str): Embeddings names.
+                metadata (list, array): Metadata.
+                path (str): Path to save insights.
+        """
+        if not self.latent_model:
+            self.create_latent_model(kwargs['hidden_layer_names'])
+        get_insights(x, self.latent_model, **kwargs)
 
     def __save_model(self, model, name):
         save_model(model=model, name=name)
