@@ -10,9 +10,9 @@ from sklearn.metrics import accuracy_score
 from inspect import getfullargspec
 from aironsuit.utils import load_model, save_model, clear_session, summary
 from aironsuit.trainers import AIronTrainer
-from aironsuit.models import Model, get_latent_model
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.backend import get_backend
+from airontools.net_constructors import Model, get_latent_model
 
 BACKEND = get_backend()
 
