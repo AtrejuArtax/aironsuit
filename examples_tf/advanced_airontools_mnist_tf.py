@@ -14,7 +14,7 @@ from aironsuit.suit import AIronSuit
 from airontools.net_constructors import net_constructor
 from airontools.preprocessing import array_to_list
 from airontools.tools import path_management
-from airontools.utils import get_available_gpus
+from airontools.devices import get_available_gpus
 random.seed(0)
 np.random.seed(0)
 HOME = os.path.expanduser("~")
