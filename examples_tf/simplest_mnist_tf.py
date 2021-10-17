@@ -1,7 +1,9 @@
 # Databricks notebook source
 import numpy as np
-from tensorflow import keras
-from tensorflow.keras import layers
+from tensorflow.keras.layers import Input
+from tensorflow.keras.models import Model
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.utils import to_categorical
 import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
@@ -20,13 +22,13 @@ epochs = 10
 # COMMAND ----------
 
 # Load data
-(x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
 
 # Preprocess data
 x_train = np.expand_dims(x_train.astype('float32') / 255, -1)
 x_test = np.expand_dims(x_test.astype('float32') / 255, -1)
-y_train = keras.utils.to_categorical(y_train, num_classes)
-y_test = keras.utils.to_categorical(y_test, num_classes)
+y_train = to_categorical(y_train, num_classes)
+y_test = to_categorical(y_test, num_classes)
 
 # COMMAND ----------
 
