@@ -11,16 +11,16 @@ from inspect import getfullargspec
 from aironsuit.trainers import AIronTrainer
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.backend import get_backend
-from airontools.net_constructors import Model, get_latent_model
+from airontools.model_constructors import Model, get_latent_model
 from airontools.visualization import get_insights
-from airontools.net_interactors import load_model, save_model, clear_session, summary
+from airontools.model_interactors import load_model, save_model, clear_session, summary
 
 BACKEND = get_backend()
 
 
 class AIronSuit(object):
     """ AIronSuit is a model wrapper that takes care of the hyper-parameter optimization problem, training and inference
-    among other things.
+    among other functionalities.
 
         Attributes:
             model (Model): NN model.
@@ -56,7 +56,7 @@ class AIronSuit(object):
         self.__total_n_models = None
 
     def design(self, x_train, y_train, x_val, y_val, hyper_space, model_specs, train_specs, max_evals, epochs,
-                path=tempfile.gettempdir(), metric=None, trials=None, model_name='NN', verbose=0, seed=None,
+               path=tempfile.gettempdir(), metric=None, trials=None, model_name='NN', verbose=0, seed=None,
                val_inference_in_path=None, raw_callbacks=None, cuda=None, use_basic_callbacks=True, patience=3):
         """ Explore the hyper parameter space to find optimal candidates.
 

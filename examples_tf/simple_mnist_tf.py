@@ -7,7 +7,7 @@ from tensorflow.keras.layers import Input
 import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
-from airontools.net_constructors import customized_layer
+from airontools.model_constructors import customized_layer
 
 # COMMAND ----------
 
