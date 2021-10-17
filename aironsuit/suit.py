@@ -55,9 +55,9 @@ class AIronSuit(object):
         self.__devices = None
         self.__total_n_models = None
 
-    def explore(self, x_train, y_train, x_val, y_val, hyper_space, model_specs, train_specs, max_evals, epochs,
-                path=tempfile.gettempdir(), metric=None, trials=None, model_name='NN', verbose=0, seed=None, val_inference_in_path=None,
-                raw_callbacks=None, cuda=None, use_basic_callbacks=True, patience=3):
+    def design(self, x_train, y_train, x_val, y_val, hyper_space, model_specs, train_specs, max_evals, epochs,
+                path=tempfile.gettempdir(), metric=None, trials=None, model_name='NN', verbose=0, seed=None,
+               val_inference_in_path=None, raw_callbacks=None, cuda=None, use_basic_callbacks=True, patience=3):
         """ Explore the hyper parameter space to find optimal candidates.
 
             Parameters:
@@ -89,7 +89,7 @@ class AIronSuit(object):
             get_basic_callbacks(path=path, patience=patience, model_name=model_name, verbose=verbose, epochs=epochs) \
                 if use_basic_callbacks else None
 
-        def objective(hyper_candidates):
+        def design_trial(hyper_candidates):
 
             # Create model
             specs = hyper_candidates.copy()
@@ -190,7 +190,7 @@ class AIronSuit(object):
 
             if len(trials.trials) < max_evals:
                 hyperopt.fmin(
-                    objective,
+                    design_trial,
                     rstate=None if seed is None else np.random.RandomState(seed),
                     space=hyper_space,
                     algo=hyperopt.tpe.suggest,
