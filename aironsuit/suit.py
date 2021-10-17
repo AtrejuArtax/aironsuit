@@ -55,7 +55,7 @@ class AIronSuit(object):
         self.__devices = None
         self.__total_n_models = None
 
-    def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, max_evals, epochs,
+    def explore(self, x_train, y_train, x_val, y_val, hyper_space, model_specs, train_specs, max_evals, epochs,
                 path=tempfile.gettempdir(), metric=None, trials=None, model_name='NN', verbose=0, seed=None, val_inference_in_path=None,
                 raw_callbacks=None, cuda=None, use_basic_callbacks=True, patience=3):
         """ Explore the hyper parameter space to find optimal candidates.
@@ -65,7 +65,7 @@ class AIronSuit(object):
                 y_train (list, np.array): Output data for training.
                 x_val (list, np.array): Input data for validation.
                 y_val (list, np.array): Output data for validation.
-                space (dict): Hyper parameter space to explore.
+                hyper_space (dict): Hyper parameter space to explore.
                 model_specs (dict): Model specifications.
                 train_specs (dict): Training specifications.
                 path (str): Path to save (temporary) results.
@@ -89,10 +89,10 @@ class AIronSuit(object):
             get_basic_callbacks(path=path, patience=patience, model_name=model_name, verbose=verbose, epochs=epochs) \
                 if use_basic_callbacks else None
 
-        def objective(space):
+        def objective(hyper_candidates):
 
             # Create model
-            specs = space.copy()
+            specs = hyper_candidates.copy()
             specs.update(model_specs)
             self.__create(**specs)
 
@@ -172,8 +172,8 @@ class AIronSuit(object):
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
                 self.__save_model(model=self.model, name=path + 'best_exp_' + model_name + '_json')
-                with open(path + 'best_exp_' + model_name + '_hparams', 'wb') as f:
-                    pickle.dump(space, f, protocol=pickle.HIGHEST_PROTOCOL)
+                with open(path + 'best_exp_' + model_name + '_hyper_candidates', 'wb') as f:
+                    pickle.dump(hyper_candidates, f, protocol=pickle.HIGHEST_PROTOCOL)
                 if val_inference_in_path is not None:
                     y_val_ = np.concatenate(y_val, axis=1) if isinstance(y_val, list) else y_val
                     np.savetxt(val_inference_in_path + 'val_target.csv', y_val_, delimiter=',')
@@ -186,30 +186,30 @@ class AIronSuit(object):
 
             return {'loss': exp_loss, 'status': status}
 
-        def optimize():
+        def design():
 
             if len(trials.trials) < max_evals:
                 hyperopt.fmin(
                     objective,
                     rstate=None if seed is None else np.random.RandomState(seed),
-                    space=space,
+                    space=hyper_space,
                     algo=hyperopt.tpe.suggest,
                     max_evals=max_evals,
                     trials=trials,
                     verbose=True,
                     return_argmin=False)
-            with open(path + 'best_exp_' + model_name + '_hparams', 'rb') as f:
-                best_hparams = pickle.load(f)
+            with open(path + 'best_exp_' + model_name + '_hyper_candidates', 'rb') as f:
+                best_hyper_candidates = pickle.load(f)
 
             # Best model
             specs = model_specs.copy()
-            specs.update(best_hparams)
+            specs.update(best_hyper_candidates)
             best_model = self.__load_model(name=path + 'best_exp_' + model_name + '_json')
             if BACKEND == 'tensorflow':
                 best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])
             elif cuda:
                 best_model.cuda()
-            print('best hyper-parameters: ' + str(best_hparams))
+            print('best hyper-parameters: ' + str(best_hyper_candidates))
 
             # Trainer
             trainer_kwargs = train_specs.copy()
@@ -222,7 +222,7 @@ class AIronSuit(object):
 
             return best_model, trainer
 
-        self.model, self.__trainer = optimize()
+        self.model, self.__trainer = design()
 
     def train(self, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
               results_path=tempfile.gettempdir(), verbose=None, use_basic_callbacks=True, path=tempfile.gettempdir(),
