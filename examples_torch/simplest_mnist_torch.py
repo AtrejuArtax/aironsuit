@@ -99,7 +99,6 @@ model = LitMNIST()
 
 # Invoke AIronSuit
 aironsuit = AIronSuit(model=model)
-aironsuit.summary()
 
 # COMMAND ----------
 

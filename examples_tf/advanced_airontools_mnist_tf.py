@@ -132,12 +132,12 @@ x_train, x_val, y_train, y_val, train_val_inds = array_to_list(
 # Exploration
 print('\n')
 print('Exploring \n')
-aironsuit.explore(
+aironsuit.design(
     x_train=x_train,
     y_train=y_train,
     x_val=x_val,
     y_val=y_val,
-    space=hyperparam_space,
+    hyper_space=hyperparam_space,
     model_specs=model_specs,
     train_specs=train_specs,
     path=results_path,
