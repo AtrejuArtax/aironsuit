@@ -55,7 +55,7 @@ class AIronSuit(object):
         self.__devices = None
         self.__total_n_models = None
 
-    def design(self, x_train, y_train, x_val, y_val, hyper_space, model_specs, train_specs, max_evals, epochs,
+    def design(self, x_train, y_train, x_val, y_val, hyper_space, train_specs, max_evals, epochs, model_specs=None,
                path=tempfile.gettempdir(), metric=None, trials=None, model_name='NN', verbose=0, seed=None,
                val_inference_in_path=None, raw_callbacks=None, cuda=None, use_basic_callbacks=True, patience=3):
         """ Explore the hyper parameter space to find optimal candidates.
@@ -66,11 +66,11 @@ class AIronSuit(object):
                 x_val (list, np.array): Input data for validation.
                 y_val (list, np.array): Output data for validation.
                 hyper_space (dict): Hyper parameter space to explore.
-                model_specs (dict): Model specifications.
                 train_specs (dict): Training specifications.
                 path (str): Path to save (temporary) results.
                 max_evals (integer): Maximum number of evaluations.
                 epochs (int): Number of epochs for model training.
+                model_specs (dict): Model specifications.
                 metric (str): Metric to be used for exploration. If None validation loss is used.
                 trials (Trials): Object with exploration information.
                 model_name (str): Name of the model.
@@ -93,7 +93,8 @@ class AIronSuit(object):
 
             # Create model
             specs = hyper_candidates.copy()
-            specs.update(model_specs)
+            if model_specs:
+                specs.update(model_specs)
             self.__create(**specs)
 
             # Print some information

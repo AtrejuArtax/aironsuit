@@ -5,7 +5,7 @@ from hyperopt import Trials
 import random
 import pickle
 import os
-import tensorflow as tf
+from tensorflow.keras.datasets import mnist
 from sklearn.preprocessing import OneHotEncoder
 from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import classification_report
@@ -47,9 +47,6 @@ else:
 
 # Net name
 model_name = project + '_NN'
-
-# Data pointer
-data_pointer = tf.keras.datasets.mnist
 
 # Paths
 prep_data_path = os.path.join(working_path, 'PrepDatasets', project)
@@ -101,15 +98,8 @@ for path in [prep_data_path, inference_data_path, results_path]:
 
 # COMMAND ----------
 
-# Invoke AIronSuit
-aironsuit = AIronSuit(model_constructor=model_constructor)
-
-# COMMAND ----------
-
-# Exploration #
-
 # Load and preprocess data
-(train_dataset, train_targets), _ = data_pointer.load_data()
+(train_dataset, train_targets), _ = mnist.load_data()
 if max_n_samples is not None:
     train_dataset = train_dataset[-max_n_samples:, ...]
     train_targets = train_targets[-max_n_samples:, ...]
@@ -129,9 +119,14 @@ x_train, x_val, y_train, y_val, train_val_inds = array_to_list(
 
 # COMMAND ----------
 
-# Exploration
+# Invoke AIronSuit
+aironsuit = AIronSuit(model_constructor=model_constructor)
+
+# COMMAND ----------
+
+# Automatic Model Design
 print('\n')
-print('Exploring \n')
+print('Automatic Model Design \n')
 aironsuit.design(
     x_train=x_train,
     y_train=y_train,
@@ -158,7 +153,7 @@ del x_train, x_val, y_train, y_val
 # Test Evaluation #
 
 # Load and preprocess data
-(_, train_targets), (test_dataset, test_targets) = data_pointer.load_data()
+(_, train_targets), (test_dataset, test_targets) = mnist.load_data()
 test_dataset = test_dataset / 255
 test_dataset = test_dataset.reshape((test_dataset.shape[0], test_dataset.shape[1] * test_dataset.shape[2]))
 encoder = OneHotEncoder(sparse=False)

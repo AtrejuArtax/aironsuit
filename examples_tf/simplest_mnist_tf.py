@@ -15,7 +15,6 @@ from airontools.model_constructors import customized_layer
 
 project_name = 'simplest_mnist'
 num_classes = 10
-input_shape = (28, 28, 1)
 batch_size = 128
 epochs = 10
 
@@ -33,6 +32,7 @@ y_test = to_categorical(y_test, num_classes)
 # COMMAND ----------
 
 # Create model
+input_shape = (28, 28, 1)
 inputs = Input(shape=input_shape)
 outputs = customized_layer(x=inputs, input_shape=input_shape, units=10, activation='softmax', filters=5,
                            kernel_size=15)
