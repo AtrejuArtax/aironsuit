@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from hyperopt import Trials, STATUS_OK, STATUS_FAIL
 import hyperopt
 from sklearn import metrics
@@ -35,13 +36,17 @@ class AIronSuit(object):
     """
 
     def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None,
-                 custom_objects=None):
+                 custom_objects=None, force_subclass_weights_saver=True, force_subclass_weights_loader=False):
         """ Parameters:
                 model_constructor (): Function that returns a model.
                 model (Model): User customized model.
                 trainer (): Model trainer.
                 model_constructor_wrapper (): Model constructor wrapper.
                 custom_objects (dict): Custom objects when loading Keras models.
+                force_subclass_weights_saver (bool): To whether force the subclass weights saver or not, useful for
+                keras subclasses models.
+                force_subclass_weights_loader (bool): To whether force the subclass weights loader or not, useful for
+                keras subclasses models.
         """
 
         self.model = model
@@ -54,22 +59,25 @@ class AIronSuit(object):
         self.__cuda = None
         self.__devices = None
         self.__total_n_models = None
+        self.__force_subclass_weights_saver = force_subclass_weights_saver
+        self.__force_subclass_weights_loader = force_subclass_weights_loader
 
-    def design(self, x_train, y_train, x_val, y_val, hyper_space, train_specs, max_evals, epochs, model_specs=None,
-               path=tempfile.gettempdir(), metric=None, trials=None, model_name='NN', verbose=0, seed=None,
-               val_inference_in_path=None, raw_callbacks=None, cuda=None, use_basic_callbacks=True, patience=3):
+    def design(self, x_train, x_val, hyper_space, train_specs, max_evals, epochs, y_train=None, y_val=None,
+               model_specs=None, path=tempfile.gettempdir() + os.sep, metric=None, trials=None, model_name='NN', verbose=0,
+               seed=None, val_inference_in_path=None, raw_callbacks=None, cuda=None, use_basic_callbacks=True,
+               patience=3):
         """ Explore the hyper parameter space to find optimal candidates.
 
             Parameters:
                 x_train (list, np.array): Input data for training.
-                y_train (list, np.array): Output data for training.
                 x_val (list, np.array): Input data for validation.
-                y_val (list, np.array): Output data for validation.
                 hyper_space (dict): Hyper parameter space to explore.
                 train_specs (dict): Training specifications.
                 path (str): Path to save (temporary) results.
                 max_evals (integer): Maximum number of evaluations.
                 epochs (int): Number of epochs for model training.
+                y_train (list, np.array): Output data for training.
+                y_val (list, np.array): Output data for validation.
                 model_specs (dict): Model specifications.
                 metric (str): Metric to be used for exploration. If None validation loss is used.
                 trials (Trials): Object with exploration information.
@@ -148,7 +156,10 @@ class AIronSuit(object):
                         exp_loss += [(1 - metrics.auc(fpr, tpr))]
                 exp_loss = np.mean(exp_loss) if len(exp_loss) > 0 else 1
             else:
-                exp_loss = self.model.evaluate(x_val, y_val)
+                if y_val:
+                    exp_loss = self.model.evaluate(x_val, y_val)
+                else:
+                    exp_loss = self.model.evaluate(x_val)
                 if isinstance(exp_loss, list):
                     exp_loss = exp_loss[0]
 
@@ -165,14 +176,17 @@ class AIronSuit(object):
             best_exp_losss_name = path + 'best_' + model_name + '_exp_loss'
             trials_losses = [loss_ for loss_ in trials.losses() if loss_]
             best_exp_loss = min(trials_losses) if len(trials_losses) > 0 else None
-            print('best val loss so far: ', best_exp_loss)
-            print('current val loss: ', exp_loss)
+            print('best val loss so far: ' + str(best_exp_loss))
+            print('current val loss: ' + str(exp_loss))
             best_exp_loss_cond = best_exp_loss is None or exp_loss < best_exp_loss
-            print('save: ', status, best_exp_loss_cond)
+            print('save: ' + str(status and best_exp_loss_cond))
             if status == STATUS_OK and best_exp_loss_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
-                self.__save_model(model=self.model, name=path + 'best_exp_' + model_name + '_json')
+                self.__save_model(model=self.model,
+                                  name=path + 'best_exp_' + model_name,
+                                  force_subclass_weights_saver=self.__force_subclass_weights_saver,
+                                  **specs)
                 with open(path + 'best_exp_' + model_name + '_hyper_candidates', 'wb') as f:
                     pickle.dump(hyper_candidates, f, protocol=pickle.HIGHEST_PROTOCOL)
                 if val_inference_in_path is not None:
@@ -203,10 +217,15 @@ class AIronSuit(object):
                 best_hyper_candidates = pickle.load(f)
 
             # Best model
-            specs = model_specs.copy()
+            specs = {}
+            if model_specs:
+                specs.update(model_specs.copy())
             specs.update(best_hyper_candidates)
-            best_model = self.__load_model(name=path + 'best_exp_' + model_name + '_json')
-            if BACKEND == 'tensorflow':
+            best_model = self.__load_model(name=path + 'best_exp_' + model_name,
+                                           custom_objects=self.__custom_objects,
+                                           force_subclass_weights_loader=self.__force_subclass_weights_loader,
+                                           **best_hyper_candidates)
+            if BACKEND == 'tensorflow' and all([spec_ in specs.keys() for spec_ in ['optimizer', 'loss']]):
                 best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])
             elif cuda:
                 best_model.cuda()
@@ -306,18 +325,22 @@ class AIronSuit(object):
 
             Parameters:
                 name (str): Model name.
+                force_subclass_weights_saver (bool): To whether force the subclass weights saver or not, useful for
+                keras subclasses models.
         """
         self.__save_model(model=self.model, name=name)
 
-    def load_model(self, name, custom_objects=None):
+    def load_model(self, name, **kwargs):
         """ Load the model.
 
             Parameters:
                 name (str): Model name.
                 custom_objects (dict): Custom layers instances tu use when loading a custom model.
-                {'custom_layer_name': custom_layer}
+                force_subclass_weights_loader (bool): To whether force the subclass weights loader or not, useful for
+                keras subclasses models.
+                kwargs (dict): Custom or other arguments.
         """
-        self.model = load_model(name=name, custom_objects=custom_objects)
+        self.model = self.__load_model(name=name, **kwargs)
 
     def clear_session(self):
         """ Clear session.
@@ -345,11 +368,22 @@ class AIronSuit(object):
             self.create_latent_model(kwargs['hidden_layer_names'])
         get_insights(x, self.latent_model, **kwargs)
 
-    def __save_model(self, model, name):
-        save_model(model=model, name=name)
+    def __save_model(self, model, name, **kwargs):
+        if 'force_subclass_weights_saver' in kwargs.keys() and kwargs['force_subclass_weights_saver']:
+            del kwargs['force_subclass_weights_saver']
+            model = self.__model_constructor(**kwargs)
+            model.save_weights(name)
+        else:
+            save_model(model=model, name=name)
 
-    def __load_model(self, name):
-        return load_model(name=name, custom_objects=self.__custom_objects)
+    def __load_model(self, name, custom_objects=None, **kwargs):
+        if 'force_subclass_weights_loader' in kwargs.keys() and kwargs['force_subclass_weights_loader']:
+            del kwargs['force_subclass_weights_loader']
+            model = self.__model_constructor(**kwargs)
+            model.load_weights(name)
+        else:
+            model = load_model(name, custom_objects, **kwargs)
+        return model
 
     def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
                 verbose=None):

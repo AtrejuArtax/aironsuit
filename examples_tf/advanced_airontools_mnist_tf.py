@@ -12,7 +12,7 @@ from sklearn.metrics import classification_report
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.model_constructors import model_constructor
-from airontools.preprocessing import array_to_list
+from airontools.preprocessing import train_val_split
 from airontools.tools import path_management
 from airontools.devices import get_available_gpus
 random.seed(0)
@@ -103,7 +103,7 @@ for path in [prep_data_path, inference_data_path, results_path]:
 if max_n_samples is not None:
     train_dataset = train_dataset[-max_n_samples:, ...]
     train_targets = train_targets[-max_n_samples:, ...]
-train_dataset = train_dataset / 255
+train_dataset = train_dataset.astype(precision) / 255
 train_dataset = train_dataset.reshape((train_dataset.shape[0],
                                        train_dataset.shape[1] * train_dataset.shape[2]))
 encoder = OneHotEncoder(sparse=False)
@@ -111,7 +111,7 @@ train_targets = train_targets.reshape((train_targets.shape[0], 1))
 train_targets = encoder.fit_transform(train_targets)
 
 # From data frame to list
-x_train, x_val, y_train, y_val, train_val_inds = array_to_list(
+x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
     input_data=train_dataset,
     output_data=train_targets,
     n_parallel_models=model_specs['parallel_models'],
@@ -163,7 +163,7 @@ encoder.fit(train_targets)
 test_targets = encoder.transform(test_targets)
 
 # From data frame to list
-x_test, _, y_test, _, _ = array_to_list(
+x_test, _, y_test, _, _ = train_val_split(
     input_data=test_dataset,
     output_data=test_targets,
     n_parallel_models=model_specs['parallel_models'] * len(model_specs['devices']),
