@@ -4,7 +4,7 @@ import json
 import tensorflow as tf
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Conv2D, Flatten, Dense, Layer, Reshape, Conv2DTranspose
+from tensorflow.keras.layers import Input, Dense, Layer, Reshape
 from tensorflow.keras.metrics import Mean
 from tensorflow.keras.losses import binary_crossentropy, mse
 from tensorflow.keras.optimizers import Adam
@@ -79,7 +79,7 @@ def vae_model_constructor(latent_dim):
 
             # Decoder
             latent_inputs = Input(shape=(latent_dim,))
-            decoder_outputs = Dense(7 * 7 * 64, activation="relu")(latent_inputs)
+            decoder_outputs = customized_layer(latent_inputs, name='encoder_dense', units=7 * 7 * 64, advanced_reg=True)
             decoder_outputs = Reshape((7, 7, 64))(decoder_outputs)
             for i, filters, activation in zip([1, 2], [64, 32], ['relu', 'relu']):
                 decoder_outputs = customized_layer(
@@ -147,6 +147,10 @@ def vae_model_constructor(latent_dim):
                 decoder_weights = [np.array(w) for w in json.load(f)]
             self.decoder.set_weights(decoder_weights)
 
+        def summary(self):
+            self.encoder.summary()
+            self.decoder.summary()
+
     # Create VAE model and compile it
     vae = VAE(latent_dim)
     vae.compile(optimizer=Adam())
@@ -185,4 +189,5 @@ aironsuit.design(
     model_name=model_name,
     seed=0,
     patience=patience)
+aironsuit.summary()
 del x_train, x_val
