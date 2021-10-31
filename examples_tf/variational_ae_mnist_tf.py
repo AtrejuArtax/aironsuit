@@ -1,10 +1,9 @@
 # Databricks notebook source
 import numpy as np
-import csv
 import json
 import tensorflow as tf
 from tensorflow.keras.datasets import mnist
-from tensorflow.keras.models import Model, save_model, load_model
+from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Conv2D, Flatten, Dense, Layer, Reshape, Conv2DTranspose
 from tensorflow.keras.metrics import Mean
 from tensorflow.keras.losses import binary_crossentropy, mse
@@ -15,6 +14,7 @@ import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.preprocessing import train_val_split
+from airontools.model_constructors import customized_layer
 
 # COMMAND ----------
 
@@ -70,22 +70,31 @@ def vae_model_constructor(latent_dim):
 
             # Encoder
             encoder_inputs = Input(shape=(28, 28, 1))
-            x = Conv2D(32, 3, activation="relu", strides=2, padding="same")(encoder_inputs)
-            x = Conv2D(64, 3, activation="relu", strides=2, padding="same")(x)
-            x = Flatten()(x)
-            x = Dense(16, activation="relu")(x)
-            z_mean = Dense(latent_dim, name="z_mean")(x)
-            z_log_var = Dense(latent_dim, name="z_log_var")(x)
+            encoder_conv = customized_layer(
+                encoder_inputs, name='encoder_conv', filters=32, kernel_size=3, strides=2, advanced_reg=True)
+            z_mean = customized_layer(encoder_conv, name='encoder_mean', units=latent_dim, advanced_reg=True)
+            z_log_var = customized_layer(encoder_conv, name='encoder_log_var', units=latent_dim, advanced_reg=True)
             z = Sampling()([z_mean, z_log_var])
             self.encoder = Model(encoder_inputs, [z_mean, z_log_var, z], name="encoder")
 
             # Decoder
             latent_inputs = Input(shape=(latent_dim,))
-            x = Dense(7 * 7 * 64, activation="relu")(latent_inputs)
-            x = Reshape((7, 7, 64))(x)
-            x = Conv2DTranspose(64, 3, activation="relu", strides=2, padding="same")(x)
-            x = Conv2DTranspose(32, 3, activation="relu", strides=2, padding="same")(x)
-            decoder_outputs = Conv2DTranspose(1, 3, activation="sigmoid", padding="same")(x)
+            # x = Dense(7 * 7 * 64, activation="relu")(latent_inputs)
+            # x = Reshape((7, 7, 64))(x)
+            # x = Conv2DTranspose(64, 3, activation="relu", strides=2, padding="same")(x)
+            # x = Conv2DTranspose(32, 3, activation="relu", strides=2, padding="same")(x)
+            # decoder_outputs = Conv2DTranspose(1, 3, activation="sigmoid", padding="same")(x)
+            decoder_outputs = Dense(7 * 7 * 64, activation="relu")(latent_inputs)
+            decoder_outputs = Reshape((7, 7, 64))(decoder_outputs)
+            for i, filters, activation in zip([1, 2], [64, 32], ['relu', 'relu']):
+                decoder_outputs = customized_layer(
+                    decoder_outputs,
+                    name='decoder_conv', name_ext=str(i), activation=activation, filters=filters, kernel_size=3,
+                    strides=2, padding='same', conv_transpose=True, advanced_reg=True)
+            decoder_outputs = customized_layer(
+                decoder_outputs,
+                name='decoder_output', activation='sigmoid', filters=1, kernel_size=3, padding='same',
+                conv_transpose=True, advanced_reg=True)
             self.decoder = Model(latent_inputs, decoder_outputs, name="decoder")
 
         @property
