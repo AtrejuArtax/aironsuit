@@ -79,11 +79,6 @@ def vae_model_constructor(latent_dim):
 
             # Decoder
             latent_inputs = Input(shape=(latent_dim,))
-            # x = Dense(7 * 7 * 64, activation="relu")(latent_inputs)
-            # x = Reshape((7, 7, 64))(x)
-            # x = Conv2DTranspose(64, 3, activation="relu", strides=2, padding="same")(x)
-            # x = Conv2DTranspose(32, 3, activation="relu", strides=2, padding="same")(x)
-            # decoder_outputs = Conv2DTranspose(1, 3, activation="sigmoid", padding="same")(x)
             decoder_outputs = Dense(7 * 7 * 64, activation="relu")(latent_inputs)
             decoder_outputs = Reshape((7, 7, 64))(decoder_outputs)
             for i, filters, activation in zip([1, 2], [64, 32], ['relu', 'relu']):
