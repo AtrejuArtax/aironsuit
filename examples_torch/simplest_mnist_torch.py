@@ -10,12 +10,14 @@ import os
 import tempfile
 os.environ['AIRONSUIT_BACKEND'] = 'pytorch'
 from aironsuit.suit import AIronSuit
+HOME = os.path.expanduser("~")
 
 # COMMAND ----------
 
 # Example Set-Up #
 
-project_name = 'simplest_mnist'
+project_name = 'simplest_mnist_torch'
+working_path = os.path.join(HOME, project_name)
 num_classes = 10
 input_shape = (28, 28, 1)
 batch_size = 128
@@ -106,7 +108,8 @@ aironsuit = AIronSuit(model=model)
 aironsuit.train(
     epochs=epochs,
     x_train=x_train,
-    y_train=y_train)
+    y_train=y_train,
+    path=working_path)
 
 # COMMAND ----------
 
@@ -117,4 +120,4 @@ print('Test loss:', score)
 # COMMAND ----------
 
 # Save Model
-aironsuit.save_model(os.path.join(os.path.expanduser("~"), project_name + '_model'))
+aironsuit.save_model(os.path.join(working_path, project_name + '_model'))
