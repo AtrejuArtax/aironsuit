@@ -23,9 +23,9 @@ from airontools.model_constructors import layer_constructor
 model_name = 'VAE_NN'
 num_classes = 10
 batch_size = 128
-epochs = 1
+epochs = 30
 patience = 3
-max_evals = 1
+max_evals = 3
 max_n_samples = None
 precision = 'float32'
 
@@ -186,7 +186,7 @@ aironsuit.design(
     max_evals=max_evals,
     epochs=epochs,
     trials=Trials(),
-    model_name=model_name,
+    name=model_name,
     seed=0,
     patience=patience)
 aironsuit.summary()

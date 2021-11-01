@@ -1,11 +1,11 @@
 from aironsuit.backend import get_backend
 BACKEND = get_backend()
-if BACKEND == 'tensorflow':
-    from aironsuit.trainers.trainers_tf import *
-    from tensorflow.keras.models import Model as Module
-else:
+if BACKEND == 'pytorch':
     from aironsuit.trainers.trainers_torch import *
     from torch.nn import Module
+else:
+    from aironsuit.trainers.trainers_tf import *
+    from tensorflow.keras.models import Model as Module
 
 
 class AIronTrainer(object):

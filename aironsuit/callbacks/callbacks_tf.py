@@ -1,5 +1,6 @@
 import tempfile
 from tensorflow.keras import callbacks
+import os
 
 
 def get_basic_callbacks(path=tempfile.gettempdir(), patience=3, name=None, verbose=0, epochs=None):
@@ -7,7 +8,7 @@ def get_basic_callbacks(path=tempfile.gettempdir(), patience=3, name=None, verbo
     name = name if name else 'NN'
     basic_callbacks.append({'TensorBoard':
                                 {'callback': callbacks.TensorBoard,
-                                 'kwargs': dict(log_dir=path + name + '_logs')}})
+                                 'kwargs': dict(log_dir=os.path.join(path, name + '_logs'))}})
     basic_callbacks.append({'ReduceLROnPlateau':
                                 {'callback': callbacks.ReduceLROnPlateau,
                                  'kwargs': dict(
@@ -27,7 +28,7 @@ def get_basic_callbacks(path=tempfile.gettempdir(), patience=3, name=None, verbo
     basic_callbacks.append({'ModelCheckpoint':
                                 {'callback': callbacks.ModelCheckpoint,
                                  'kwargs': dict(
-                                     filepath=path + name,
+                                     filepath=os.path.join(path, name),
                                      save_best_only=True,
                                      save_weights_only=True,
                                      verbose=verbose)}})

@@ -36,7 +36,7 @@ class AIronSuit(object):
     """
 
     def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None,
-                 custom_objects=None, force_subclass_weights_saver=True, force_subclass_weights_loader=False):
+                 custom_objects=None, force_subclass_weights_saver=False, force_subclass_weights_loader=False):
         """ Parameters:
                 model_constructor (): Function that returns a model.
                 model (Model): User customized model.
@@ -169,11 +169,11 @@ class AIronSuit(object):
             status = STATUS_OK if not math.isnan(exp_loss) and exp_loss is not None else STATUS_FAIL
 
             # Save trials
-            with open(path + 'trials.hyperopt', 'wb') as f:
+            with open(os.path.join(path, 'trials.hyperopt'), 'wb') as f:
                 pickle.dump(trials, f)
 
             # Save model if it is the best so far
-            best_exp_losss_name = path + '_'.join(['best', name, 'exp_loss'])
+            best_exp_losss_name = os.path.join(path, '_'.join(['best', name, 'exp_loss']))
             trials_losses = [loss_ for loss_ in trials.losses() if loss_]
             best_exp_loss = min(trials_losses) if len(trials_losses) > 0 else None
             print('best val loss so far: ' + str(best_exp_loss))
@@ -183,15 +183,15 @@ class AIronSuit(object):
             if status == STATUS_OK and best_exp_loss_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
-                self.__save_load_model(name=path + '_'.join(['best_exp', name]), mode='save')
-                with open(path + '_'.join(['best_exp', name, 'hyper_candidates']), 'wb') as f:
+                self.__save_load_model(name=os.path.join(path, '_'.join(['best_exp', name])), mode='save')
+                with open(os.path.join(path, '_'.join(['best_exp', name, 'hyper_candidates'])), 'wb') as f:
                     pickle.dump(hyper_candidates, f, protocol=pickle.HIGHEST_PROTOCOL)
                 if val_inference_in_path is not None:
                     y_val_ = np.concatenate(y_val, axis=1) if isinstance(y_val, list) else y_val
-                    np.savetxt(val_inference_in_path + 'val_target.csv', y_val_, delimiter=',')
+                    np.savetxt(os.path.join(val_inference_in_path, 'val_target.csv'), y_val_, delimiter=',')
                     y_inf = trainer.predict(x_val)
                     y_inf = np.concatenate(y_inf, axis=1) if isinstance(y_inf, list) else y_inf
-                    np.savetxt(val_inference_in_path + 'val_target_inference.csv', y_inf, delimiter=',')
+                    np.savetxt(os.path.join(val_inference_in_path, 'val_target_inference.csv'), y_inf, delimiter=',')
 
             clear_session()
             del self.model
@@ -210,7 +210,7 @@ class AIronSuit(object):
                     trials=trials,
                     verbose=True,
                     return_argmin=False)
-            with open(path + 'best_exp_' + name + '_hyper_candidates', 'rb') as f:
+            with open(os.path.join(path, 'best_exp_' + name + '_hyper_candidates'), 'rb') as f:
                 best_hyper_candidates = pickle.load(f)
 
             # Best model
@@ -218,7 +218,7 @@ class AIronSuit(object):
             if model_specs:
                 specs.update(model_specs.copy())
             specs.update(best_hyper_candidates)
-            best_model = self.__save_load_model(name=path + 'best_exp_' + name, mode='load',
+            best_model = self.__save_load_model(name=os.path.join(path, '_'.join(['best_exp', name])), mode='load',
                                                 **{key:value for key, value in specs.items() if key != 'name'})
             if BACKEND == 'tensorflow' and all([spec_ in specs.keys() for spec_ in ['optimizer', 'loss']]):
                 best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])
@@ -240,8 +240,8 @@ class AIronSuit(object):
         self.model, self.__trainer = design()
 
     def train(self, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
-              results_path=tempfile.gettempdir(), verbose=None, use_basic_callbacks=True, path=tempfile.gettempdir(),
-              name='NN', patience=3):
+              results_path=tempfile.gettempdir(), verbose=None, use_basic_callbacks=True,
+              path=tempfile.gettempdir() + os.sep, name='NN', patience=3):
         """ Weight optimization.
 
             Parameters:
@@ -328,9 +328,6 @@ class AIronSuit(object):
 
             Parameters:
                 name (str): Model name.
-                custom_objects (dict): Custom layers instances tu use when loading a custom model.
-                force_subclass_weights_loader (bool): To whether force the subclass weights loader or not, useful for
-                keras subclasses models.
                 kwargs (dict): Custom or other arguments.
         """
         self.model = self.__save_load_model(name=name, mode='load', **kwargs)

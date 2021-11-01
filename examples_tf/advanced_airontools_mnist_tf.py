@@ -28,8 +28,8 @@ project = 'mnist'
 working_path = os.path.join(HOME, 'advanced_airontools_' + project)
 use_gpu = True
 max_n_samples = None
-max_evals = 2
-epochs = 2
+max_evals = 3
+epochs = 100
 batch_size = 32
 patience = 3
 parallel_models = 2
@@ -49,9 +49,9 @@ else:
 model_name = project + '_NN'
 
 # Paths
-prep_data_path = os.path.join(working_path, 'PrepDatasets', project)
-inference_data_path = os.path.join(working_path, 'Inference', project)
-results_path = os.path.join(working_path, 'Results', project)
+prep_data_path = os.path.join(working_path, 'PrepDatasets')
+inference_data_path = os.path.join(working_path, 'Inference')
+results_path = os.path.join(working_path, 'Results')
 
 # Target names
 target_names = [str(i) for i in range(10)]
@@ -92,7 +92,7 @@ hyperparam_space = {
     'c_n_layers': choice('c_n_layers', np.arange(1, 2))}
 hyperparam_space.update({'loss': choice('loss', ['mse', 'categorical_crossentropy'])})
 
-# Make/remove important paths
+# Make/remove paths
 path_modes = ['rm', 'make']
 for path in [prep_data_path, inference_data_path, results_path]:
     path_management(path, modes=path_modes)
