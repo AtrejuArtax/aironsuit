@@ -173,7 +173,7 @@ class AIronSuit(object):
                 pickle.dump(trials, f)
 
             # Save model if it is the best so far
-            best_exp_losss_name = path + 'best_' + name + '_exp_loss'
+            best_exp_losss_name = path + '_'.join(['best', name, 'exp_loss'])
             trials_losses = [loss_ for loss_ in trials.losses() if loss_]
             best_exp_loss = min(trials_losses) if len(trials_losses) > 0 else None
             print('best val loss so far: ' + str(best_exp_loss))
@@ -183,8 +183,8 @@ class AIronSuit(object):
             if status == STATUS_OK and best_exp_loss_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
-                self.__save_load_model(name=path + 'best_exp_' + name, mode='save')
-                with open(path + 'best_exp_' + name + '_hyper_candidates', 'wb') as f:
+                self.__save_load_model(name=path + '_'.join(['best_exp', name]), mode='save')
+                with open(path + '_'.join(['best_exp', name, 'hyper_candidates']), 'wb') as f:
                     pickle.dump(hyper_candidates, f, protocol=pickle.HIGHEST_PROTOCOL)
                 if val_inference_in_path is not None:
                     y_val_ = np.concatenate(y_val, axis=1) if isinstance(y_val, list) else y_val
@@ -218,7 +218,8 @@ class AIronSuit(object):
             if model_specs:
                 specs.update(model_specs.copy())
             specs.update(best_hyper_candidates)
-            best_model = self.__save_load_model(name=path + 'best_exp_' + name, mode='load', **specs)
+            best_model = self.__save_load_model(name=path + 'best_exp_' + name, mode='load',
+                                                **{key:value for key, value in specs.items() if key != 'name'})
             if BACKEND == 'tensorflow' and all([spec_ in specs.keys() for spec_ in ['optimizer', 'loss']]):
                 best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])
             elif cuda:
