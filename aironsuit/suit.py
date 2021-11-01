@@ -183,10 +183,7 @@ class AIronSuit(object):
             if status == STATUS_OK and best_exp_loss_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
-                self.__save_model(model=self.model,
-                                  name=path + 'best_exp_' + name,
-                                  force_subclass_weights_saver=self.__force_subclass_weights_saver,
-                                  **specs)
+                self.__save_load_model(name=path + 'best_exp_' + name, mode='save')
                 with open(path + 'best_exp_' + name + '_hyper_candidates', 'wb') as f:
                     pickle.dump(hyper_candidates, f, protocol=pickle.HIGHEST_PROTOCOL)
                 if val_inference_in_path is not None:
@@ -221,10 +218,7 @@ class AIronSuit(object):
             if model_specs:
                 specs.update(model_specs.copy())
             specs.update(best_hyper_candidates)
-            best_model = self.__load_model(name=path + 'best_exp_' + name,
-                                           custom_objects=self.__custom_objects,
-                                           force_subclass_weights_loader=self.__force_subclass_weights_loader,
-                                           **best_hyper_candidates)
+            best_model = self.__save_load_model(name=path + 'best_exp_' + name, mode='load', **specs)
             if BACKEND == 'tensorflow' and all([spec_ in specs.keys() for spec_ in ['optimizer', 'loss']]):
                 best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])
             elif cuda:
@@ -325,10 +319,8 @@ class AIronSuit(object):
 
             Parameters:
                 name (str): Model name.
-                force_subclass_weights_saver (bool): To whether force the subclass weights saver or not, useful for
-                keras subclasses models.
         """
-        self.__save_model(model=self.model, name=name)
+        self.__save_load_model(name=name, mode='save')
 
     def load_model(self, name, **kwargs):
         """ Load the model.
@@ -340,7 +332,7 @@ class AIronSuit(object):
                 keras subclasses models.
                 kwargs (dict): Custom or other arguments.
         """
-        self.model = self.__load_model(name=name, **kwargs)
+        self.model = self.__save_load_model(name=name, mode='load', **kwargs)
 
     def clear_session(self):
         """ Clear session.
@@ -368,22 +360,17 @@ class AIronSuit(object):
             self.create_latent_model(kwargs['hidden_layer_names'])
         get_insights(x, self.latent_model, **kwargs)
 
-    def __save_model(self, model, name, **kwargs):
-        if 'force_subclass_weights_saver' in kwargs.keys() and kwargs['force_subclass_weights_saver']:
-            del kwargs['force_subclass_weights_saver']
-            model = self.__model_constructor(**kwargs)
-            model.save_weights(name)
-        else:
-            save_model(model=model, name=name)
-
-    def __load_model(self, name, custom_objects=None, **kwargs):
-        if 'force_subclass_weights_loader' in kwargs.keys() and kwargs['force_subclass_weights_loader']:
-            del kwargs['force_subclass_weights_loader']
-            model = self.__model_constructor(**kwargs)
-            model.load_weights(name)
-        else:
-            model = load_model(name, custom_objects, **kwargs)
-        return model
+    def __save_load_model(self, name, mode, **kwargs):
+        if mode == 'save':
+            if self.__force_subclass_weights_saver:
+                self.model.save_weights(name)
+            else:
+                save_model(model=self.model, name=name)
+        elif mode == 'load':
+            if self.__force_subclass_weights_loader:
+                return self.__model_constructor(**kwargs).load_weights(name)
+            else:
+                return load_model(name, custom_objects=self.__custom_objects)
 
     def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
                 verbose=None):

@@ -29,7 +29,7 @@ working_path = os.path.join(HOME, 'advanced_airontools_' + project)
 use_gpu = True
 max_n_samples = None
 max_evals = 3
-epochs = 100
+epochs = 10
 batch_size = 32
 patience = 3
 parallel_models = 2
@@ -70,15 +70,16 @@ train_specs = {
 
 # Model Specs
 model_specs = {
+    'name': model_name,
     'input_specs': input_specs,
     'output_specs': output_specs,
-    'hidden_activation': 'prelu',
     'bn': True,
     'devices': devices,
     'parallel_models': parallel_models,
     'precision': precision,
     'sequential_block': False,
     'optimizer': Adam(learning_rate=0.001),
+    'hidden_activation': 'prelu',
     'output_activation': 'softmax'}
 hyperparam_space = {
     'dropout_rate': uniform('dropout_rate', 0., 0.4),
