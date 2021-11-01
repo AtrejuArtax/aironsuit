@@ -139,7 +139,7 @@ aironsuit.design(
     max_evals=max_evals,
     epochs=epochs,
     trials=Trials(),
-    model_name=model_name,
+    name=model_name,
     verbose=verbose,
     seed=0,
     metric=metric,

@@ -63,10 +63,10 @@ class AIronSuit(object):
         self.__force_subclass_weights_loader = force_subclass_weights_loader
 
     def design(self, x_train, x_val, hyper_space, train_specs, max_evals, epochs, y_train=None, y_val=None,
-               model_specs=None, path=tempfile.gettempdir() + os.sep, metric=None, trials=None, model_name='NN', verbose=0,
-               seed=None, val_inference_in_path=None, raw_callbacks=None, cuda=None, use_basic_callbacks=True,
-               patience=3):
-        """ Explore the hyper parameter space to find optimal candidates.
+               model_specs=None, path=tempfile.gettempdir() + os.sep, metric=None, trials=None, name='NN',
+               verbose=0, seed=None, val_inference_in_path=None, raw_callbacks=None, cuda=None,
+               use_basic_callbacks=True, patience=3):
+        """ Explore the hyper-parameter space to find optimal candidates.
 
             Parameters:
                 x_train (list, np.array): Input data for training.
@@ -81,7 +81,7 @@ class AIronSuit(object):
                 model_specs (dict): Model specifications.
                 metric (str): Metric to be used for exploration. If None validation loss is used.
                 trials (Trials): Object with exploration information.
-                model_name (str): Name of the model.
+                name (str): Name of the model.
                 verbose (int): Verbosity.
                 seed (int): Seed for reproducible results.
                 val_inference_in_path (str): Path where to save validation inference.
@@ -94,7 +94,7 @@ class AIronSuit(object):
         if trials is None:
             trials = Trials()
         raw_callbacks = raw_callbacks if raw_callbacks else \
-            get_basic_callbacks(path=path, patience=patience, model_name=model_name, verbose=verbose, epochs=epochs) \
+            get_basic_callbacks(path=path, patience=patience, name=name, verbose=verbose, epochs=epochs) \
                 if use_basic_callbacks else None
 
         def design_trial(hyper_candidates):
@@ -173,7 +173,7 @@ class AIronSuit(object):
                 pickle.dump(trials, f)
 
             # Save model if it is the best so far
-            best_exp_losss_name = path + 'best_' + model_name + '_exp_loss'
+            best_exp_losss_name = path + 'best_' + name + '_exp_loss'
             trials_losses = [loss_ for loss_ in trials.losses() if loss_]
             best_exp_loss = min(trials_losses) if len(trials_losses) > 0 else None
             print('best val loss so far: ' + str(best_exp_loss))
@@ -184,10 +184,10 @@ class AIronSuit(object):
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
                 self.__save_model(model=self.model,
-                                  name=path + 'best_exp_' + model_name,
+                                  name=path + 'best_exp_' + name,
                                   force_subclass_weights_saver=self.__force_subclass_weights_saver,
                                   **specs)
-                with open(path + 'best_exp_' + model_name + '_hyper_candidates', 'wb') as f:
+                with open(path + 'best_exp_' + name + '_hyper_candidates', 'wb') as f:
                     pickle.dump(hyper_candidates, f, protocol=pickle.HIGHEST_PROTOCOL)
                 if val_inference_in_path is not None:
                     y_val_ = np.concatenate(y_val, axis=1) if isinstance(y_val, list) else y_val
@@ -213,7 +213,7 @@ class AIronSuit(object):
                     trials=trials,
                     verbose=True,
                     return_argmin=False)
-            with open(path + 'best_exp_' + model_name + '_hyper_candidates', 'rb') as f:
+            with open(path + 'best_exp_' + name + '_hyper_candidates', 'rb') as f:
                 best_hyper_candidates = pickle.load(f)
 
             # Best model
@@ -221,7 +221,7 @@ class AIronSuit(object):
             if model_specs:
                 specs.update(model_specs.copy())
             specs.update(best_hyper_candidates)
-            best_model = self.__load_model(name=path + 'best_exp_' + model_name,
+            best_model = self.__load_model(name=path + 'best_exp_' + name,
                                            custom_objects=self.__custom_objects,
                                            force_subclass_weights_loader=self.__force_subclass_weights_loader,
                                            **best_hyper_candidates)
@@ -246,7 +246,7 @@ class AIronSuit(object):
 
     def train(self, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
               results_path=tempfile.gettempdir(), verbose=None, use_basic_callbacks=True, path=tempfile.gettempdir(),
-              model_name='NN', patience=3):
+              name='NN', patience=3):
         """ Weight optimization.
 
             Parameters:
@@ -261,14 +261,14 @@ class AIronSuit(object):
                 verbose (int): Verbosity.
                 use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
                 path (str): Path to save (temporary) results.
-                model_name (str): Name of the model.
+                name (str): Name of the model.
                 patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
         """
         train_specs = {
             'batch_size': batch_size,
             'path': results_path}
         callbacks_ = callbacks if callbacks else \
-            get_basic_callbacks(path=path, patience=patience, model_name=model_name, verbose=verbose, epochs=epochs) \
+            get_basic_callbacks(path=path, patience=patience, name=name, verbose=verbose, epochs=epochs) \
                 if use_basic_callbacks else None
         self.__trainer = self.__train(
                 train_specs=train_specs,
