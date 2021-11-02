@@ -10,6 +10,7 @@ import os
 import tempfile
 os.environ['AIRONSUIT_BACKEND'] = 'pytorch'
 from aironsuit.suit import AIronSuit
+from airontools.tools import path_management
 HOME = os.path.expanduser("~")
 
 # COMMAND ----------
@@ -105,6 +106,7 @@ aironsuit = AIronSuit(model=model)
 # COMMAND ----------
 
 # Training
+path_management(working_path, modes=['rm', 'make'])
 aironsuit.train(
     epochs=epochs,
     x_train=x_train,

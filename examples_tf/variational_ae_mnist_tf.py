@@ -4,9 +4,9 @@ import json
 import tensorflow as tf
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense, Layer, Reshape
+from tensorflow.keras.layers import Input, Layer, Reshape
 from tensorflow.keras.metrics import Mean
-from tensorflow.keras.losses import binary_crossentropy, mse
+from tensorflow.keras.losses import binary_crossentropy
 from tensorflow.keras.optimizers import Adam
 from hyperopt.hp import choice
 from hyperopt import Trials

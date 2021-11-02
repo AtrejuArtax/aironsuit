@@ -8,6 +8,7 @@ import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.model_constructors import layer_constructor
+from airontools.tools import path_management
 HOME = os.path.expanduser("~")
 
 # COMMAND ----------
@@ -50,6 +51,7 @@ aironsuit.summary()
 # COMMAND ----------
 
 # Training
+path_management(working_path, modes=['rm', 'make'])
 aironsuit.train(
     epochs=epochs,
     x_train=x_train,
