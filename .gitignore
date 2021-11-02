@@ -51,4 +51,4 @@ Thumbs.db
 build/
 *.egg-info
 
-examples_tf/lightning*
+examples_torch/lightning*

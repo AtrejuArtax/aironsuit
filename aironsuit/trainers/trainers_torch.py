@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader, TensorDataset
 import torch
 
 
-def fit(module, x_train, y_train, x_val=None, y_val=None, best_module_name=None, **kwargs):
+def fit(module, x_train, y_train=None, x_val=None, y_val=None, best_module_name=None, **kwargs):
 
     # Invoke trainer
     kwargs_ = kwargs.copy()

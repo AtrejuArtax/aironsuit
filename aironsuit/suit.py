@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from hyperopt import Trials, STATUS_OK, STATUS_FAIL
 import hyperopt
 from sklearn import metrics
@@ -8,18 +9,19 @@ import math
 import tempfile
 from sklearn.metrics import accuracy_score
 from inspect import getfullargspec
-from aironsuit.utils import load_model, save_model, clear_session, summary
 from aironsuit.trainers import AIronTrainer
-from aironsuit.models import Model, get_latent_model
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.backend import get_backend
+from airontools.model_constructors import Model, get_latent_model
+from airontools.visualization import get_insights
+from airontools.model_interactors import load_model, save_model, clear_session, summary
 
 BACKEND = get_backend()
 
 
 class AIronSuit(object):
     """ AIronSuit is a model wrapper that takes care of the hyper-parameter optimization problem, training and inference
-    among other things.
+    among other functionalities.
 
         Attributes:
             model (Model): NN model.
@@ -34,13 +36,17 @@ class AIronSuit(object):
     """
 
     def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None,
-                 custom_objects=None):
+                 custom_objects=None, force_subclass_weights_saver=False, force_subclass_weights_loader=False):
         """ Parameters:
                 model_constructor (): Function that returns a model.
                 model (Model): User customized model.
                 trainer (): Model trainer.
                 model_constructor_wrapper (): Model constructor wrapper.
                 custom_objects (dict): Custom objects when loading Keras models.
+                force_subclass_weights_saver (bool): To whether force the subclass weights saver or not, useful for
+                keras subclasses models.
+                force_subclass_weights_loader (bool): To whether force the subclass weights loader or not, useful for
+                keras subclasses models.
         """
 
         self.model = model
@@ -53,26 +59,29 @@ class AIronSuit(object):
         self.__cuda = None
         self.__devices = None
         self.__total_n_models = None
+        self.__force_subclass_weights_saver = force_subclass_weights_saver
+        self.__force_subclass_weights_loader = force_subclass_weights_loader
 
-    def explore(self, x_train, y_train, x_val, y_val, space, model_specs, train_specs, max_evals, epochs,
-                path=tempfile.gettempdir(), metric=None, trials=None, model_name='NN', verbose=0, seed=None, val_inference_in_path=None,
-                raw_callbacks=None, cuda=None, use_basic_callbacks=True, patience=3):
-        """ Explore the hyper parameter space to find optimal candidates.
+    def design(self, x_train, x_val, hyper_space, train_specs, max_evals, epochs, y_train=None, y_val=None,
+               model_specs=None, path=tempfile.gettempdir() + os.sep, metric=None, trials=None, name='NN',
+               verbose=0, seed=None, val_inference_in_path=None, raw_callbacks=None, cuda=None,
+               use_basic_callbacks=True, patience=3):
+        """ Explore the hyper-parameter space to find optimal candidates.
 
             Parameters:
                 x_train (list, np.array): Input data for training.
-                y_train (list, np.array): Output data for training.
                 x_val (list, np.array): Input data for validation.
-                y_val (list, np.array): Output data for validation.
-                space (dict): Hyper parameter space to explore.
-                model_specs (dict): Model specifications.
+                hyper_space (dict): Hyper parameter space to explore.
                 train_specs (dict): Training specifications.
                 path (str): Path to save (temporary) results.
                 max_evals (integer): Maximum number of evaluations.
                 epochs (int): Number of epochs for model training.
+                y_train (list, np.array): Output data for training.
+                y_val (list, np.array): Output data for validation.
+                model_specs (dict): Model specifications.
                 metric (str): Metric to be used for exploration. If None validation loss is used.
                 trials (Trials): Object with exploration information.
-                model_name (str): Name of the model.
+                name (str): Name of the model.
                 verbose (int): Verbosity.
                 seed (int): Seed for reproducible results.
                 val_inference_in_path (str): Path where to save validation inference.
@@ -85,14 +94,15 @@ class AIronSuit(object):
         if trials is None:
             trials = Trials()
         raw_callbacks = raw_callbacks if raw_callbacks else \
-            get_basic_callbacks(path=path, patience=patience, model_name=model_name, verbose=verbose, epochs=epochs) \
+            get_basic_callbacks(path=path, patience=patience, name=name, verbose=verbose, epochs=epochs) \
                 if use_basic_callbacks else None
 
-        def objective(space):
+        def design_trial(hyper_candidates):
 
             # Create model
-            specs = space.copy()
-            specs.update(model_specs)
+            specs = hyper_candidates.copy()
+            if model_specs:
+                specs.update(model_specs)
             self.__create(**specs)
 
             # Print some information
@@ -146,7 +156,10 @@ class AIronSuit(object):
                         exp_loss += [(1 - metrics.auc(fpr, tpr))]
                 exp_loss = np.mean(exp_loss) if len(exp_loss) > 0 else 1
             else:
-                exp_loss = self.model.evaluate(x_val, y_val)
+                if y_val:
+                    exp_loss = self.model.evaluate(x_val, y_val)
+                else:
+                    exp_loss = self.model.evaluate(x_val)
                 if isinstance(exp_loss, list):
                     exp_loss = exp_loss[0]
 
@@ -156,59 +169,62 @@ class AIronSuit(object):
             status = STATUS_OK if not math.isnan(exp_loss) and exp_loss is not None else STATUS_FAIL
 
             # Save trials
-            with open(path + 'trials.hyperopt', 'wb') as f:
+            with open(os.path.join(path, 'trials.hyperopt'), 'wb') as f:
                 pickle.dump(trials, f)
 
             # Save model if it is the best so far
-            best_exp_losss_name = path + 'best_' + model_name + '_exp_loss'
+            best_exp_losss_name = os.path.join(path, '_'.join(['best', name, 'exp_loss']))
             trials_losses = [loss_ for loss_ in trials.losses() if loss_]
             best_exp_loss = min(trials_losses) if len(trials_losses) > 0 else None
-            print('best val loss so far: ', best_exp_loss)
-            print('current val loss: ', exp_loss)
+            print('best val loss so far: ' + str(best_exp_loss))
+            print('current val loss: ' + str(exp_loss))
             best_exp_loss_cond = best_exp_loss is None or exp_loss < best_exp_loss
-            print('save: ', status, best_exp_loss_cond)
+            print('save: ' + str(status and best_exp_loss_cond))
             if status == STATUS_OK and best_exp_loss_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
-                self.__save_model(model=self.model, name=path + 'best_exp_' + model_name + '_json')
-                with open(path + 'best_exp_' + model_name + '_hparams', 'wb') as f:
-                    pickle.dump(space, f, protocol=pickle.HIGHEST_PROTOCOL)
+                self.__save_load_model(name=os.path.join(path, '_'.join(['best_exp', name])), mode='save')
+                with open(os.path.join(path, '_'.join(['best_exp', name, 'hyper_candidates'])), 'wb') as f:
+                    pickle.dump(hyper_candidates, f, protocol=pickle.HIGHEST_PROTOCOL)
                 if val_inference_in_path is not None:
                     y_val_ = np.concatenate(y_val, axis=1) if isinstance(y_val, list) else y_val
-                    np.savetxt(val_inference_in_path + 'val_target.csv', y_val_, delimiter=',')
+                    np.savetxt(os.path.join(val_inference_in_path, 'val_target.csv'), y_val_, delimiter=',')
                     y_inf = trainer.predict(x_val)
                     y_inf = np.concatenate(y_inf, axis=1) if isinstance(y_inf, list) else y_inf
-                    np.savetxt(val_inference_in_path + 'val_target_inference.csv', y_inf, delimiter=',')
+                    np.savetxt(os.path.join(val_inference_in_path, 'val_target_inference.csv'), y_inf, delimiter=',')
 
             clear_session()
             del self.model
 
             return {'loss': exp_loss, 'status': status}
 
-        def optimize():
+        def design():
 
             if len(trials.trials) < max_evals:
                 hyperopt.fmin(
-                    objective,
+                    design_trial,
                     rstate=None if seed is None else np.random.RandomState(seed),
-                    space=space,
+                    space=hyper_space,
                     algo=hyperopt.tpe.suggest,
                     max_evals=max_evals,
                     trials=trials,
                     verbose=True,
                     return_argmin=False)
-            with open(path + 'best_exp_' + model_name + '_hparams', 'rb') as f:
-                best_hparams = pickle.load(f)
+            with open(os.path.join(path, 'best_exp_' + name + '_hyper_candidates'), 'rb') as f:
+                best_hyper_candidates = pickle.load(f)
 
             # Best model
-            specs = model_specs.copy()
-            specs.update(best_hparams)
-            best_model = self.__load_model(name=path + 'best_exp_' + model_name + '_json')
-            if BACKEND == 'tensorflow':
+            specs = {}
+            if model_specs:
+                specs.update(model_specs.copy())
+            specs.update(best_hyper_candidates)
+            best_model = self.__save_load_model(name=os.path.join(path, '_'.join(['best_exp', name])), mode='load',
+                                                **{key:value for key, value in specs.items() if key != 'name'})
+            if BACKEND == 'tensorflow' and all([spec_ in specs.keys() for spec_ in ['optimizer', 'loss']]):
                 best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])
             elif cuda:
                 best_model.cuda()
-            print('best hyper-parameters: ' + str(best_hparams))
+            print('best hyper-parameters: ' + str(best_hyper_candidates))
 
             # Trainer
             trainer_kwargs = train_specs.copy()
@@ -221,11 +237,11 @@ class AIronSuit(object):
 
             return best_model, trainer
 
-        self.model, self.__trainer = optimize()
+        self.model, self.__trainer = design()
 
     def train(self, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
-              results_path=tempfile.gettempdir(), verbose=None, use_basic_callbacks=True, path=tempfile.gettempdir(),
-              model_name='NN', patience=3):
+              results_path=tempfile.gettempdir(), verbose=None, use_basic_callbacks=True,
+              path=tempfile.gettempdir() + os.sep, name='NN', patience=3):
         """ Weight optimization.
 
             Parameters:
@@ -240,14 +256,14 @@ class AIronSuit(object):
                 verbose (int): Verbosity.
                 use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
                 path (str): Path to save (temporary) results.
-                model_name (str): Name of the model.
+                name (str): Name of the model.
                 patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
         """
         train_specs = {
             'batch_size': batch_size,
             'path': results_path}
         callbacks_ = callbacks if callbacks else \
-            get_basic_callbacks(path=path, patience=patience, model_name=model_name, verbose=verbose, epochs=epochs) \
+            get_basic_callbacks(path=path, patience=patience, name=name, verbose=verbose, epochs=epochs) \
                 if use_basic_callbacks else None
         self.__trainer = self.__train(
                 train_specs=train_specs,
@@ -281,14 +297,14 @@ class AIronSuit(object):
             self.latent_model = get_latent_model(self.model, layer_names)
         return self.latent_model.predict(x)
 
-    def create_latent_model(self, layer_names):
-        """ Create latent model given a model and layer names.
+    def create_latent_model(self, hidden_layer_names):
+        """ Create latent model given a model and hidden layer names.
 
             Parameters:
-                layer_names (str): Layer names.
+                hidden_layer_names (str): Layer names.
         """
         assert self.model is not None
-        self.latent_model = get_latent_model(self.model, layer_names)
+        self.latent_model = get_latent_model(self.model, hidden_layer_names)
 
     def evaluate(self, x, y, use_trainer=False):
         """ Evaluate.
@@ -305,19 +321,20 @@ class AIronSuit(object):
             Parameters:
                 name (str): Model name.
         """
-        self.__save_model(model=self.model, name=name)
+        self.__save_load_model(name=name, mode='save')
 
-    def load_model(self, name, custom_objects=None):
+    def load_model(self, name, **kwargs):
         """ Load the model.
 
             Parameters:
                 name (str): Model name.
-                custom_objects (dict): Custom layers instances tu use when loading a custom model.
-                {'custom_layer_name': custom_layer}
+                kwargs (dict): Custom or other arguments.
         """
-        self.model = load_model(name=name, custom_objects=custom_objects)
+        self.model = self.__save_load_model(name=name, mode='load', **kwargs)
 
     def clear_session(self):
+        """ Clear session.
+        """
         clear_session()
 
     def summary(self):
@@ -326,11 +343,32 @@ class AIronSuit(object):
         if self.model:
             summary(self.model)
 
-    def __save_model(self, model, name):
-        save_model(model=model, name=name)
+    def get_latent_insights(self, x, **kwargs):
+        """ Get insights of latent layers.
 
-    def __load_model(self, name):
-        return load_model(name=name, custom_objects=self.__custom_objects)
+            Parameters:
+                x (list, array): Data to be mapped to latent representations.
+                hidden_layer_names (str, list): Names of the hidden layers ti get insights from.
+                embeddings (list, array): Embeddings to be saved.
+                embeddings_names (list, str): Embeddings names.
+                metadata (list, array): Metadata.
+                path (str): Path to save insights.
+        """
+        if not self.latent_model:
+            self.create_latent_model(kwargs['hidden_layer_names'])
+        get_insights(x, self.latent_model, **kwargs)
+
+    def __save_load_model(self, name, mode, **kwargs):
+        if mode == 'save':
+            if self.__force_subclass_weights_saver:
+                self.model.save_weights(name)
+            else:
+                save_model(model=self.model, name=name)
+        elif mode == 'load':
+            if self.__force_subclass_weights_loader:
+                return self.__model_constructor(**kwargs).load_weights(name)
+            else:
+                return load_model(name, custom_objects=self.__custom_objects)
 
     def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
                 verbose=None):
