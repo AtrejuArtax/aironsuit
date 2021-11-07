@@ -14,7 +14,7 @@ import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.preprocessing import train_val_split
-from airontools.model_constructors import layer_constructor
+from airontools.constructors import layer_constructor
 
 # COMMAND ----------
 
