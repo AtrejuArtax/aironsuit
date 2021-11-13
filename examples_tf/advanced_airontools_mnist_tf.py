@@ -11,7 +11,7 @@ from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import classification_report
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
-from airontools.model_constructors import model_constructor
+from airontools.constructors import model_constructor
 from airontools.preprocessing import train_val_split
 from airontools.tools import path_management
 from airontools.devices import get_available_gpus
