@@ -44,8 +44,13 @@ outputs = layer_constructor(
     activation='softmax',
     filters=5,
     kernel_size=15)
-model = Model(inputs=inputs, outputs=outputs)
-model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+model = Model(
+    inputs=inputs,
+    outputs=outputs)
+model.compile(
+    loss='categorical_crossentropy',
+    optimizer='adam',
+    metrics=['accuracy'])
 
 # COMMAND ----------
 
