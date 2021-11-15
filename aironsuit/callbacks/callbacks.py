@@ -1,4 +1,3 @@
-import os
 import glob
 from aironsuit.backend import get_backend
 BACKEND = get_backend()

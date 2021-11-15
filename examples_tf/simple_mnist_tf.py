@@ -37,8 +37,17 @@ y_test = to_categorical(y_test, num_classes)
 # Create model
 input_shape = (28, 28, 1)
 inputs = Input(shape=input_shape)
-outputs = layer_constructor(x=inputs, input_shape=input_shape, units=10, activation='softmax', filters=5,
-                            kernel_size=15)
+outputs = layer_constructor(
+    x=inputs,
+    input_shape=input_shape,
+    filters=32,  # Number of filters used for the convolutional layer
+    kernel_size=15,  # Kernel size used for the convolutional layer
+    strides=2,  # Strides used for the convolutional layer
+    sequential_axis=-1,  # It's the channel axis, used to define the sequence for the self-attention layer
+    num_heads=2,  # Self-attention heads applied after the convolutional layer
+    units=10,  # Dense units applied after the self-attention layer
+    activation='softmax'  # Output activation function
+)
 model = Model(inputs=inputs, outputs=outputs)
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 

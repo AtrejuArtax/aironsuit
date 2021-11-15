@@ -37,8 +37,13 @@ y_test = to_categorical(y_test, num_classes)
 # Create model
 input_shape = (28, 28, 1)
 inputs = Input(shape=input_shape)
-outputs = layer_constructor(x=inputs, input_shape=input_shape, units=10, activation='softmax', filters=5,
-                            kernel_size=15)
+outputs = layer_constructor(
+    x=inputs,
+    input_shape=input_shape,
+    units=10,
+    activation='softmax',
+    filters=5,
+    kernel_size=15)
 model = Model(inputs=inputs, outputs=outputs)
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 

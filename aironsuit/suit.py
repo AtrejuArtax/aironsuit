@@ -1,21 +1,19 @@
-import numpy as np
 import os
-from hyperopt import Trials, STATUS_OK, STATUS_FAIL
-import hyperopt
-from sklearn import metrics
+import numpy as np
 import pandas as pd
 import pickle
 import math
 import tempfile
-from sklearn.metrics import accuracy_score
 from inspect import getfullargspec
+import hyperopt
+from hyperopt import Trials, STATUS_OK, STATUS_FAIL
+from sklearn.metrics import accuracy_score, roc_curve, auc
 from aironsuit.trainers import AIronTrainer
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.backend import get_backend
 from airontools.constructors import Model, get_latent_model
 from airontools.visualization import get_insights
 from airontools.interactors import load_model, save_model, clear_session, summary
-
 BACKEND = get_backend()
 
 
@@ -152,8 +150,8 @@ class AIronSuit(object):
                 exp_loss = []
                 for i in np.arange(0, self.__total_n_models):
                     if len(np.bincount(y_val[i][:, -1])) > 1 and not math.isnan(np.sum(y_pred[i])):
-                        fpr, tpr, thresholds = metrics.roc_curve(y_val[i][:, -1], y_pred[i][:, -1])
-                        exp_loss += [(1 - metrics.auc(fpr, tpr))]
+                        fpr, tpr, thresholds = roc_curve(y_val[i][:, -1], y_pred[i][:, -1])
+                        exp_loss += [(1 - auc(fpr, tpr))]
                 exp_loss = np.mean(exp_loss) if len(exp_loss) > 0 else 1
             else:
                 if y_val:

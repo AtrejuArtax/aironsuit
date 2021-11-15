@@ -1,5 +1,3 @@
-import os
-import glob
 from pytorch_lightning import Trainer
 from torch.utils.data import DataLoader, TensorDataset
 import torch

@@ -1,13 +1,13 @@
 # Databricks notebook source
+import os
+import tempfile
 import numpy as np
-import torch
-from torch.nn import functional as F
-from torch import nn
 from pytorch_lightning.core.lightning import LightningModule
 import torch.optim as optim
 import torchvision
-import os
-import tempfile
+import torch
+from torch.nn import functional as F
+from torch import nn
 os.environ['AIRONSUIT_BACKEND'] = 'pytorch'
 from aironsuit.suit import AIronSuit
 from airontools.tools import path_management

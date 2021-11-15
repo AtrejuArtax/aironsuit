@@ -1,14 +1,14 @@
 # Databricks notebook source
+import os
 import numpy as np
-from hyperopt.hp import uniform, choice
-from hyperopt import Trials
 import random
 import pickle
-import os
-from tensorflow.keras.datasets import mnist
-from sklearn.preprocessing import OneHotEncoder
-from tensorflow.keras.optimizers import Adam
+from hyperopt.hp import uniform, choice
+from hyperopt import Trials
 from sklearn.metrics import classification_report
+from sklearn.preprocessing import OneHotEncoder
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.optimizers import Adam
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.constructors import model_constructor

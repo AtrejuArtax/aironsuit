@@ -1,6 +1,8 @@
 # Databricks notebook source
 import numpy as np
 import json
+from hyperopt.hp import choice
+from hyperopt import Trials
 import tensorflow as tf
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import Model
@@ -8,13 +10,11 @@ from tensorflow.keras.layers import Input, Layer, Reshape
 from tensorflow.keras.metrics import Mean
 from tensorflow.keras.losses import binary_crossentropy
 from tensorflow.keras.optimizers import Adam
-from hyperopt.hp import choice
-from hyperopt import Trials
 import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.preprocessing import train_val_split
-from airontools.constructors import layer_constructor
+from airontools.constructors.layers import layer_constructor
 
 # COMMAND ----------
 
@@ -71,9 +71,25 @@ def vae_model_constructor(latent_dim):
             # Encoder
             encoder_inputs = Input(shape=(28, 28, 1))
             encoder_conv = layer_constructor(
-                encoder_inputs, name='encoder_conv', filters=32, kernel_size=3, strides=2, advanced_reg=True)
-            z_mean = layer_constructor(encoder_conv, name='encoder_mean', units=latent_dim, advanced_reg=True)
-            z_log_var = layer_constructor(encoder_conv, name='encoder_log_var', units=latent_dim, advanced_reg=True)
+                encoder_inputs,
+                name='encoder_conv',
+                filters=32,  # Number of filters used for the convolutional layer
+                kernel_size=3,  # Kernel size used for the convolutional layer
+                strides=2,  # Strides used for the convolutional layer
+                sequential_axis=-1,  # It's the channel axis, used to define the sequence for the self-attention layer
+                num_heads=2,  # Self-attention heads applied after the convolutional layer
+                units=latent_dim,  # Dense units applied after the self-attention layer
+                advanced_reg=True)
+            z_mean = layer_constructor(
+                encoder_conv,
+                name='encoder_mean',
+                units=latent_dim,
+                advanced_reg=True)
+            z_log_var = layer_constructor(
+                encoder_conv,
+                name='encoder_log_var',
+                units=latent_dim,
+                advanced_reg=True)
             z = Sampling()([z_mean, z_log_var])
             self.encoder = Model(encoder_inputs, [z_mean, z_log_var, z], name="encoder")
 
@@ -84,12 +100,24 @@ def vae_model_constructor(latent_dim):
             for i, filters, activation in zip([1, 2], [64, 32], ['relu', 'relu']):
                 decoder_outputs = layer_constructor(
                     decoder_outputs,
-                    name='decoder_conv', name_ext=str(i), activation=activation, filters=filters, kernel_size=3,
-                    strides=2, padding='same', conv_transpose=True, advanced_reg=True)
+                    name='decoder_conv',
+                    name_ext=str(i),
+                    activation=activation,
+                    filters=filters,
+                    kernel_size=3,
+                    strides=2,
+                    padding='same',
+                    conv_transpose=True,
+                    advanced_reg=True)
             decoder_outputs = layer_constructor(
                 decoder_outputs,
-                name='decoder_output', activation='sigmoid', filters=1, kernel_size=3, padding='same',
-                conv_transpose=True, advanced_reg=True)
+                name='decoder_output',
+                activation='sigmoid',
+                filters=1,
+                kernel_size=3,
+                padding='same',
+                conv_transpose=True,
+                advanced_reg=True)
             self.decoder = Model(latent_inputs, decoder_outputs, name="decoder")
 
         @property
@@ -164,7 +192,7 @@ def vae_model_constructor(latent_dim):
 train_specs = {'batch_size': batch_size}
 
 # Hyper-parameter space
-hyperparam_space = {'latent_dim': choice('latent_dim', np.arange(2, 6))}
+hyperparam_space = {'latent_dim': choice('latent_dim', np.arange(3, 6))}
 
 # COMMAND ----------
 
