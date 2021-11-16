@@ -154,12 +154,14 @@ class AIronSuit(object):
                         exp_loss += [(1 - auc(fpr, tpr))]
                 exp_loss = np.mean(exp_loss) if len(exp_loss) > 0 else 1
             else:
-                if y_val:
+                if y_val is not None:
                     exp_loss = self.model.evaluate(x_val, y_val)
                 else:
                     exp_loss = self.model.evaluate(x_val)
-                if isinstance(exp_loss, list):
+                if isinstance(exp_loss, list) or isinstance(exp_loss, tuple):
                     exp_loss = exp_loss[0]
+                if isinstance(exp_loss, dict):
+                    exp_loss = [loss for _, loss in exp_loss.items()][0]
 
             if verbose > 0:
                 print('\n')
@@ -382,8 +384,7 @@ class AIronSuit(object):
             train_kwargs.update({'x_val': x_val, 'y_val': y_val})
         train_kwargs.update({'epochs': epochs})
         for karg, val in zip(['verbose'], [verbose]):
-            if karg in trainer_fullargspec:
-                train_kwargs.update({'verbose': val})
+            train_kwargs.update({karg: val})
         trainer.fit(x_train, y_train, **train_kwargs)
         return trainer
 

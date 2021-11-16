@@ -39,7 +39,6 @@ input_shape = (28, 28, 1)
 inputs = Input(shape=input_shape)
 outputs = layer_constructor(
     x=inputs,
-    input_shape=input_shape,
     filters=32,  # Number of filters used for the convolutional layer
     kernel_size=15,  # Kernel size used for the convolutional layer
     strides=2,  # Strides used for the convolutional layer
