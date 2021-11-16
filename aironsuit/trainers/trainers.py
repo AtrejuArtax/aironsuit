@@ -30,7 +30,7 @@ class AIronTrainer(object):
     def __setattr__(self, key, value):
         self.__dict__[key] = value
 
-    def fit(self, x_train, y_train, x_val=None, y_val=None, **kwargs):
+    def fit(self, x_train, y_train, x_val=None, y_val=None, verbose=0, **kwargs):
         """ Module for fitting.
 
             Parameters:
@@ -38,8 +38,9 @@ class AIronTrainer(object):
                 y_train (list, np.array): Output data for training.
                 x_val (list, np.array): Input data for validation.
                 y_val (list, np.array): Output data for validation.
+                verbose (int): Level of verbosity.
         """
-        fit(module=self.module, x_train=x_train, y_train=y_train, x_val=x_val, y_val=y_val, **kwargs)
+        fit(module=self.module, x_train=x_train, y_train=y_train, x_val=x_val, y_val=y_val, verbose=verbose, **kwargs)
 
     def evaluate(self, x_val, y_val):
         """ Module for evaluation.

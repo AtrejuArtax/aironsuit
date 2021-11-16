@@ -1,21 +1,19 @@
-import numpy as np
 import os
-from hyperopt import Trials, STATUS_OK, STATUS_FAIL
-import hyperopt
-from sklearn import metrics
+import numpy as np
 import pandas as pd
 import pickle
 import math
 import tempfile
-from sklearn.metrics import accuracy_score
 from inspect import getfullargspec
+import hyperopt
+from hyperopt import Trials, STATUS_OK, STATUS_FAIL
+from sklearn.metrics import accuracy_score, roc_curve, auc
 from aironsuit.trainers import AIronTrainer
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.backend import get_backend
-from airontools.model_constructors import Model, get_latent_model
+from airontools.constructors.utils import Model, get_latent_model
 from airontools.visualization import get_insights
-from airontools.model_interactors import load_model, save_model, clear_session, summary
-
+from airontools.interactors import load_model, save_model, clear_session, summary
 BACKEND = get_backend()
 
 
@@ -152,16 +150,18 @@ class AIronSuit(object):
                 exp_loss = []
                 for i in np.arange(0, self.__total_n_models):
                     if len(np.bincount(y_val[i][:, -1])) > 1 and not math.isnan(np.sum(y_pred[i])):
-                        fpr, tpr, thresholds = metrics.roc_curve(y_val[i][:, -1], y_pred[i][:, -1])
-                        exp_loss += [(1 - metrics.auc(fpr, tpr))]
+                        fpr, tpr, thresholds = roc_curve(y_val[i][:, -1], y_pred[i][:, -1])
+                        exp_loss += [(1 - auc(fpr, tpr))]
                 exp_loss = np.mean(exp_loss) if len(exp_loss) > 0 else 1
             else:
-                if y_val:
+                if y_val is not None:
                     exp_loss = self.model.evaluate(x_val, y_val)
                 else:
                     exp_loss = self.model.evaluate(x_val)
-                if isinstance(exp_loss, list):
+                if isinstance(exp_loss, list) or isinstance(exp_loss, tuple):
                     exp_loss = exp_loss[0]
+                if isinstance(exp_loss, dict):
+                    exp_loss = [loss for _, loss in exp_loss.items()][0]
 
             if verbose > 0:
                 print('\n')
@@ -179,8 +179,9 @@ class AIronSuit(object):
             print('best val loss so far: ' + str(best_exp_loss))
             print('current val loss: ' + str(exp_loss))
             best_exp_loss_cond = best_exp_loss is None or exp_loss < best_exp_loss
-            print('save: ' + str(status and best_exp_loss_cond))
-            if status == STATUS_OK and best_exp_loss_cond:
+            save_cond = status == STATUS_OK and best_exp_loss_cond
+            print('save: ' + str(save_cond))
+            if save_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
                 self.__save_load_model(name=os.path.join(path, '_'.join(['best_exp', name])), mode='save')
@@ -219,7 +220,7 @@ class AIronSuit(object):
                 specs.update(model_specs.copy())
             specs.update(best_hyper_candidates)
             best_model = self.__save_load_model(name=os.path.join(path, '_'.join(['best_exp', name])), mode='load',
-                                                **{key:value for key, value in specs.items() if key != 'name'})
+                                                **{key: value for key, value in specs.items() if key != 'name'})
             if BACKEND == 'tensorflow' and all([spec_ in specs.keys() for spec_ in ['optimizer', 'loss']]):
                 best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])
             elif cuda:
@@ -306,14 +307,18 @@ class AIronSuit(object):
         assert self.model is not None
         self.latent_model = get_latent_model(self.model, hidden_layer_names)
 
-    def evaluate(self, x, y, use_trainer=False):
+    def evaluate(self, x, y=None, use_trainer=False):
         """ Evaluate.
 
             Parameters:
-                x (list, np.array): Input data for training.
+                x (list, np.array): Input data for evaluation.
+                y (list, np.array): Target data for evaluation.
                 use_trainer (bool): Whether to use the current trainer or not.
         """
-        return self.__get_model_interactor(use_trainer).evaluate(x, y)
+        args = [x]
+        if y is not None:
+            args += [y]
+        return self.__get_model_interactor(use_trainer).evaluate(*args)
 
     def save_model(self, name):
         """ Save the model.
@@ -366,7 +371,9 @@ class AIronSuit(object):
                 save_model(model=self.model, name=name)
         elif mode == 'load':
             if self.__force_subclass_weights_loader:
-                return self.__model_constructor(**kwargs).load_weights(name)
+                model = self.__model_constructor(**kwargs)
+                model.load_weights(name)
+                return model
             else:
                 return load_model(name, custom_objects=self.__custom_objects)
 
@@ -384,8 +391,7 @@ class AIronSuit(object):
             train_kwargs.update({'x_val': x_val, 'y_val': y_val})
         train_kwargs.update({'epochs': epochs})
         for karg, val in zip(['verbose'], [verbose]):
-            if karg in trainer_fullargspec:
-                train_kwargs.update({'verbose': val})
+            train_kwargs.update({karg: val})
         trainer.fit(x_train, y_train, **train_kwargs)
         return trainer
 

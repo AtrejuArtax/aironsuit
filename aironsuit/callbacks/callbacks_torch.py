@@ -1,6 +1,6 @@
+import os
 import tempfile
 from skorch import callbacks
-import os
 
 
 def get_basic_callbacks(path=tempfile.gettempdir(), patience=3, name=None, verbose=0, epochs=None):
