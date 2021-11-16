@@ -32,7 +32,7 @@ def image_classifier(input_shape, **reg_kwargs):
     return classifier_nn
 
 
-def solve_the_problem():
+def pipeline():
 
     # Net name
     model_name = PROJECT + '_NN'
@@ -174,8 +174,8 @@ if __name__ == '__main__':
     explore = True
     use_gpu = True
     max_n_samples = None
-    max_evals = 1000 if EXECUTION_MODE == 'production' else 1
-    epochs = 1000 if EXECUTION_MODE == 'production' else 1
+    max_evals = 1000 if EXECUTION_MODE == 'production' else 3
+    epochs = 1000 if EXECUTION_MODE == 'production' else 2
     batch_size = 32
     patience = 5 if EXECUTION_MODE == 'production' else 3
     verbose = 0
@@ -230,4 +230,4 @@ if __name__ == '__main__':
     else:
         devices = [gpu_name.replace('/device:GPU:', '/gpu:') for gpu_name in get_available_gpus()]
 
-    solve_the_problem()
+    pipeline()
