@@ -11,7 +11,7 @@ from sklearn.metrics import accuracy_score, roc_curve, auc
 from aironsuit.trainers import AIronTrainer
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.backend import get_backend
-from airontools.constructors import Model, get_latent_model
+from airontools.constructors.utils import Model, get_latent_model
 from airontools.visualization import get_insights
 from airontools.interactors import load_model, save_model, clear_session, summary
 BACKEND = get_backend()

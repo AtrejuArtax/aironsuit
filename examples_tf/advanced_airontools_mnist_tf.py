@@ -11,7 +11,7 @@ from tensorflow.keras.datasets import mnist
 from tensorflow.keras.optimizers import Adam
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
-from airontools.constructors import model_constructor
+from airontools.constructors.models.general import model_constructor
 from airontools.preprocessing import train_val_split
 from airontools.tools import path_management
 from airontools.devices import get_available_gpus

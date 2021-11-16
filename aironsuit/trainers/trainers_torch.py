@@ -10,6 +10,8 @@ def fit(module, x_train, y_train=None, x_val=None, y_val=None, best_module_name=
     if 'epochs' in kwargs_.keys():
         kwargs_['max_epochs'] = kwargs_['epochs']
         del kwargs_['epochs']
+    if 'verbose' in kwargs_.keys():
+        del kwargs_['verbose']
     trainer = Trainer(**kwargs_)
 
     # Converting numpy arrays to Tensor datasets

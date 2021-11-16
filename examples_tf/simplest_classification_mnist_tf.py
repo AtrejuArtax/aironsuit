@@ -7,7 +7,7 @@ from tensorflow.keras.utils import to_categorical
 import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
-from airontools.constructors import layer_constructor
+from airontools.constructors.layers import layer_constructor
 from airontools.tools import path_management
 HOME = os.path.expanduser("~")
 
