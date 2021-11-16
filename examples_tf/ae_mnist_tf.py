@@ -8,13 +8,13 @@ import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.preprocessing import train_val_split
-from airontools.constructors.models.unsupervised import ImageVAE
+from airontools.constructors.models.unsupervised import ImageAE
 
 # COMMAND ----------
 
 # Example Set-Up #
 
-model_name = 'VAE_NN'
+model_name = 'AE_NN'
 num_classes = 10
 batch_size = 128
 epochs = 30
@@ -36,16 +36,16 @@ x_train, x_val, train_val_inds = train_val_split(input_data=train_dataset)
 
 # COMMAND ----------
 
-# VAE Model constructor
+# AE Model constructor
 
 
-def vae_model_constructor(latent_dim):
+def ae_model_constructor(latent_dim):
 
-    # Create VAE model and compile it
-    vae = ImageVAE(latent_dim)
-    vae.compile(optimizer=Adam())
+    # Create AE model and compile it
+    ae = ImageAE(latent_dim)
+    ae.compile(optimizer=Adam())
 
-    return vae
+    return ae
 
 # COMMAND ----------
 
@@ -59,7 +59,7 @@ hyperparam_space = {'latent_dim': choice('latent_dim', np.arange(3, 6))}
 # COMMAND ----------
 
 # Invoke AIronSuit
-aironsuit = AIronSuit(model_constructor=vae_model_constructor,
+aironsuit = AIronSuit(model_constructor=ae_model_constructor,
                       force_subclass_weights_saver=True,
                       force_subclass_weights_loader=True)
 
