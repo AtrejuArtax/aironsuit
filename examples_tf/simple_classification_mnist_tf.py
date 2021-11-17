@@ -25,7 +25,7 @@ num_classes = 10
 batch_size = 32
 epochs = 25
 patience = 3
-max_evals = 1
+max_evals = 25
 precision = 'float32'
 
 # COMMAND ----------
@@ -62,9 +62,10 @@ def classifier_model_constructor(**kwargs):
     outputs = layer_constructor(
         x=inputs,
         filters=kwargs['filters'],  # Number of filters used for the convolutional layer
-        kernel_size=(kwargs['kernel_size'], kwargs['kernel_size']),  # Kernel size used for the convolutional layer
+        kernel_size=(kwargs['kernel_size'],
+                     kwargs['kernel_size']),  # Kernel size used for the convolutional layer
         strides=2,  # Strides used for the convolutional layer
-        sequential_axis=-1,  # It's the channel axis, used to define the sequence for the self-attention layer
+        sequential_axis=-1,  # Channel axis, used to define the sequence for the self-attention layer
         num_heads=kwargs['num_heads'],  # Self-attention heads applied after the convolutional layer
         units=10,  # Dense units applied after the self-attention layer
         activation='softmax',  # Output activation function
