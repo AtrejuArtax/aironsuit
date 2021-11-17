@@ -31,7 +31,7 @@ if max_n_samples is not None:
     train_dataset = train_dataset[-max_n_samples:, ...]
 train_dataset = np.expand_dims(train_dataset, -1).astype(precision) / 255
 
-# From data frame to list
+# Split data per parallel model
 x_train, x_val, train_val_inds = train_val_split(input_data=train_dataset)
 
 # COMMAND ----------
@@ -59,9 +59,11 @@ hyperparam_space = {'latent_dim': choice('latent_dim', np.arange(3, 6))}
 # COMMAND ----------
 
 # Invoke AIronSuit
-aironsuit = AIronSuit(model_constructor=ae_model_constructor,
-                      force_subclass_weights_saver=True,
-                      force_subclass_weights_loader=True)
+aironsuit = AIronSuit(
+    model_constructor=ae_model_constructor,
+    force_subclass_weights_saver=True,
+    force_subclass_weights_loader=True
+)
 
 # COMMAND ----------
 
@@ -78,6 +80,7 @@ aironsuit.design(
     trials=Trials(),
     name=model_name,
     seed=0,
-    patience=patience)
+    patience=patience
+)
 aironsuit.summary()
 del x_train, x_val

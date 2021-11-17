@@ -58,8 +58,12 @@ target_names = [str(i) for i in range(10)]
 
 # Input/Output Specs
 metric = 'categorical_accuracy' if project in ['fashion_mnist', 'mnist'] else None
-input_specs = {'image': {'type': 'image', 'sequential': False, 'dim': 784}}
-output_specs = {'y': {'type': 'cat', 'sequential': False, 'dim': len(target_names)}}
+input_specs = {'image': {'type': 'image',
+                         'sequential': False,
+                         'dim': 784}}
+output_specs = {'y': {'type': 'cat',
+                      'sequential': False,
+                      'dim': len(target_names)}}
 data_specs = {'input_specs': input_specs,
               'output_specs': output_specs}
 
@@ -80,7 +84,8 @@ model_specs = {
     'sequential_block': False,
     'optimizer': Adam(learning_rate=0.001),
     'hidden_activation': 'prelu',
-    'output_activation': 'softmax'}
+    'output_activation': 'softmax'
+}
 hyperparam_space = {
     'dropout_rate': uniform('dropout_rate', 0., 0.4),
     'kernel_regularizer_l1': uniform('kernel_regularizer_l1', 0., 0.001),
@@ -90,7 +95,9 @@ hyperparam_space = {
     'compression': uniform('compression', 0.3, 0.98),
     'i_n_layers': choice('i_n_layers', np.arange(1, 2)),
     'c_n_layers': choice('c_n_layers', np.arange(1, 2))}
-hyperparam_space.update({'loss': choice('loss', ['mse', 'categorical_crossentropy'])})
+hyperparam_space.update({
+    'loss': choice('loss', ['mse', 'categorical_crossentropy'])
+})
 
 # Make/remove paths
 path_modes = ['rm', 'make']
@@ -111,12 +118,13 @@ encoder = OneHotEncoder(sparse=False)
 train_targets = train_targets.reshape((train_targets.shape[0], 1))
 train_targets = encoder.fit_transform(train_targets)
 
-# From data frame to list
+# Split data per parallel model
 x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
     input_data=train_dataset,
     output_data=train_targets,
     n_parallel_models=model_specs['parallel_models'],
-    do_kfolds=False if model_specs['parallel_models'] == 1 else True)
+    do_kfolds=False if model_specs['parallel_models'] == 1 else True
+)
 
 # COMMAND ----------
 
@@ -145,7 +153,8 @@ aironsuit.design(
     seed=0,
     metric=metric,
     val_inference_in_path=results_path,
-    patience=patience)
+    patience=patience
+)
 aironsuit.summary()
 del x_train, x_val, y_train, y_val
 
@@ -163,12 +172,13 @@ test_targets = test_targets.reshape((test_targets.shape[0], 1))
 encoder.fit(train_targets)
 test_targets = encoder.transform(test_targets)
 
-# From data frame to list
+# Split data per parallel model
 x_test, _, y_test, _, _ = train_val_split(
     input_data=test_dataset,
     output_data=test_targets,
     n_parallel_models=model_specs['parallel_models'] * len(model_specs['devices']),
-    val_ratio=0)
+    val_ratio=0
+)
 y_test = y_test[0]
 
 # Inference

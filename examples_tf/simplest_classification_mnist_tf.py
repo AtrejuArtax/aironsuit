@@ -43,14 +43,16 @@ outputs = layer_constructor(
     units=10,
     activation='softmax',
     filters=5,
-    kernel_size=15)
+    kernel_size=15
+)
 model = Model(
     inputs=inputs,
     outputs=outputs)
 model.compile(
     loss='categorical_crossentropy',
     optimizer='adam',
-    metrics=['accuracy'])
+    metrics=['accuracy']
+)
 
 # COMMAND ----------
 
@@ -66,7 +68,8 @@ aironsuit.train(
     epochs=epochs,
     x_train=x_train,
     y_train=y_train,
-    path=working_path)
+    path=working_path
+)
 
 # COMMAND ----------
 
