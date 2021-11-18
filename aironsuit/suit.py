@@ -33,8 +33,15 @@ class AIronSuit(object):
 
     """
 
-    def __init__(self, model_constructor=None, model=None, trainer=None, model_constructor_wrapper=None,
-                 custom_objects=None, force_subclass_weights_saver=False, force_subclass_weights_loader=False):
+    def __init__(self,
+                 model_constructor=None,
+                 model=None,
+                 trainer=None,
+                 model_constructor_wrapper=None,
+                 custom_objects=None,
+                 force_subclass_weights_saver=False,
+                 force_subclass_weights_loader=False
+                 ):
         """ Parameters:
                 model_constructor (): Function that returns a model.
                 model (Model): User customized model.
@@ -60,10 +67,28 @@ class AIronSuit(object):
         self.__force_subclass_weights_saver = force_subclass_weights_saver
         self.__force_subclass_weights_loader = force_subclass_weights_loader
 
-    def design(self, x_train, x_val, hyper_space, train_specs, max_evals, epochs, y_train=None, y_val=None,
-               model_specs=None, path=tempfile.gettempdir() + os.sep, metric=None, trials=None, name='NN',
-               verbose=0, seed=None, val_inference_in_path=None, raw_callbacks=None, cuda=None,
-               use_basic_callbacks=True, patience=3):
+    def design(self,
+               x_train,
+               x_val,
+               hyper_space,
+               train_specs,
+               max_evals,
+               epochs,
+               y_train=None,
+               y_val=None,
+               model_specs=None,
+               path=tempfile.gettempdir() + os.sep,
+               metric=None,
+               trials=None,
+               name='NN',
+               verbose=0,
+               seed=None,
+               val_inference_in_path=None,
+               raw_callbacks=None,
+               cuda=None,
+               use_basic_callbacks=True,
+               patience=3
+               ):
         """ Explore the hyper-parameter space to find optimal candidates.
 
             Parameters:
@@ -92,8 +117,13 @@ class AIronSuit(object):
         if trials is None:
             trials = Trials()
         raw_callbacks = raw_callbacks if raw_callbacks else \
-            get_basic_callbacks(path=path, patience=patience, name=name, verbose=verbose, epochs=epochs) \
-                if use_basic_callbacks else None
+            get_basic_callbacks(
+                path=path,
+                patience=patience,
+                name=name,
+                verbose=verbose,
+                epochs=epochs
+            ) if use_basic_callbacks else None
 
         def design_trial(hyper_candidates):
 
@@ -121,7 +151,8 @@ class AIronSuit(object):
                 x_val=x_val,
                 y_val=y_val,
                 callbacks=init_callbacks(raw_callbacks) if raw_callbacks else None,
-                verbose=verbose)
+                verbose=verbose
+            )
 
             # Exploration loss
             # ToDo: compatible with custom metric
@@ -210,7 +241,8 @@ class AIronSuit(object):
                     max_evals=max_evals,
                     trials=trials,
                     verbose=True,
-                    return_argmin=False)
+                    return_argmin=False
+                )
             with open(os.path.join(path, 'best_exp_' + name + '_hyper_candidates'), 'rb') as f:
                 best_hyper_candidates = pickle.load(f)
 
@@ -219,10 +251,20 @@ class AIronSuit(object):
             if model_specs:
                 specs.update(model_specs.copy())
             specs.update(best_hyper_candidates)
-            best_model = self.__save_load_model(name=os.path.join(path, '_'.join(['best_exp', name])), mode='load',
-                                                **{key: value for key, value in specs.items() if key != 'name'})
-            if BACKEND == 'tensorflow' and all([spec_ in specs.keys() for spec_ in ['optimizer', 'loss']]):
-                best_model.compile(optimizer=specs['optimizer'], loss=specs['loss'])
+            best_model = self.__save_load_model(
+                name=os.path.join(path, '_'.join(['best_exp', name])),
+                mode='load',
+                **{key: value for key, value in specs.items() if key != 'name'}
+            )
+            if BACKEND == 'tensorflow' and \
+                    all([spec_ in specs.keys() for spec_ in ['optimizer', 'loss']]):
+                compile_kwargs = {
+                    'optimizer': specs['optimizer'],
+                    'loss': specs['loss']
+                }
+                if 'metrics' in specs.keys():
+                    compile_kwargs['metrics'] = specs['metrics']
+                best_model.compile(**compile_kwargs)
             elif cuda:
                 best_model.cuda()
             print('best hyper-parameters: ' + str(best_hyper_candidates))
@@ -240,9 +282,21 @@ class AIronSuit(object):
 
         self.model, self.__trainer = design()
 
-    def train(self, epochs, x_train, y_train, x_val=None, y_val=None, batch_size=32, callbacks=None,
-              results_path=tempfile.gettempdir(), verbose=None, use_basic_callbacks=True,
-              path=tempfile.gettempdir() + os.sep, name='NN', patience=3):
+    def train(self,
+              epochs,
+              x_train,
+              y_train,
+              x_val=None,
+              y_val=None,
+              batch_size=32,
+              callbacks=None,
+              results_path=tempfile.gettempdir(),
+              verbose=None,
+              use_basic_callbacks=True,
+              path=tempfile.gettempdir() + os.sep,
+              name='NN',
+              patience=3
+              ):
         """ Weight optimization.
 
             Parameters:
@@ -264,8 +318,13 @@ class AIronSuit(object):
             'batch_size': batch_size,
             'path': results_path}
         callbacks_ = callbacks if callbacks else \
-            get_basic_callbacks(path=path, patience=patience, name=name, verbose=verbose, epochs=epochs) \
-                if use_basic_callbacks else None
+            get_basic_callbacks(
+                path=path,
+                patience=patience,
+                name=name,
+                verbose=verbose,
+                epochs=epochs
+            ) if use_basic_callbacks else None
         self.__trainer = self.__train(
                 train_specs=train_specs,
                 model=self.model,
@@ -275,7 +334,8 @@ class AIronSuit(object):
                 x_val=x_val,
                 y_val=y_val,
                 callbacks=callbacks_,
-                verbose=verbose)
+                verbose=verbose
+        )
 
     def inference(self, x, use_trainer=False):
         """ Inference.
@@ -377,8 +437,17 @@ class AIronSuit(object):
             else:
                 return load_model(name, custom_objects=self.__custom_objects)
 
-    def __train(self, train_specs, model, epochs, x_train, y_train, x_val=None, y_val=None, callbacks=None,
-                verbose=None):
+    def __train(self,
+                train_specs,
+                model,
+                epochs,
+                x_train,
+                y_train,
+                x_val=None,
+                y_val=None,
+                callbacks=None,
+                verbose=None
+                ):
         trainer_kwargs = train_specs.copy()
         trainer_kwargs.update({'module': model})
         if callbacks:

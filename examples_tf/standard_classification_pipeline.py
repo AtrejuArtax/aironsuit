@@ -66,10 +66,11 @@ def pipeline():
     aironsuit = None
     if explore:
 
-        # From data frame to list
+        # Split data per parallel model
         x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
             input_data=train_dataset,
-            output_data=train_targets)
+            output_data=train_targets
+        )
 
         # Training specs
         train_specs = {'batch_size': batch_size}
@@ -81,7 +82,8 @@ def pipeline():
             'kernel_regularizer_l2': uniform('kernel_regularizer_l2', 0., 0.001),
             'bias_regularizer_l1': uniform('bias_regularizer_l1', 0., 0.001),
             'bias_regularizer_l2': uniform('bias_regularizer_l2', 0., 0.001),
-            'bn': choice('bn', [True, False])}
+            'bn': choice('bn', [True, False])
+        }
 
         # Automatic model design
         print('\n')
@@ -97,7 +99,8 @@ def pipeline():
         aironsuit = AIronSuit(
             model_constructor=image_classifier,
             force_subclass_weights_saver=True,
-            force_subclass_weights_loader=True)
+            force_subclass_weights_loader=True
+        )
         aironsuit.design(
             x_train=x_train,
             y_train=y_train,
@@ -111,7 +114,8 @@ def pipeline():
             trials=trials,
             name=model_name,
             seed=0,
-            patience=patience)
+            patience=patience
+        )
         del x_train, x_val, y_train, y_val
         aironsuit.summary()
 
@@ -127,7 +131,8 @@ def pipeline():
             aironsuit = AIronSuit(
                 model_constructor=image_classifier,
                 force_subclass_weights_saver=True,
-                force_subclass_weights_loader=True)
+                force_subclass_weights_loader=True
+            )
             aironsuit.load_model(results_path + 'best_exp_' + model_name, **specs)
         except RuntimeError as e:
             aironsuit = None
@@ -135,10 +140,11 @@ def pipeline():
 
     if aironsuit is not None:
 
-        # From data frame to list
+        # Split data per parallel model
         x_test, _, y_test, _, _ = train_val_split(
             input_data=test_dataset,
-            output_data=test_targets)
+            output_data=test_targets
+        )
 
         # Classification report
         y_pred = aironsuit.inference(x_test)
@@ -165,7 +171,8 @@ if __name__ == '__main__':
             'batch_size=',
             'patience=',
             'verbose=',
-            'precision='])
+            'precision='
+        ])
     except getopt.GetoptError:
         sys.exit(2)
 
