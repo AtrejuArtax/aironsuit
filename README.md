@@ -14,10 +14,10 @@ Key features:
 2. Parallel computing for multiple models across multiple GPUs when using a k-fold approach.
 3. Built-in model trainer that saves training progression to be visualized with 
    [TensorBoard](https://github.com/tensorflow/tensorboard).
-4. Machine learning tools from [AIronTools](https://github.com/AtrejuArtax/airontools): `model_constructor`, `custom_block`, 
+4. Machine learning tools from [AIronTools](https://github.com/AtrejuArtax/airontools): `model_constructor`, `block_constructor`, 
    `layer_constructor`, preprocessing utils, etc.
-5. Flexibility: the user can replace AIronSuit components by a user customized one. For instance,
-    the model constructor can be easily replaced by a user customized one.
+5. Flexibility: the user can replace AIronSuit components by a customized one. For instance,
+    the model constructor can be easily replaced by a customized one.
    
 ### Installation
 
