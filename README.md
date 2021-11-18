@@ -93,8 +93,10 @@ def classifier_model_constructor(**kwargs):
         kernel_size=(kwargs['kernel_size'],
                      kwargs['kernel_size']),  # Kernel size used for the convolutional layer
         strides=2,  # Strides used for the convolutional layer
-        sequential_axis=-1,  # Channel axis, used to define the sequence for the self-attention layer
-        num_heads=kwargs['num_heads'],  # Self-attention heads applied after the convolutional layer
+        sequential_axis=-1,  # Channel axis, used to define the sequence 
+        # for the self-attention layer
+        num_heads=kwargs['num_heads'],  # Self-attention heads applied after the 
+        # convolutional layer
         units=10,  # Dense units applied after the self-attention layer
         activation='softmax',  # Output activation function
         advanced_reg=True
