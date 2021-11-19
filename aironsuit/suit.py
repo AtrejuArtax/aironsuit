@@ -27,13 +27,14 @@ class AIronSuit(object):
         Attributes:
             model (Model): NN model.
             latent_model (Model): Latent NN model.
+            path (str): Results path.
             __model_constructor (): NN model constructor.
             __trainer (object): NN model constructor instance.
             __trainer_class (AIronTrainer): NN model trainer.
             __cuda (bool): Whether to use cuda or not.
             __devices (list): Devices where to make the computations.
             __total_n_models (int): Total number of models in parallel.
-
+            __logs_path (int): Logs path.
     """
 
     def __init__(self,
@@ -72,6 +73,7 @@ class AIronSuit(object):
         self.__total_n_models = None
         self.__force_subclass_weights_saver = force_subclass_weights_saver
         self.__force_subclass_weights_loader = force_subclass_weights_loader
+        self.__logs_path = os.path.join(self.path, 'logs')
 
     def design(self,
                x_train,
@@ -438,7 +440,7 @@ class AIronSuit(object):
         """
         if latent_model_output and self.latent_model is None:
             warnings.warn('latent model should be created first')
-        method_path = self.__manage_path(path, 'representations')
+        method_path = self.__manage_path(path, 'representations', 'logs')
         if hidden_layer_name is not None:
             model = get_latent_model(self.model, hidden_layer_name)
         else:
@@ -514,8 +516,9 @@ class AIronSuit(object):
         if self.__cuda in kwargs and BACKEND != 'tensorflow':
             self.model.cuda()
 
-    def __manage_path(self, path, path_ext):
-        path_ = path if path is not None else self.path
+    def __manage_path(self, path, path_ext, mode='path'):
+        default_path = self.path if mode == 'path' else self.__logs_path
+        path_ = path if path is not None else default_path
         path_ = os.path.join(path_, path_ext)
         path_management(path_)
         return path_

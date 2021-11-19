@@ -21,9 +21,9 @@ model_name = 'AE_NN'
 working_path = os.path.join(HOME, 'airon', model_name) + OS_SEP
 num_classes = 10
 batch_size = 128
-epochs = 1
+epochs = 30
 patience = 3
-max_evals = 1
+max_evals = 3
 max_n_samples = None
 precision = 'float32'
 
