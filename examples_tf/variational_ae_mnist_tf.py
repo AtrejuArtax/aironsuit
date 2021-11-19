@@ -1,6 +1,5 @@
 # Databricks notebook source
 import numpy as np
-from hyperopt.hp import choice
 from hyperopt import Trials
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.optimizers import Adam
