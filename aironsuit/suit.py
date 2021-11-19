@@ -12,8 +12,9 @@ from aironsuit.trainers import AIronTrainer
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.backend import get_backend
 from airontools.constructors.utils import Model, get_latent_model
-from airontools.visualization import get_insights
+from airontools.visualization import save_representations
 from airontools.interactors import load_model, save_model, clear_session, summary
+from airontools.tools import path_management
 BACKEND = get_backend()
 
 
@@ -40,7 +41,8 @@ class AIronSuit(object):
                  model_constructor_wrapper=None,
                  custom_objects=None,
                  force_subclass_weights_saver=False,
-                 force_subclass_weights_loader=False
+                 force_subclass_weights_loader=False,
+                 path=os.path.join(tempfile.gettempdir(), 'airon') + os.sep,
                  ):
         """ Parameters:
                 model_constructor (): Function that returns a model.
@@ -52,10 +54,12 @@ class AIronSuit(object):
                 keras subclasses models.
                 force_subclass_weights_loader (bool): To whether force the subclass weights loader or not, useful for
                 keras subclasses models.
+                path (str): Path to save all results.
         """
 
         self.model = model
         self.latent_model = None
+        self.path = path
         self.__model_constructor = model_constructor
         self.__trainer = None
         self.__trainer_class = AIronTrainer if not trainer else trainer
@@ -77,26 +81,26 @@ class AIronSuit(object):
                y_train=None,
                y_val=None,
                model_specs=None,
-               path=tempfile.gettempdir() + os.sep,
+               path=None,
                metric=None,
                trials=None,
                name='NN',
                verbose=0,
                seed=None,
-               val_inference_in_path=None,
                raw_callbacks=None,
                cuda=None,
                use_basic_callbacks=True,
-               patience=3
+               patience=3,
+               save_val_inference=False,
                ):
-        """ Explore the hyper-parameter space to find optimal candidates.
+        """ Automatic model design.
 
             Parameters:
                 x_train (list, np.array): Input data for training.
                 x_val (list, np.array): Input data for validation.
                 hyper_space (dict): Hyper parameter space to explore.
                 train_specs (dict): Training specifications.
-                path (str): Path to save (temporary) results.
+                path (str): Path to save results.
                 max_evals (integer): Maximum number of evaluations.
                 epochs (int): Number of epochs for model training.
                 y_train (list, np.array): Output data for training.
@@ -107,18 +111,21 @@ class AIronSuit(object):
                 name (str): Name of the model.
                 verbose (int): Verbosity.
                 seed (int): Seed for reproducible results.
-                val_inference_in_path (str): Path where to save validation inference.
                 raw_callbacks (list): Dictionary of raw callbacks.
                 cuda (bool): Whether cuda is available or not.
                 use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
                 patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
+                save_val_inference (bool): Whether or not to save validation inference when the best model is found.
         """
+
+        method_path = self.__manage_path(path, 'design')
+
         self.__cuda = cuda
         if trials is None:
             trials = Trials()
         raw_callbacks = raw_callbacks if raw_callbacks else \
             get_basic_callbacks(
-                path=path,
+                path=method_path,
                 patience=patience,
                 name=name,
                 verbose=verbose,
@@ -200,11 +207,11 @@ class AIronSuit(object):
             status = STATUS_OK if not math.isnan(exp_loss) and exp_loss is not None else STATUS_FAIL
 
             # Save trials
-            with open(os.path.join(path, 'trials.hyperopt'), 'wb') as f:
+            with open(os.path.join(method_path, 'trials.hyperopt'), 'wb') as f:
                 pickle.dump(trials, f)
 
             # Save model if it is the best so far
-            best_exp_losss_name = os.path.join(path, '_'.join(['best', name, 'exp_loss']))
+            best_exp_losss_name = os.path.join(method_path, '_'.join(['best', name, 'exp_loss']))
             trials_losses = [loss_ for loss_ in trials.losses() if loss_]
             best_exp_loss = min(trials_losses) if len(trials_losses) > 0 else None
             print('best val loss so far: ' + str(best_exp_loss))
@@ -215,15 +222,13 @@ class AIronSuit(object):
             if save_cond:
                 df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
                 df.to_pickle(best_exp_losss_name)
-                self.__save_load_model(name=os.path.join(path, '_'.join(['best_exp', name])), mode='save')
-                with open(os.path.join(path, '_'.join(['best_exp', name, 'hyper_candidates'])), 'wb') as f:
+                self.__save_load_model(name=os.path.join(method_path, '_'.join(['best_exp', name])), mode='save')
+                with open(os.path.join(method_path, '_'.join(['best_exp', name, 'hyper_candidates'])), 'wb') as f:
                     pickle.dump(hyper_candidates, f, protocol=pickle.HIGHEST_PROTOCOL)
-                if val_inference_in_path is not None:
-                    y_val_ = np.concatenate(y_val, axis=1) if isinstance(y_val, list) else y_val
-                    np.savetxt(os.path.join(val_inference_in_path, 'val_target.csv'), y_val_, delimiter=',')
+                if save_val_inference and y_val is not None:
                     y_inf = trainer.predict(x_val)
                     y_inf = np.concatenate(y_inf, axis=1) if isinstance(y_inf, list) else y_inf
-                    np.savetxt(os.path.join(val_inference_in_path, 'val_target_inference.csv'), y_inf, delimiter=',')
+                    np.savetxt(os.path.join('inference', 'val_target_inference.csv'), y_inf, delimiter=',')
 
             clear_session()
             del self.model
@@ -243,7 +248,7 @@ class AIronSuit(object):
                     verbose=True,
                     return_argmin=False
                 )
-            with open(os.path.join(path, 'best_exp_' + name + '_hyper_candidates'), 'rb') as f:
+            with open(os.path.join(method_path, 'best_exp_' + name + '_hyper_candidates'), 'rb') as f:
                 best_hyper_candidates = pickle.load(f)
 
             # Best model
@@ -252,7 +257,7 @@ class AIronSuit(object):
                 specs.update(model_specs.copy())
             specs.update(best_hyper_candidates)
             best_model = self.__save_load_model(
-                name=os.path.join(path, '_'.join(['best_exp', name])),
+                name=os.path.join(method_path, '_'.join(['best_exp', name])),
                 mode='load',
                 **{key: value for key, value in specs.items() if key != 'name'}
             )
@@ -290,10 +295,9 @@ class AIronSuit(object):
               y_val=None,
               batch_size=32,
               callbacks=None,
-              results_path=tempfile.gettempdir(),
               verbose=None,
               use_basic_callbacks=True,
-              path=tempfile.gettempdir() + os.sep,
+              path=None,
               name='NN',
               patience=3
               ):
@@ -307,19 +311,19 @@ class AIronSuit(object):
                 y_val (list, np.array): Output data for validation.
                 batch_size (int): Batch size.
                 callbacks (dict): Dictionary of callbacks.
-                results_path (str): Path where to save results.
                 verbose (int): Verbosity.
                 use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
-                path (str): Path to save (temporary) results.
+                path (str): Path to save results.
                 name (str): Name of the model.
                 patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
         """
+        method_path = self.__manage_path(path, 'train')
         train_specs = {
             'batch_size': batch_size,
-            'path': results_path}
+            'path': method_path}
         callbacks_ = callbacks if callbacks else \
             get_basic_callbacks(
-                path=path,
+                path=method_path,
                 patience=patience,
                 name=name,
                 verbose=verbose,
@@ -408,20 +412,31 @@ class AIronSuit(object):
         if self.model:
             summary(self.model)
 
-    def get_latent_insights(self, x, **kwargs):
-        """ Get insights of latent layers.
+    def visualize_latent_representations(self, x, path=None, **kwargs):
+        """ Visualize latent representations.
 
             Parameters:
                 x (list, array): Data to be mapped to latent representations.
-                hidden_layer_names (str, list): Names of the hidden layers ti get insights from.
-                embeddings (list, array): Embeddings to be saved.
-                embeddings_names (list, str): Embeddings names.
-                metadata (list, array): Metadata.
                 path (str): Path to save insights.
+                hidden_layer_name (str): Name of the hidden layer to get insights from.
+                metadata (list, array): Metadata.
         """
-        if not self.latent_model:
-            self.create_latent_model(kwargs['hidden_layer_names'])
-        get_insights(x, self.latent_model, **kwargs)
+        assert 'hidden_layer_name' in kwargs.keys() or self.latent_model is not None
+        method_path = self.__manage_path(path, 'visualize_latent_representations')
+        if 'hidden_layer_name' in kwargs.keys():
+            latent_model = get_latent_model(self.model, kwargs['hidden_layer_name'])
+            representations_name = kwargs['hidden_layer_name']
+            del kwargs['hidden_layer_name']
+        else:
+            latent_model = self.latent_model
+            representations_name = self.latent_model.output_names[0]
+        if latent_model is not None:
+            save_representations(
+                representations=latent_model.predict(x),
+                path=method_path,
+                representations_name=representations_name,
+                **kwargs
+            )
 
     def __save_load_model(self, name, mode, **kwargs):
         if mode == 'save':
@@ -482,3 +497,9 @@ class AIronSuit(object):
             self.__model_constructor_wrapper(self.model)
         if self.__cuda in kwargs and BACKEND != 'tensorflow':
             self.model.cuda()
+
+    def __manage_path(self, path, path_ext):
+        path_ = path if path is not None else self.path
+        path_ = os.path.join(path_, path_ext)
+        path_management(path_)
+        return path_

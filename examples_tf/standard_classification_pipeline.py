@@ -14,13 +14,13 @@ from tensorflow.keras.optimizers import Adam
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit  # aironsuit==0.1.9, airontools==0.1.9
 from airontools.preprocessing import train_val_split
-from airontools.tools import path_management
 from airontools.constructors.models.supervised.classification import ImageClassifierNN
 random.seed(0)
 np.random.seed(0)
 OS_SEP = os.path.sep
 PROJECT = 'classification_pipeline'
 EXECUTION_MODE = os.environ['EXECUTION_MODE'] if 'EXECUTION_MODE' in os.environ else 'development'
+WORKING_PATH = os.path.join(os.path.expanduser("~"), 'airon', PROJECT, EXECUTION_MODE)
 
 
 def image_classifier(input_shape, **reg_kwargs):
@@ -36,13 +36,6 @@ def pipeline():
 
     # Net name
     model_name = PROJECT + '_NN'
-
-    # Paths
-    prep_data_path = os.path.join(working_path, 'PrepDatasets' + OS_SEP)
-    inference_data_path = os.path.join(working_path, 'Inference' + OS_SEP)
-    results_path = os.path.join(working_path, 'Results' + OS_SEP)
-    for path in [prep_data_path, inference_data_path, results_path]:
-        path_management(path)
 
     # Data Pre-processing #
 
@@ -89,17 +82,19 @@ def pipeline():
         print('\n')
         print('Automatic model design \n')
         trials = None
+        trials_file_name = os.path.join(WORKING_PATH, 'design', 'trials.hyperopt')
         if new_exploration:
             trials = Trials()
-        elif os.path.isfile(results_path + 'trials.hyperopt'):
+        elif os.path.isfile(trials_file_name):
             try:
-                trials = pickle.load(open(results_path + 'trials.hyperopt', 'rb'))
+                trials = pickle.load(open(trials_file_name, 'rb'))
             except RuntimeError as e:
                 print(e)
         aironsuit = AIronSuit(
             model_constructor=image_classifier,
             force_subclass_weights_saver=True,
-            force_subclass_weights_loader=True
+            force_subclass_weights_loader=True,
+            path=WORKING_PATH,
         )
         aironsuit.design(
             x_train=x_train,
@@ -126,14 +121,15 @@ def pipeline():
         # Load aironsuit
         try:
             specs = model_specs.copy()
-            with open(results_path + 'best_exp_' + model_name + '_hparams', 'rb') as handle:
+            best_file_name = os.path.join(WORKING_PATH, 'design', 'best_exp_' + model_name)
+            with open(best_file_name + '_hparams', 'rb') as handle:
                 specs.update(pickle.load(handle))
             aironsuit = AIronSuit(
                 model_constructor=image_classifier,
                 force_subclass_weights_saver=True,
                 force_subclass_weights_loader=True
             )
-            aironsuit.load_model(results_path + 'best_exp_' + model_name, **specs)
+            aironsuit.load_model(best_file_name, **specs)
         except RuntimeError as e:
             aironsuit = None
             print(e)
@@ -151,7 +147,7 @@ def pipeline():
         test_report = classification_report(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
         print('Evaluation report:')
         print(test_report)
-        with open(results_path + 'test_report', 'wb') as f:
+        with open(WORKING_PATH + 'test_report', 'wb') as f:
             pickle.dump(test_report, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 

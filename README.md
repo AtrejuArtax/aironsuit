@@ -58,7 +58,6 @@ precision = 'float32'
 
 # COMMAND ----------
 
-
 # Load and preprocess data
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 x_train = np.expand_dims(x_train.astype('float32') / 255, -1)

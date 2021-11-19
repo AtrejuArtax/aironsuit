@@ -9,19 +9,28 @@ os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.preprocessing import train_val_split
 from airontools.constructors.models.unsupervised import ImageVAE
+from airontools.tools import path_management
+HOME = os.path.expanduser("~")
+OS_SEP = os.path.sep
 
 # COMMAND ----------
 
 # Example Set-Up #
 
 model_name = 'VAE_NN'
+working_path = os.path.join(HOME, 'airon', model_name) + OS_SEP
 num_classes = 10
 batch_size = 128
-epochs = 30
+epochs = 1
 patience = 3
-max_evals = 3
+max_evals = 1
 max_n_samples = None
 precision = 'float32'
+
+# COMMAND ----------
+
+# Make/remove paths
+path_management(working_path, modes=['rm', 'make'])
 
 # COMMAND ----------
 
@@ -62,7 +71,8 @@ hyperparam_space = {'latent_dim': choice('latent_dim', np.arange(3, 6))}
 aironsuit = AIronSuit(
     model_constructor=vae_model_constructor,
     force_subclass_weights_saver=True,
-    force_subclass_weights_loader=True
+    force_subclass_weights_loader=True,
+    path=working_path
 )
 
 # COMMAND ----------
@@ -83,4 +93,10 @@ aironsuit.design(
     patience=patience
 )
 aironsuit.summary()
-del x_train, x_val
+del x_train
+
+# COMMAND ----------
+
+# Get latent insights
+aironsuit.visualize_latent_representations(x_val[:100], hidden_layer_name='z')
+

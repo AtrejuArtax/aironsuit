@@ -13,8 +13,8 @@ os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.constructors.models.general import model_constructor
 from airontools.preprocessing import train_val_split
-from airontools.tools import path_management
 from airontools.devices import get_available_gpus
+from airontools.tools import path_management
 random.seed(0)
 np.random.seed(0)
 HOME = os.path.expanduser("~")
@@ -24,8 +24,9 @@ OS_SEP = os.path.sep
 
 # Example Set-Up #
 
-project = 'mnist'
-working_path = os.path.join(HOME, 'advanced_airontools_' + project)
+project_name = 'simple_mnist_classifier'
+working_path = os.path.join(HOME, 'airon', project_name) + OS_SEP
+model_name = project_name + '_NN'
 use_gpu = True
 max_n_samples = None
 max_evals = 3
@@ -38,6 +39,11 @@ precision = 'float32'
 
 # COMMAND ----------
 
+# Make/remove paths
+path_management(working_path, modes=['rm', 'make'])
+
+# COMMAND ----------
+
 # Choose devices
 if not use_gpu or len(get_available_gpus()) == 0:
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
@@ -45,19 +51,11 @@ if not use_gpu or len(get_available_gpus()) == 0:
 else:
     devices = [gpu_name.replace('/device:GPU:', '/gpu:') for gpu_name in get_available_gpus()]
 
-# Net name
-model_name = project + '_NN'
-
-# Paths
-prep_data_path = os.path.join(working_path, 'PrepDatasets')
-inference_data_path = os.path.join(working_path, 'Inference')
-results_path = os.path.join(working_path, 'Results')
-
 # Target names
 target_names = [str(i) for i in range(10)]
 
 # Input/Output Specs
-metric = 'categorical_accuracy' if project in ['fashion_mnist', 'mnist'] else None
+metric = 'categorical_accuracy'
 input_specs = {'image': {'type': 'image',
                          'sequential': False,
                          'dim': 784}}
@@ -68,9 +66,7 @@ data_specs = {'input_specs': input_specs,
               'output_specs': output_specs}
 
 # Training specs
-train_specs = {
-    'batch_size': batch_size,
-    'path': results_path}
+train_specs = {'batch_size': batch_size}
 
 # Model Specs
 model_specs = {
@@ -99,11 +95,6 @@ hyperparam_space.update({
     'loss': choice('loss', ['mse', 'categorical_crossentropy'])
 })
 
-# Make/remove paths
-path_modes = ['rm', 'make']
-for path in [prep_data_path, inference_data_path, results_path]:
-    path_management(path, modes=path_modes)
-
 # COMMAND ----------
 
 # Load and preprocess data
@@ -129,7 +120,10 @@ x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
 # COMMAND ----------
 
 # Invoke AIronSuit
-aironsuit = AIronSuit(model_constructor=model_constructor)
+aironsuit = AIronSuit(
+    model_constructor=model_constructor,
+    path=working_path
+)
 
 # COMMAND ----------
 
@@ -144,7 +138,6 @@ aironsuit.design(
     hyper_space=hyperparam_space,
     model_specs=model_specs,
     train_specs=train_specs,
-    path=results_path,
     max_evals=max_evals,
     epochs=epochs,
     trials=Trials(),
@@ -152,7 +145,6 @@ aironsuit.design(
     verbose=verbose,
     seed=0,
     metric=metric,
-    val_inference_in_path=results_path,
     patience=patience
 )
 aironsuit.summary()
@@ -188,5 +180,5 @@ y_pred = y_pred if not isinstance(y_pred, list) else np.mean([y_pred_ for y_pred
 # Classification report
 test_report = classification_report(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
 print(test_report)
-with open(results_path + 'test_report', 'wb') as f:
+with open(working_path + 'test_report', 'wb') as f:
     pickle.dump(test_report, f, protocol=pickle.HIGHEST_PROTOCOL)

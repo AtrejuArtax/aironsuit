@@ -10,17 +10,18 @@ import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.constructors.layers import layer_constructor
-from airontools.tools import path_management
 from airontools.preprocessing import train_val_split
+from airontools.tools import path_management
 HOME = os.path.expanduser("~")
+OS_SEP = os.path.sep
 
 # COMMAND ----------
 
 # Example Set-Up #
 
 project_name = 'simple_mnist_classifier'
+working_path = os.path.join(HOME, 'airon', project_name) + OS_SEP
 model_name = project_name + '_NN'
-working_path = os.path.join(HOME, project_name)
 num_classes = 10
 batch_size = 32
 epochs = 25
@@ -30,6 +31,10 @@ precision = 'float32'
 
 # COMMAND ----------
 
+# Make/remove paths
+path_management(working_path, modes=['rm', 'make'])
+
+# COMMAND ----------
 
 # Load and preprocess data
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -103,7 +108,6 @@ aironsuit = AIronSuit(model_constructor=classifier_model_constructor)
 # Automatic Model Design
 print('\n')
 print('Automatic Model Design \n')
-path_management(working_path, modes=['rm', 'make'])
 aironsuit.design(
     x_train=x_train,
     y_train=y_train,

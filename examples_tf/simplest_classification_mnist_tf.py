@@ -10,16 +10,23 @@ from aironsuit.suit import AIronSuit
 from airontools.constructors.layers import layer_constructor
 from airontools.tools import path_management
 HOME = os.path.expanduser("~")
+OS_SEP = os.path.sep
 
 # COMMAND ----------
 
 # Example Set-Up #
 
 project_name = 'simplest_mnist'
-working_path = os.path.join(HOME, project_name)
+working_path = os.path.join(HOME, 'airon', project_name) + OS_SEP
+model_name = project_name + '_NN'
 num_classes = 10
 batch_size = 128
 epochs = 20
+
+# COMMAND ----------
+
+# Make/remove paths
+path_management(working_path, modes=['rm', 'make'])
 
 # COMMAND ----------
 
@@ -68,7 +75,8 @@ aironsuit.train(
     epochs=epochs,
     x_train=x_train,
     y_train=y_train,
-    path=working_path
+    path=working_path,
+    name=model_name
 )
 
 # COMMAND ----------
