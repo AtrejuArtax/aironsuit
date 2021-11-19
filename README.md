@@ -133,7 +133,8 @@ aironsuit.visualize_representations(
     hidden_layer_name='z',
 )
 ```
-![alt text](https://github.com/AtrejuArtax/aironsuit/blob/visualization/vae_z_representations.png?raw=true)
+
+![alt text](https://https://github.com/AtrejuArtax/aironsuit/blob/visualization/images/vae_z_representations.png)
 
 ### More Examples
 
