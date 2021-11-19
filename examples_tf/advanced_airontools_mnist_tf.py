@@ -89,8 +89,8 @@ hyperparam_space = {
     'bias_regularizer_l1': uniform_hp('bias_regularizer_l1', 0., 0.001),
     'bias_regularizer_l2': uniform_hp('bias_regularizer_l2', 0., 0.001),
     'compression': uniform_hp('compression', 0.3, 0.98),
-    'i_n_layers': choice_hp('i_n_layers', list(np.arange(1, 2))),
-    'c_n_layers': choice_hp('c_n_layers', list(np.arange(1, 2)))}
+    'i_n_layers': choice_hp('i_n_layers', [int(val) for val in np.arange(1, 2)]),
+    'c_n_layers': choice_hp('c_n_layers', [int(val) for val in np.arange(1, 2)])}
 hyperparam_space.update({
     'loss': choice_hp('loss', ['mse', 'categorical_crossentropy'])
 })

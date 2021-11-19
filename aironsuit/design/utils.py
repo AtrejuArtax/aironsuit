@@ -6,7 +6,7 @@ import tensorflow as tf
 def choice_hp(name: str, values: list):
     hp_utils = dict(
         options=choice(name, values),
-        logs=hp.HParam(name, hp.Discrete([int(value) for value in values])))
+        logs=hp.HParam(name, hp.Discrete(values)))
     return hp_utils
 
 

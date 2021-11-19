@@ -64,7 +64,7 @@ def ae_model_constructor(latent_dim):
 train_specs = {'batch_size': batch_size}
 
 # Hyper-parameter space
-hyperparam_space = {'latent_dim': choice_hp('latent_dim', list(np.arange(3, 6)))}
+hyperparam_space = {'latent_dim': choice_hp('latent_dim', [int(val) for val in np.arange(3, 6)])}
 
 # COMMAND ----------
 
