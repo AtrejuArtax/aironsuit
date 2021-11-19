@@ -31,83 +31,59 @@ import numpy as np
 from hyperopt.hp import choice
 from hyperopt import Trials
 from tensorflow.keras.datasets import mnist
-from tensorflow.keras.models import Model
-from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.layers import Input
+from tensorflow.keras.optimizers import Adam
 import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
-from airontools.constructors.layers import layer_constructor
-from airontools.tools import path_management
 from airontools.preprocessing import train_val_split
+from airontools.constructors.models.unsupervised import ImageVAE
+from airontools.tools import path_management
 HOME = os.path.expanduser("~")
+OS_SEP = os.path.sep
 
 # COMMAND ----------
 
 # Example Set-Up #
 
-project_name = 'simple_mnist_classifier'
-model_name = project_name + '_NN'
-working_path = os.path.join(HOME, project_name)
+model_name = 'VAE_NN'
+working_path = os.path.join(HOME, 'airon', model_name) + OS_SEP
 num_classes = 10
-batch_size = 32
-epochs = 25
+batch_size = 128
+epochs = 30
 patience = 3
-max_evals = 25
+max_evals = 3
+max_n_samples = None
 precision = 'float32'
 
 # COMMAND ----------
 
-# Load and preprocess data
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
-x_train = np.expand_dims(x_train.astype('float32') / 255, -1)
-x_test = np.expand_dims(x_test.astype('float32') / 255, -1)
-y_train = to_categorical(y_train, num_classes)
-y_test = to_categorical(y_test, num_classes)
-
-# Split data per parallel model
-x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
-    input_data=x_train,
-    output_data=y_train
-)
+# Make/remove paths
+path_management(working_path, modes=['rm', 'make'])
 
 # COMMAND ----------
 
-# Classifier Model constructor
+# Load and preprocess data
+(train_dataset, target_dataset), _ = mnist.load_data()
+if max_n_samples is not None:
+    train_dataset = train_dataset[-max_n_samples:, ...]
+    target_dataset = target_dataset[-max_n_samples:, ...]
+train_dataset = np.expand_dims(train_dataset, -1).astype(precision) / 255
 
-model_specs = {
-    'input_shape': (28, 28, 1),
-    'loss': 'categorical_crossentropy',
-    'optimizer': 'adam',
-    'metrics': ['accuracy']
-}
+# Split data per parallel model
+x_train, x_val, _, meta_val, _ = train_val_split(input_data=train_dataset, meta_data=target_dataset)
+
+# COMMAND ----------
+
+# VAE Model constructor
 
 
-def classifier_model_constructor(**kwargs):
+def vae_model_constructor(latent_dim):
 
-    inputs = Input(shape=kwargs['input_shape'])
-    outputs = layer_constructor(
-        x=inputs,
-        filters=kwargs['filters'],  # Number of filters used for the convolutional layer
-        kernel_size=(kwargs['kernel_size'],
-                     kwargs['kernel_size']),  # Kernel size used for the convolutional layer
-        strides=2,  # Strides used for the convolutional layer
-        sequential_axis=-1,  # Channel axis, used to define the sequence 
-        # for the self-attention layer
-        num_heads=kwargs['num_heads'],  # Self-attention heads applied after the 
-        # convolutional layer
-        units=10,  # Dense units applied after the self-attention layer
-        activation='softmax',  # Output activation function
-        advanced_reg=True
-    )
-    model = Model(inputs=inputs, outputs=outputs)
-    model.compile(
-        loss=kwargs['loss'],
-        optimizer=kwargs['optimizer'],
-        metrics=kwargs['metrics']
-    )
+    # Create VAE model and compile it
+    vae = ImageVAE(latent_dim)
+    vae.compile(optimizer=Adam())
 
-    return model
+    return vae
 
 # COMMAND ----------
 
@@ -116,29 +92,26 @@ def classifier_model_constructor(**kwargs):
 train_specs = {'batch_size': batch_size}
 
 # Hyper-parameter space
-hyperparam_space = {
-    'filters': choice('filters', np.arange(3, 30)),
-    'kernel_size': choice('kernel_size', np.arange(3, 10)),
-    'num_heads': choice('num_heads', np.arange(2, 10))
-}
+hyperparam_space = {'latent_dim': choice('latent_dim', np.arange(3, 6))}
 
 # COMMAND ----------
 
 # Invoke AIronSuit
-aironsuit = AIronSuit(model_constructor=classifier_model_constructor)
+aironsuit = AIronSuit(
+    model_constructor=vae_model_constructor,
+    force_subclass_weights_saver=True,
+    force_subclass_weights_loader=True,
+    path=working_path
+)
 
 # COMMAND ----------
 
 # Automatic Model Design
 print('\n')
 print('Automatic Model Design \n')
-path_management(working_path, modes=['rm', 'make'])
 aironsuit.design(
     x_train=x_train,
-    y_train=y_train,
     x_val=x_val,
-    y_val=y_val,
-    model_specs=model_specs,
     hyper_space=hyperparam_space,
     train_specs=train_specs,
     max_evals=max_evals,
@@ -149,46 +122,18 @@ aironsuit.design(
     patience=patience
 )
 aironsuit.summary()
+del x_train
 
 # COMMAND ----------
 
-# Evaluate
-score = aironsuit.evaluate(x_test, y_test)
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
-
-# COMMAND ----------
-
-# Save Model
-aironsuit.save_model(os.path.join(working_path, project_name + '_model'))
-del aironsuit
-
-# COMMAND ----------
-
-# Re-Invoke AIronSuit and load model
-aironsuit = AIronSuit()
-aironsuit.load_model(os.path.join(working_path, project_name + '_model'))
-aironsuit.model.compile(
-    loss='categorical_crossentropy',
-    optimizer='adam',
-    metrics=['accuracy']
+# Get latent insights
+aironsuit.visualize_representations(
+    x_val,
+    metadata=meta_val,
+    hidden_layer_name='z',
 )
-
-# Further Training
-aironsuit.train(
-    epochs=epochs,
-    x_train=x_train,
-    y_train=y_train
-)
-
-# COMMAND ----------
-
-# Evaluate
-score = aironsuit.evaluate(x_test, y_test)
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
-
 ```
+![alt text](https://github.com/[AtrejuArtax]/[aironsuit]/blob/[visualization]/vae_embeddings.jpg?raw=true)
 
 ### More Examples
 

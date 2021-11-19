@@ -1,4 +1,6 @@
 import os
+import warnings
+
 import numpy as np
 import pandas as pd
 import pickle
@@ -412,31 +414,45 @@ class AIronSuit(object):
         if self.model:
             summary(self.model)
 
-    def visualize_latent_representations(self, x, path=None, **kwargs):
-        """ Visualize latent representations.
+    def visualize_representations(self,
+                                  x,
+                                  metadata=None,
+                                  path=None,
+                                  hidden_layer_name=None,
+                                  latent_model_output=False,
+                                  ):
+        """ Visualize representations.
+
+        To visualize the representations on TensorBoard follow the steps:
+        1) Use the command line: ' + 'tensorboard --logdir=path
+        alt-1) If step 1 does not work, use the command line:
+               python <where TensorBoard package is installed>/main.py --logdir=path
+        2) Use an internet browser: http://localhost:6006/#projector'
 
             Parameters:
                 x (list, array): Data to be mapped to latent representations.
+                metadata (list, array): Metadata.
                 path (str): Path to save insights.
                 hidden_layer_name (str): Name of the hidden layer to get insights from.
-                metadata (list, array): Metadata.
+                latent_model_output (bool): Whether to directly use the output of the latent model.
         """
-        assert 'hidden_layer_name' in kwargs.keys() or self.latent_model is not None
-        method_path = self.__manage_path(path, 'visualize_latent_representations')
-        if 'hidden_layer_name' in kwargs.keys():
-            latent_model = get_latent_model(self.model, kwargs['hidden_layer_name'])
-            representations_name = kwargs['hidden_layer_name']
-            del kwargs['hidden_layer_name']
+        if latent_model_output and self.latent_model is None:
+            warnings.warn('latent model should be created first')
+        method_path = self.__manage_path(path, 'representations')
+        if hidden_layer_name is not None:
+            model = get_latent_model(self.model, hidden_layer_name)
         else:
-            latent_model = self.latent_model
-            representations_name = self.latent_model.output_names[0]
-        if latent_model is not None:
-            save_representations(
-                representations=latent_model.predict(x),
-                path=method_path,
-                representations_name=representations_name,
-                **kwargs
-            )
+            if latent_model_output:
+                model = self.latent_model
+            else:
+                model = self.model
+        representations_name = model.output_names[0]
+        save_representations(
+            representations=model.predict(x),
+            path=method_path,
+            representations_name=representations_name,
+            metadata=metadata
+        )
 
     def __save_load_model(self, name, mode, **kwargs):
         if mode == 'save':

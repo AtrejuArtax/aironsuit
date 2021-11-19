@@ -21,9 +21,9 @@ model_name = 'AE_NN'
 working_path = os.path.join(HOME, 'airon', model_name) + OS_SEP
 num_classes = 10
 batch_size = 128
-epochs = 30
+epochs = 1
 patience = 3
-max_evals = 3
+max_evals = 1
 max_n_samples = None
 precision = 'float32'
 
@@ -35,13 +35,14 @@ path_management(working_path, modes=['rm', 'make'])
 # COMMAND ----------
 
 # Load and preprocess data
-(train_dataset, _), _ = mnist.load_data()
+(train_dataset, target_dataset), _ = mnist.load_data()
 if max_n_samples is not None:
     train_dataset = train_dataset[-max_n_samples:, ...]
+    target_dataset = target_dataset[-max_n_samples:, ...]
 train_dataset = np.expand_dims(train_dataset, -1).astype(precision) / 255
 
 # Split data per parallel model
-x_train, x_val, train_val_inds = train_val_split(input_data=train_dataset)
+x_train, x_val, _, meta_val, _ = train_val_split(input_data=train_dataset, meta_data=target_dataset)
 
 # COMMAND ----------
 
@@ -98,4 +99,8 @@ del x_train
 # COMMAND ----------
 
 # Get latent insights
-aironsuit.visualize_latent_representations(x_val, hidden_layer_name='z')
+aironsuit.visualize_representations(
+    x_val,
+    metadata=meta_val,
+    hidden_layer_name='z',
+)
