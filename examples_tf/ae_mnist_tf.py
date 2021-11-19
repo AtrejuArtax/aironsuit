@@ -1,12 +1,12 @@
 # Databricks notebook source
 import numpy as np
-from hyperopt.hp import choice
 from hyperopt import Trials
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.optimizers import Adam
 import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
+from aironsuit.design.utils import choice_hp
 from airontools.preprocessing import train_val_split
 from airontools.constructors.models.unsupervised import ImageAE
 from airontools.tools import path_management
@@ -21,9 +21,9 @@ model_name = 'AE_NN'
 working_path = os.path.join(HOME, 'airon', model_name) + OS_SEP
 num_classes = 10
 batch_size = 128
-epochs = 30
+epochs = 1
 patience = 3
-max_evals = 3
+max_evals = 25
 max_n_samples = None
 precision = 'float32'
 
@@ -64,7 +64,7 @@ def ae_model_constructor(latent_dim):
 train_specs = {'batch_size': batch_size}
 
 # Hyper-parameter space
-hyperparam_space = {'latent_dim': choice('latent_dim', np.arange(3, 6))}
+hyperparam_space = {'latent_dim': choice_hp('latent_dim', list(np.arange(3, 6)))}
 
 # COMMAND ----------
 
@@ -73,7 +73,7 @@ aironsuit = AIronSuit(
     model_constructor=ae_model_constructor,
     force_subclass_weights_saver=True,
     force_subclass_weights_loader=True,
-    path=working_path
+    results_path=working_path
 )
 
 # COMMAND ----------

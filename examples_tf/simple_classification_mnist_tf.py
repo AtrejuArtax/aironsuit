@@ -1,6 +1,5 @@
 # Databricks notebook source
 import numpy as np
-from hyperopt.hp import choice
 from hyperopt import Trials
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import Model
@@ -9,6 +8,7 @@ from tensorflow.keras.layers import Input
 import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
+from aironsuit.design.utils import choice_hp
 from airontools.constructors.layers import layer_constructor
 from airontools.preprocessing import train_val_split
 from airontools.tools import path_management
@@ -93,9 +93,9 @@ train_specs = {'batch_size': batch_size}
 
 # Hyper-parameter space
 hyperparam_space = {
-    'filters': choice('filters', np.arange(3, 30)),
-    'kernel_size': choice('kernel_size', np.arange(3, 10)),
-    'num_heads': choice('num_heads', np.arange(2, 10))
+    'filters': choice_hp('filters', list(np.arange(3, 30))),
+    'kernel_size': choice_hp('kernel_size', list(np.arange(3, 10))),
+    'num_heads': choice_hp('num_heads', list(np.arange(2, 10)))
 }
 
 # COMMAND ----------

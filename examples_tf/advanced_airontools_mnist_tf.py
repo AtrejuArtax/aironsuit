@@ -3,7 +3,6 @@ import os
 import numpy as np
 import random
 import pickle
-from hyperopt.hp import uniform, choice
 from hyperopt import Trials
 from sklearn.metrics import classification_report
 from sklearn.preprocessing import OneHotEncoder
@@ -11,6 +10,7 @@ from tensorflow.keras.datasets import mnist
 from tensorflow.keras.optimizers import Adam
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
+from aironsuit.design.utils import choice_hp, uniform_hp
 from airontools.constructors.models.general import model_constructor
 from airontools.preprocessing import train_val_split
 from airontools.devices import get_available_gpus
@@ -83,16 +83,16 @@ model_specs = {
     'output_activation': 'softmax'
 }
 hyperparam_space = {
-    'dropout_rate': uniform('dropout_rate', 0., 0.4),
-    'kernel_regularizer_l1': uniform('kernel_regularizer_l1', 0., 0.001),
-    'kernel_regularizer_l2': uniform('kernel_regularizer_l2', 0., 0.001),
-    'bias_regularizer_l1': uniform('bias_regularizer_l1', 0., 0.001),
-    'bias_regularizer_l2': uniform('bias_regularizer_l2', 0., 0.001),
-    'compression': uniform('compression', 0.3, 0.98),
-    'i_n_layers': choice('i_n_layers', np.arange(1, 2)),
-    'c_n_layers': choice('c_n_layers', np.arange(1, 2))}
+    'dropout_rate': uniform_hp('dropout_rate', 0., 0.4),
+    'kernel_regularizer_l1': uniform_hp('kernel_regularizer_l1', 0., 0.001),
+    'kernel_regularizer_l2': uniform_hp('kernel_regularizer_l2', 0., 0.001),
+    'bias_regularizer_l1': uniform_hp('bias_regularizer_l1', 0., 0.001),
+    'bias_regularizer_l2': uniform_hp('bias_regularizer_l2', 0., 0.001),
+    'compression': uniform_hp('compression', 0.3, 0.98),
+    'i_n_layers': choice_hp('i_n_layers', list(np.arange(1, 2))),
+    'c_n_layers': choice_hp('c_n_layers', list(np.arange(1, 2)))}
 hyperparam_space.update({
-    'loss': choice('loss', ['mse', 'categorical_crossentropy'])
+    'loss': choice_hp('loss', ['mse', 'categorical_crossentropy'])
 })
 
 # COMMAND ----------
@@ -122,7 +122,7 @@ x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
 # Invoke AIronSuit
 aironsuit = AIronSuit(
     model_constructor=model_constructor,
-    path=working_path
+    results_path=working_path
 )
 
 # COMMAND ----------

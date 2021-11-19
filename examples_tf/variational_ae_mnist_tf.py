@@ -7,6 +7,7 @@ from tensorflow.keras.optimizers import Adam
 import os
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
+from aironsuit.design.utils import choice_hp
 from airontools.preprocessing import train_val_split
 from airontools.constructors.models.unsupervised import ImageVAE
 from airontools.tools import path_management
@@ -64,7 +65,7 @@ def vae_model_constructor(latent_dim):
 train_specs = {'batch_size': batch_size}
 
 # Hyper-parameter space
-hyperparam_space = {'latent_dim': choice('latent_dim', np.arange(3, 6))}
+hyperparam_space = {'latent_dim': choice_hp('latent_dim', list(np.arange(3, 6)))}
 
 # COMMAND ----------
 
@@ -73,7 +74,7 @@ aironsuit = AIronSuit(
     model_constructor=vae_model_constructor,
     force_subclass_weights_saver=True,
     force_subclass_weights_loader=True,
-    path=working_path
+    results_path=working_path
 )
 
 # COMMAND ----------

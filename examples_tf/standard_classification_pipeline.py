@@ -5,14 +5,14 @@ import getopt
 import random
 import numpy as np
 from hyperopt import Trials
-from hyperopt.hp import choice, uniform
 from sklearn.metrics import classification_report
 from tensorflow.python.client import device_lib
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.optimizers import Adam
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
-from aironsuit.suit import AIronSuit  # aironsuit==0.1.9, airontools==0.1.9
+from aironsuit.suit import AIronSuit
+from aironsuit.design.utils import choice_hp, uniform_hp
 from airontools.preprocessing import train_val_split
 from airontools.constructors.models.supervised.classification import ImageClassifierNN
 random.seed(0)
@@ -70,12 +70,12 @@ def pipeline():
 
         # Hyper-parameter space
         hyperparam_space = {
-            'dropout_rate': uniform('dropout_rate', 0., 0.4),
-            'kernel_regularizer_l1': uniform('kernel_regularizer_l1', 0., 0.001),
-            'kernel_regularizer_l2': uniform('kernel_regularizer_l2', 0., 0.001),
-            'bias_regularizer_l1': uniform('bias_regularizer_l1', 0., 0.001),
-            'bias_regularizer_l2': uniform('bias_regularizer_l2', 0., 0.001),
-            'bn': choice('bn', [True, False])
+            'dropout_rate': uniform_hp('dropout_rate', 0., 0.4),
+            'kernel_regularizer_l1': uniform_hp('kernel_regularizer_l1', 0., 0.001),
+            'kernel_regularizer_l2': uniform_hp('kernel_regularizer_l2', 0., 0.001),
+            'bias_regularizer_l1': uniform_hp('bias_regularizer_l1', 0., 0.001),
+            'bias_regularizer_l2': uniform_hp('bias_regularizer_l2', 0., 0.001),
+            'bn': choice_hp('bn', [True, False])
         }
 
         # Automatic model design
@@ -94,7 +94,7 @@ def pipeline():
             model_constructor=image_classifier,
             force_subclass_weights_saver=True,
             force_subclass_weights_loader=True,
-            path=WORKING_PATH,
+            results_path=WORKING_PATH,
         )
         aironsuit.design(
             x_train=x_train,
