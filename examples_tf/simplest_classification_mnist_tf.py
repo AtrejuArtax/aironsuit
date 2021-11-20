@@ -75,7 +75,6 @@ aironsuit.train(
     epochs=epochs,
     x_train=x_train,
     y_train=y_train,
-    path=working_path,
     name=model_name
 )
 

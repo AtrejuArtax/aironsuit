@@ -84,7 +84,7 @@ def pipeline():
         print('Automatic model design \n')
         trials = None
         trials_file_name = os.path.join(WORKING_PATH, 'design', 'trials.hyperopt')
-        if new_exploration:
+        if new_design:
             trials = Trials()
         elif os.path.isfile(trials_file_name):
             try:
@@ -187,9 +187,9 @@ if __name__ == '__main__':
         print('\n')
         if opt == '-h':
             sys.exit()
-        if opt in '--new_exploration':
-            new_exploration = arg == 'True'
-            print('new_exploration:' + arg)
+        if opt in '--new_design':
+            new_design = arg == 'True'
+            print('new_design:' + arg)
         elif opt in '--design':
             design = arg == 'True'
             print('design:' + arg)
