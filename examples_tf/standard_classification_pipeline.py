@@ -56,8 +56,9 @@ def pipeline():
     model_specs = dict()
     model_specs.update(data_specs)
 
+    # Design
     aironsuit = None
-    if explore:
+    if design:
 
         # Split data per parallel model
         x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
@@ -158,9 +159,8 @@ if __name__ == '__main__':
     try:
         opts, args = getopt.getopt(argv, 'h', [
             'working_path=',
-            'new_preprocessing=',
-            'new_exploration=',
-            'explore=',
+            'new_design=',
+            'design=',
             'use_gpu=',
             'max_evals=',
             'epochs=',
@@ -173,8 +173,8 @@ if __name__ == '__main__':
         sys.exit(2)
 
     working_path = os.path.join(os.path.expanduser('~'), PROJECT)
-    new_exploration = True
-    explore = True
+    new_design = True
+    design = True
     use_gpu = True
     max_n_samples = None
     max_evals = 1000 if EXECUTION_MODE == 'production' else 3
@@ -195,9 +195,9 @@ if __name__ == '__main__':
         elif opt in '--new_exploration':
             new_exploration = arg == 'True'
             print('new_exploration:' + arg)
-        elif opt in '--explore':
-            explore = arg == 'True'
-            print('explore:' + arg)
+        elif opt in '--design':
+            design = arg == 'True'
+            print('design:' + arg)
         elif opt in '--use_gpu':
             use_gpu = arg == 'True'
             print('use_gpu:' + arg)
