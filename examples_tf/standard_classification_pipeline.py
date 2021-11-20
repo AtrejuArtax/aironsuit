@@ -158,7 +158,6 @@ if __name__ == '__main__':
 
     try:
         opts, args = getopt.getopt(argv, 'h', [
-            'working_path=',
             'new_design=',
             'design=',
             'use_gpu=',
@@ -172,7 +171,6 @@ if __name__ == '__main__':
     except getopt.GetoptError:
         sys.exit(2)
 
-    working_path = os.path.join(os.path.expanduser('~'), PROJECT)
     new_design = True
     design = True
     use_gpu = True
@@ -189,10 +187,7 @@ if __name__ == '__main__':
         print('\n')
         if opt == '-h':
             sys.exit()
-        if opt in '--working_path':
-            working_path = arg
-            print('working_path:' + arg)
-        elif opt in '--new_exploration':
+        if opt in '--new_exploration':
             new_exploration = arg == 'True'
             print('new_exploration:' + arg)
         elif opt in '--design':
