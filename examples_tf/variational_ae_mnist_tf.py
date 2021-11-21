@@ -11,14 +11,13 @@ from airontools.preprocessing import train_val_split
 from airontools.constructors.models.unsupervised import ImageVAE
 from airontools.tools import path_management
 HOME = os.path.expanduser("~")
-OS_SEP = os.path.sep
 
 # COMMAND ----------
 
 # Example Set-Up #
 
 model_name = 'VAE_NN'
-working_path = os.path.join(HOME, 'airon', model_name) + OS_SEP
+working_path = os.path.join(HOME, 'airon', model_name)
 num_classes = 10
 batch_size = 128
 epochs = 30

@@ -18,14 +18,13 @@ from airontools.tools import path_management
 random.seed(0)
 np.random.seed(0)
 HOME = os.path.expanduser("~")
-OS_SEP = os.path.sep
 
 # COMMAND ----------
 
 # Example Set-Up #
 
 project_name = 'simple_mnist_classifier'
-working_path = os.path.join(HOME, 'airon', project_name) + OS_SEP
+working_path = os.path.join(HOME, 'airon', project_name)
 model_name = project_name + '_NN'
 use_gpu = True
 max_n_samples = None

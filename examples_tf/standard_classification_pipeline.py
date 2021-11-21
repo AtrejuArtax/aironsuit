@@ -17,7 +17,6 @@ from airontools.preprocessing import train_val_split
 from airontools.constructors.models.supervised.classification import ImageClassifierNN
 random.seed(0)
 np.random.seed(0)
-OS_SEP = os.path.sep
 PROJECT = 'classification_pipeline'
 EXECUTION_MODE = os.environ['EXECUTION_MODE'] if 'EXECUTION_MODE' in os.environ else 'development'
 WORKING_PATH = os.path.join(os.path.expanduser("~"), 'airon', PROJECT, EXECUTION_MODE)
