@@ -259,7 +259,7 @@ class AIronSuit(object):
             if len(trials.trials) < max_evals:
                 hyperopt.fmin(
                     design_trial,
-                    rstate=None if seed is None else np.random.RandomState(seed),
+                    rstate=None if seed is None else np.random.default_rng(seed),
                     space={key: value['options'] for key, value in hyper_space.items()},
                     algo=hyperopt.tpe.suggest,
                     max_evals=max_evals,

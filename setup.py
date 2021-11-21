@@ -21,7 +21,7 @@ setuptools.setup(
         include=[PACKAGE_NAME] + [PACKAGE_NAME + '.' + name
                                   for name in os.listdir(os.path.join(os.getcwd(), PACKAGE_NAME))
                                   if not any([str_ in name for str_ in ['.py', '__']])]),
-    install_requires=['sklearn', 'hyperopt', 'tensorboard'],
+    install_requires=['sklearn', 'hyperopt==0.2.7', 'tensorboard'],
     classifiers=['Programming Language :: Python :: 3',
                  'License :: OSI Approved :: BSD License',
                  'Operating System :: OS Independent'],
