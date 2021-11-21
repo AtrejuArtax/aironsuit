@@ -31,7 +31,7 @@ def image_classifier(input_shape, **reg_kwargs):
     return classifier_nn
 
 
-def pipeline():
+def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, patience, verbose, precision):
 
     # Net name
     model_name = PROJECT + '_NN'
@@ -109,7 +109,8 @@ def pipeline():
             trials=trials,
             name=model_name,
             seed=0,
-            patience=patience
+            patience=patience,
+            verbose=verbose
         )
         del x_train, x_val, y_train, y_val
         aironsuit.summary()
@@ -160,66 +161,69 @@ if __name__ == '__main__':
             'new_design=',
             'design=',
             'use_gpu=',
+            'max_n_samples=',
             'max_evals=',
             'epochs=',
             'batch_size=',
             'patience=',
             'verbose=',
-            'precision='
-        ])
+            'precision='])
     except getopt.GetoptError:
         sys.exit(2)
 
-    new_design = True
-    design = True
+    pipeline_kwargs = dict(
+        new_design=True,
+        design=True,
+        max_n_samples=None if EXECUTION_MODE == 'production' else 1000,
+        max_evals=250 if EXECUTION_MODE == 'production' else 2,
+        epochs=1000 if EXECUTION_MODE == 'production' else 2,
+        batch_size=32,
+        patience=5 if EXECUTION_MODE == 'production' else 2,
+        verbose=0,
+        precision='float32'
+    )
     use_gpu = True
-    max_n_samples = None
-    max_evals = 1000 if EXECUTION_MODE == 'production' else 3
-    epochs = 1000 if EXECUTION_MODE == 'production' else 2
-    batch_size = 32
-    patience = 5 if EXECUTION_MODE == 'production' else 3
-    verbose = 0
-    precision = 'float32'
-
     for opt, arg in opts:
 
         print('\n')
         if opt == '-h':
             sys.exit()
         if opt in '--new_design':
-            new_design = arg == 'True'
+            pipeline_kwargs['new_design'] = arg == 'True'
             print('new_design:' + arg)
         elif opt in '--design':
-            design = arg == 'True'
+            pipeline_kwargs['design'] = arg == 'True'
             print('design:' + arg)
         elif opt in '--use_gpu':
             use_gpu = arg == 'True'
             print('use_gpu:' + arg)
         elif opt in '--max_n_samples':
-            max_n_samples = int(arg) if arg != 'None' else None
+            pipeline_kwargs['max_n_samples'] = int(arg) if arg != 'None' else None
             print('max_n_samples:' + arg)
         elif opt in '--max_evals':
-            max_evals = int(arg)
+            pipeline_kwargs['max_evals'] = int(arg)
             print('max_evals:' + arg)
         elif opt in '--epochs':
-            epochs = int(arg)
+            pipeline_kwargs['epochs'] = int(arg)
             print('epochs:' + arg)
         elif opt in '--batch_size':
-            batch_size = int(arg)
+            pipeline_kwargs['batch_size'] = int(arg)
             print('batch_size:' + arg)
         elif opt in '--patience':
-            patience = int(arg)
+            pipeline_kwargs['patience'] = int(arg)
             print('patience:' + arg)
         elif opt in '--verbose':
-            verbose = int(arg)
+            pipeline_kwargs['verbose'] = int(arg)
             print('verbose:' + arg)
         elif opt in '--precision':
-            precision = arg
+            pipeline_kwargs['precision'] = arg
             print('precision:' + arg)
+
 
     def get_available_gpus():
         local_device_protos = device_lib.list_local_devices()
         return [x.name for x in local_device_protos if x.device_type == 'GPU']
+
 
     if not use_gpu or len(get_available_gpus()) == 0:
         os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
@@ -227,4 +231,4 @@ if __name__ == '__main__':
     else:
         devices = [gpu_name.replace('/device:GPU:', '/gpu:') for gpu_name in get_available_gpus()]
 
-    pipeline()
+    pipeline(**pipeline_kwargs)
