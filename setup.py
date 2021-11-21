@@ -22,7 +22,6 @@ setuptools.setup(
                                   for name in os.listdir(os.path.join(os.getcwd(), PACKAGE_NAME))
                                   if not any([str_ in name for str_ in ['.py', '__']])]),
     install_requires=[
-        'pickle',
         'math',
         'numpy',
         'pandas'
