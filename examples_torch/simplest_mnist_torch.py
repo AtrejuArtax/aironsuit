@@ -28,17 +28,26 @@ epochs = 10
 
 # Load data
 train_loader = torch.utils.data.DataLoader(
-  torchvision.datasets.MNIST(tempfile.gettempdir(), train=True, download=True,
-                             transform=torchvision.transforms.Compose([
-                                 torchvision.transforms.ToTensor(),
-                                 torchvision.transforms.Normalize((0.1307,), (0.3081,))])),
-  batch_size=32, shuffle=True)
+    torchvision.datasets.MNIST(
+        tempfile.gettempdir(),
+        train=True,
+        download=True,
+        transform=torchvision.transforms.Compose([
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize((0.1307,), (0.3081,))])),
+    batch_size=32,
+    shuffle=True
+)
 test_loader = torch.utils.data.DataLoader(
-  torchvision.datasets.MNIST(tempfile.gettempdir(), train=False, download=True,
-                             transform=torchvision.transforms.Compose([
-                                 torchvision.transforms.ToTensor(),
-                                 torchvision.transforms.Normalize((0.1307,), (0.3081,))])),
-  batch_size=32, shuffle=True)
+    torchvision.datasets.MNIST(
+        tempfile.gettempdir(),
+        train=False, download=True,
+        transform=torchvision.transforms.Compose([
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize((0.1307,), (0.3081,))])),
+    batch_size=32,
+    shuffle=True
+)
 x_train, y_train = train_loader.dataset.data, train_loader.dataset.targets
 x_test, y_test = train_loader.dataset.data, train_loader.dataset.targets
 
@@ -110,8 +119,8 @@ path_management(working_path, modes=['rm', 'make'])
 aironsuit.train(
     epochs=epochs,
     x_train=x_train,
-    y_train=y_train,
-    path=working_path)
+    y_train=y_train
+)
 
 # COMMAND ----------
 

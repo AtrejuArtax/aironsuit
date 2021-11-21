@@ -5,22 +5,21 @@ import getopt
 import random
 import numpy as np
 from hyperopt import Trials
-from hyperopt.hp import choice, uniform
 from sklearn.metrics import classification_report
 from tensorflow.python.client import device_lib
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.optimizers import Adam
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
-from aironsuit.suit import AIronSuit  # aironsuit==0.1.9, airontools==0.1.9
+from aironsuit.suit import AIronSuit
+from aironsuit.design.utils import choice_hp, uniform_hp
 from airontools.preprocessing import train_val_split
-from airontools.tools import path_management
 from airontools.constructors.models.supervised.classification import ImageClassifierNN
 random.seed(0)
 np.random.seed(0)
-OS_SEP = os.path.sep
 PROJECT = 'classification_pipeline'
 EXECUTION_MODE = os.environ['EXECUTION_MODE'] if 'EXECUTION_MODE' in os.environ else 'development'
+WORKING_PATH = os.path.join(os.path.expanduser("~"), 'airon', PROJECT, EXECUTION_MODE)
 
 
 def image_classifier(input_shape, **reg_kwargs):
@@ -32,23 +31,16 @@ def image_classifier(input_shape, **reg_kwargs):
     return classifier_nn
 
 
-def pipeline():
+def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, patience, verbose, precision):
 
     # Net name
     model_name = PROJECT + '_NN'
-
-    # Paths
-    prep_data_path = os.path.join(working_path, 'PrepDatasets' + OS_SEP)
-    inference_data_path = os.path.join(working_path, 'Inference' + OS_SEP)
-    results_path = os.path.join(working_path, 'Results' + OS_SEP)
-    for path in [prep_data_path, inference_data_path, results_path]:
-        path_management(path)
 
     # Data Pre-processing #
 
     # Load and preprocess data
     (train_dataset, train_targets), (test_dataset, test_targets) = mnist.load_data()
-    if max_n_samples is not None:  # ToDo: test cases when max_n_samples is not None
+    if max_n_samples is not None:  # ToDo: test cases when max_n_samples is not None, like it is now it will crash
         train_dataset = train_dataset[-max_n_samples:, ...]
         train_targets = train_targets[-max_n_samples:, ...]
     train_dataset = np.expand_dims(train_dataset, -1).astype(precision) / 255
@@ -63,8 +55,9 @@ def pipeline():
     model_specs = dict()
     model_specs.update(data_specs)
 
+    # Design
     aironsuit = None
-    if explore:
+    if design:
 
         # Split data per parallel model
         x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
@@ -77,29 +70,31 @@ def pipeline():
 
         # Hyper-parameter space
         hyperparam_space = {
-            'dropout_rate': uniform('dropout_rate', 0., 0.4),
-            'kernel_regularizer_l1': uniform('kernel_regularizer_l1', 0., 0.001),
-            'kernel_regularizer_l2': uniform('kernel_regularizer_l2', 0., 0.001),
-            'bias_regularizer_l1': uniform('bias_regularizer_l1', 0., 0.001),
-            'bias_regularizer_l2': uniform('bias_regularizer_l2', 0., 0.001),
-            'bn': choice('bn', [True, False])
+            'dropout_rate': uniform_hp('dropout_rate', 0., 0.4),
+            'kernel_regularizer_l1': uniform_hp('kernel_regularizer_l1', 0., 0.001),
+            'kernel_regularizer_l2': uniform_hp('kernel_regularizer_l2', 0., 0.001),
+            'bias_regularizer_l1': uniform_hp('bias_regularizer_l1', 0., 0.001),
+            'bias_regularizer_l2': uniform_hp('bias_regularizer_l2', 0., 0.001),
+            'bn': choice_hp('bn', [True, False])
         }
 
         # Automatic model design
         print('\n')
         print('Automatic model design \n')
         trials = None
-        if new_exploration:
+        trials_file_name = os.path.join(WORKING_PATH, 'design', 'trials.hyperopt')
+        if new_design:
             trials = Trials()
-        elif os.path.isfile(results_path + 'trials.hyperopt'):
+        elif os.path.isfile(trials_file_name):
             try:
-                trials = pickle.load(open(results_path + 'trials.hyperopt', 'rb'))
+                trials = pickle.load(open(trials_file_name, 'rb'))
             except RuntimeError as e:
                 print(e)
         aironsuit = AIronSuit(
             model_constructor=image_classifier,
             force_subclass_weights_saver=True,
-            force_subclass_weights_loader=True
+            force_subclass_weights_loader=True,
+            results_path=WORKING_PATH,
         )
         aironsuit.design(
             x_train=x_train,
@@ -114,7 +109,8 @@ def pipeline():
             trials=trials,
             name=model_name,
             seed=0,
-            patience=patience
+            patience=patience,
+            verbose=verbose
         )
         del x_train, x_val, y_train, y_val
         aironsuit.summary()
@@ -126,14 +122,15 @@ def pipeline():
         # Load aironsuit
         try:
             specs = model_specs.copy()
-            with open(results_path + 'best_exp_' + model_name + '_hparams', 'rb') as handle:
+            best_file_name = os.path.join(WORKING_PATH, 'design', 'best_exp_' + model_name)
+            with open(best_file_name + '_hparams', 'rb') as handle:
                 specs.update(pickle.load(handle))
             aironsuit = AIronSuit(
                 model_constructor=image_classifier,
                 force_subclass_weights_saver=True,
                 force_subclass_weights_loader=True
             )
-            aironsuit.load_model(results_path + 'best_exp_' + model_name, **specs)
+            aironsuit.load_model(best_file_name, **specs)
         except RuntimeError as e:
             aironsuit = None
             print(e)
@@ -151,7 +148,7 @@ def pipeline():
         test_report = classification_report(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
         print('Evaluation report:')
         print(test_report)
-        with open(results_path + 'test_report', 'wb') as f:
+        with open(WORKING_PATH + 'test_report', 'wb') as f:
             pickle.dump(test_report, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
@@ -161,75 +158,71 @@ if __name__ == '__main__':
 
     try:
         opts, args = getopt.getopt(argv, 'h', [
-            'working_path=',
-            'new_preprocessing=',
-            'new_exploration=',
-            'explore=',
+            'new_design=',
+            'design=',
             'use_gpu=',
+            'max_n_samples=',
             'max_evals=',
             'epochs=',
             'batch_size=',
             'patience=',
             'verbose=',
-            'precision='
-        ])
+            'precision='])
     except getopt.GetoptError:
         sys.exit(2)
 
-    working_path = os.path.join(os.path.expanduser('~'), PROJECT)
-    new_exploration = True
-    explore = True
+    pipeline_kwargs = dict(
+        new_design=True,
+        design=True,
+        max_n_samples=None if EXECUTION_MODE == 'production' else 1000,
+        max_evals=250 if EXECUTION_MODE == 'production' else 2,
+        epochs=1000 if EXECUTION_MODE == 'production' else 2,
+        batch_size=32,
+        patience=5 if EXECUTION_MODE == 'production' else 2,
+        verbose=0,
+        precision='float32'
+    )
     use_gpu = True
-    max_n_samples = None
-    max_evals = 1000 if EXECUTION_MODE == 'production' else 3
-    epochs = 1000 if EXECUTION_MODE == 'production' else 2
-    batch_size = 32
-    patience = 5 if EXECUTION_MODE == 'production' else 3
-    verbose = 0
-    precision = 'float32'
-
     for opt, arg in opts:
 
         print('\n')
         if opt == '-h':
             sys.exit()
-        if opt in '--working_path':
-            working_path = arg
-            print('working_path:' + arg)
-        elif opt in '--new_exploration':
-            new_exploration = arg == 'True'
-            print('new_exploration:' + arg)
-        elif opt in '--explore':
-            explore = arg == 'True'
-            print('explore:' + arg)
+        if opt in '--new_design':
+            pipeline_kwargs['new_design'] = arg == 'True'
+            print('new_design:' + arg)
+        elif opt in '--design':
+            pipeline_kwargs['design'] = arg == 'True'
+            print('design:' + arg)
         elif opt in '--use_gpu':
             use_gpu = arg == 'True'
             print('use_gpu:' + arg)
         elif opt in '--max_n_samples':
-            max_n_samples = int(arg) if arg != 'None' else None
+            pipeline_kwargs['max_n_samples'] = int(arg) if arg != 'None' else None
             print('max_n_samples:' + arg)
         elif opt in '--max_evals':
-            max_evals = int(arg)
+            pipeline_kwargs['max_evals'] = int(arg)
             print('max_evals:' + arg)
         elif opt in '--epochs':
-            epochs = int(arg)
+            pipeline_kwargs['epochs'] = int(arg)
             print('epochs:' + arg)
         elif opt in '--batch_size':
-            batch_size = int(arg)
+            pipeline_kwargs['batch_size'] = int(arg)
             print('batch_size:' + arg)
         elif opt in '--patience':
-            patience = int(arg)
+            pipeline_kwargs['patience'] = int(arg)
             print('patience:' + arg)
         elif opt in '--verbose':
-            verbose = int(arg)
+            pipeline_kwargs['verbose'] = int(arg)
             print('verbose:' + arg)
         elif opt in '--precision':
-            precision = arg
+            pipeline_kwargs['precision'] = arg
             print('precision:' + arg)
 
     def get_available_gpus():
         local_device_protos = device_lib.list_local_devices()
         return [x.name for x in local_device_protos if x.device_type == 'GPU']
+
 
     if not use_gpu or len(get_available_gpus()) == 0:
         os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
@@ -237,4 +230,4 @@ if __name__ == '__main__':
     else:
         devices = [gpu_name.replace('/device:GPU:', '/gpu:') for gpu_name in get_available_gpus()]
 
-    pipeline()
+    pipeline(**pipeline_kwargs)

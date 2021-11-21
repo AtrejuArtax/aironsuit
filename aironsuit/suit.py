@@ -1,4 +1,5 @@
 import os
+import warnings
 import numpy as np
 import pandas as pd
 import pickle
@@ -11,9 +12,11 @@ from sklearn.metrics import accuracy_score, roc_curve, auc
 from aironsuit.trainers import AIronTrainer
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.backend import get_backend
+from aironsuit.design.utils import setup_design_logs, update_design_logs
 from airontools.constructors.utils import Model, get_latent_model
-from airontools.visualization import get_insights
+from airontools.visualization import save_representations
 from airontools.interactors import load_model, save_model, clear_session, summary
+from airontools.tools import path_management
 BACKEND = get_backend()
 
 
@@ -24,27 +27,32 @@ class AIronSuit(object):
         Attributes:
             model (Model): NN model.
             latent_model (Model): Latent NN model.
+            results_path (str): Results path.
+            logs_path (int): Logs path.
             __model_constructor (): NN model constructor.
             __trainer (object): NN model constructor instance.
             __trainer_class (AIronTrainer): NN model trainer.
             __cuda (bool): Whether to use cuda or not.
             __devices (list): Devices where to make the computations.
             __total_n_models (int): Total number of models in parallel.
-
     """
 
     def __init__(self,
                  model_constructor=None,
                  model=None,
+                 results_path=os.path.join(tempfile.gettempdir(), 'airon') + os.sep,
+                 logs_path=None,
                  trainer=None,
                  model_constructor_wrapper=None,
                  custom_objects=None,
                  force_subclass_weights_saver=False,
-                 force_subclass_weights_loader=False
+                 force_subclass_weights_loader=False,
                  ):
         """ Parameters:
                 model_constructor (): Function that returns a model.
                 model (Model): User customized model.
+                results_path (str): Results path.
+                logs_path (str): Logs path.
                 trainer (): Model trainer.
                 model_constructor_wrapper (): Model constructor wrapper.
                 custom_objects (dict): Custom objects when loading Keras models.
@@ -56,6 +64,8 @@ class AIronSuit(object):
 
         self.model = model
         self.latent_model = None
+        self.results_path = results_path
+        self.logs_path = logs_path if logs_path is not None else os.path.join(results_path, 'logs')
         self.__model_constructor = model_constructor
         self.__trainer = None
         self.__trainer_class = AIronTrainer if not trainer else trainer
@@ -77,48 +87,56 @@ class AIronSuit(object):
                y_train=None,
                y_val=None,
                model_specs=None,
-               path=tempfile.gettempdir() + os.sep,
+               results_path=None,
+               logs_path=None,
                metric=None,
                trials=None,
                name='NN',
                verbose=0,
                seed=None,
-               val_inference_in_path=None,
                raw_callbacks=None,
                cuda=None,
                use_basic_callbacks=True,
-               patience=3
+               patience=3,
+               save_val_inference=False,
                ):
-        """ Explore the hyper-parameter space to find optimal candidates.
+        """ Automatic model design.
 
             Parameters:
                 x_train (list, np.array): Input data for training.
                 x_val (list, np.array): Input data for validation.
-                hyper_space (dict): Hyper parameter space to explore.
+                hyper_space (dict): Hyper parameter space for model design.
                 train_specs (dict): Training specifications.
-                path (str): Path to save (temporary) results.
+                results_path (str): Results path.
+                logs_path (str): Logs path.
                 max_evals (integer): Maximum number of evaluations.
                 epochs (int): Number of epochs for model training.
                 y_train (list, np.array): Output data for training.
                 y_val (list, np.array): Output data for validation.
                 model_specs (dict): Model specifications.
-                metric (str): Metric to be used for exploration. If None validation loss is used.
-                trials (Trials): Object with exploration information.
+                metric (str): Metric to be used for model design. If None validation loss is used.
+                trials (Trials): Object with design information.
                 name (str): Name of the model.
                 verbose (int): Verbosity.
                 seed (int): Seed for reproducible results.
-                val_inference_in_path (str): Path where to save validation inference.
                 raw_callbacks (list): Dictionary of raw callbacks.
                 cuda (bool): Whether cuda is available or not.
                 use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
                 patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
+                save_val_inference (bool): Whether or not to save validation inference when the best model is found.
         """
+
+        method_r_path = self.__manage_path(results_path, path_ext='design')
+        method_l_path = self.__manage_path(logs_path, path_type='logs')
+
+        setup_design_logs(method_l_path, hyper_space)
+
         self.__cuda = cuda
         if trials is None:
             trials = Trials()
         raw_callbacks = raw_callbacks if raw_callbacks else \
             get_basic_callbacks(
-                path=path,
+                path=method_r_path,
                 patience=patience,
                 name=name,
                 verbose=verbose,
@@ -154,7 +172,7 @@ class AIronSuit(object):
                 verbose=verbose
             )
 
-            # Exploration loss
+            # Design loss
             # ToDo: compatible with custom metric
             if metric in ['categorical_accuracy', 'accuracy']:
                 def prepare_for_acc(x):
@@ -173,77 +191,83 @@ class AIronSuit(object):
                 acc_score = []
                 for i in range(len(y_pred)):
                     acc_score.append(accuracy_score(y_pred[i],  y_val_[i]))
-                exp_loss = 1 - np.mean(acc_score)
+                design_loss = 1 - np.mean(acc_score)
             elif metric == 'i_auc':  # ToDo: make this work
                 y_pred = self.model.predict(x_val)
                 if not isinstance(y_pred, list):
                     y_pred = [y_pred]
-                exp_loss = []
+                design_loss = []
                 for i in np.arange(0, self.__total_n_models):
                     if len(np.bincount(y_val[i][:, -1])) > 1 and not math.isnan(np.sum(y_pred[i])):
                         fpr, tpr, thresholds = roc_curve(y_val[i][:, -1], y_pred[i][:, -1])
-                        exp_loss += [(1 - auc(fpr, tpr))]
-                exp_loss = np.mean(exp_loss) if len(exp_loss) > 0 else 1
+                        design_loss += [(1 - auc(fpr, tpr))]
+                design_loss = np.mean(design_loss) if len(design_loss) > 0 else 1
             else:
                 if y_val is not None:
-                    exp_loss = self.model.evaluate(x_val, y_val)
+                    design_loss = self.model.evaluate(x_val, y_val)
                 else:
-                    exp_loss = self.model.evaluate(x_val)
-                if isinstance(exp_loss, list) or isinstance(exp_loss, tuple):
-                    exp_loss = exp_loss[0]
-                if isinstance(exp_loss, dict):
-                    exp_loss = [loss for _, loss in exp_loss.items()][0]
+                    design_loss = self.model.evaluate(x_val)
+                if isinstance(design_loss, list) or isinstance(design_loss, tuple):
+                    design_loss = design_loss[0]
+                if isinstance(design_loss, dict):
+                    design_loss = [loss for _, loss in design_loss.items()][0]
 
             if verbose > 0:
                 print('\n')
-                print('Exploration Loss: ', exp_loss)
-            status = STATUS_OK if not math.isnan(exp_loss) and exp_loss is not None else STATUS_FAIL
+                print('Design Loss: ', design_loss)
+            status = STATUS_OK if not math.isnan(design_loss) and design_loss is not None else STATUS_FAIL
+
+            # Update logs
+            if status == STATUS_OK:
+                update_design_logs(
+                    path=os.path.join(method_l_path, str(len(trials.losses()))),
+                    hparams={value['logs']: hyper_candidates[key] for key, value in hyper_space.items()},
+                    value=design_loss
+                )
 
             # Save trials
-            with open(os.path.join(path, 'trials.hyperopt'), 'wb') as f:
+            with open(os.path.join(method_r_path, 'trials.hyperopt'), 'wb') as f:
                 pickle.dump(trials, f)
 
             # Save model if it is the best so far
-            best_exp_losss_name = os.path.join(path, '_'.join(['best', name, 'exp_loss']))
+            best_design_loss_name = os.path.join(method_r_path, '_'.join(['best', name, 'design_loss']))
             trials_losses = [loss_ for loss_ in trials.losses() if loss_]
-            best_exp_loss = min(trials_losses) if len(trials_losses) > 0 else None
-            print('best val loss so far: ' + str(best_exp_loss))
-            print('current val loss: ' + str(exp_loss))
-            best_exp_loss_cond = best_exp_loss is None or exp_loss < best_exp_loss
-            save_cond = status == STATUS_OK and best_exp_loss_cond
+            best_design_loss = min(trials_losses) if len(trials_losses) > 0 else None
+            print('best val loss so far: ' + str(best_design_loss))
+            print('current val loss: ' + str(design_loss))
+            best_design_loss_cond = best_design_loss is None or design_loss < best_design_loss
+            save_cond = status == STATUS_OK and best_design_loss_cond
             print('save: ' + str(save_cond))
             if save_cond:
-                df = pd.DataFrame(data=[exp_loss], columns=['best_exp_loss'])
-                df.to_pickle(best_exp_losss_name)
-                self.__save_load_model(name=os.path.join(path, '_'.join(['best_exp', name])), mode='save')
-                with open(os.path.join(path, '_'.join(['best_exp', name, 'hyper_candidates'])), 'wb') as f:
+                df = pd.DataFrame(data=[design_loss], columns=['best_design_loss'])
+                df.to_pickle(best_design_loss_name)
+                self.__save_load_model(name=os.path.join(method_r_path, '_'.join(['best_design', name])), mode='save')
+                with open(os.path.join(method_r_path, '_'.join(['best_design', name, 'hyper_candidates'])), 'wb') as f:
                     pickle.dump(hyper_candidates, f, protocol=pickle.HIGHEST_PROTOCOL)
-                if val_inference_in_path is not None:
-                    y_val_ = np.concatenate(y_val, axis=1) if isinstance(y_val, list) else y_val
-                    np.savetxt(os.path.join(val_inference_in_path, 'val_target.csv'), y_val_, delimiter=',')
+                if save_val_inference and y_val is not None:
                     y_inf = trainer.predict(x_val)
                     y_inf = np.concatenate(y_inf, axis=1) if isinstance(y_inf, list) else y_inf
-                    np.savetxt(os.path.join(val_inference_in_path, 'val_target_inference.csv'), y_inf, delimiter=',')
+                    np.savetxt(os.path.join('inference', 'val_target_inference.csv'), y_inf, delimiter=',')
 
             clear_session()
             del self.model
 
-            return {'loss': exp_loss, 'status': status}
+            return {'loss': design_loss, 'status': status}
 
         def design():
 
             if len(trials.trials) < max_evals:
                 hyperopt.fmin(
                     design_trial,
-                    rstate=None if seed is None else np.random.RandomState(seed),
-                    space=hyper_space,
+                    rstate=None if seed is None else np.random.default_rng(seed),
+                    space={key: value['options'] for key, value in hyper_space.items()},
                     algo=hyperopt.tpe.suggest,
                     max_evals=max_evals,
                     trials=trials,
                     verbose=True,
                     return_argmin=False
                 )
-            with open(os.path.join(path, 'best_exp_' + name + '_hyper_candidates'), 'rb') as f:
+            with open(os.path.join(method_r_path, 'best_design_' + name + '_hyper_candidates'), 'rb') as f:
                 best_hyper_candidates = pickle.load(f)
 
             # Best model
@@ -252,7 +276,7 @@ class AIronSuit(object):
                 specs.update(model_specs.copy())
             specs.update(best_hyper_candidates)
             best_model = self.__save_load_model(
-                name=os.path.join(path, '_'.join(['best_exp', name])),
+                name=os.path.join(method_r_path, '_'.join(['best_design', name])),
                 mode='load',
                 **{key: value for key, value in specs.items() if key != 'name'}
             )
@@ -290,10 +314,10 @@ class AIronSuit(object):
               y_val=None,
               batch_size=32,
               callbacks=None,
-              results_path=tempfile.gettempdir(),
               verbose=None,
               use_basic_callbacks=True,
-              path=tempfile.gettempdir() + os.sep,
+              results_path=None,
+              logs_path=None,
               name='NN',
               patience=3
               ):
@@ -307,19 +331,21 @@ class AIronSuit(object):
                 y_val (list, np.array): Output data for validation.
                 batch_size (int): Batch size.
                 callbacks (dict): Dictionary of callbacks.
-                results_path (str): Path where to save results.
                 verbose (int): Verbosity.
                 use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
-                path (str): Path to save (temporary) results.
+                results_path (str): Results path.
+                logs_path (str): Logs path.
                 name (str): Name of the model.
                 patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
         """
+        method_r_path = self.__manage_path(results_path, path_ext='train')
+        method_l_path = self.__manage_path(logs_path, path_type='logs')
         train_specs = {
             'batch_size': batch_size,
-            'path': results_path}
+            'path': method_r_path}
         callbacks_ = callbacks if callbacks else \
             get_basic_callbacks(
-                path=path,
+                path=method_r_path,
                 patience=patience,
                 name=name,
                 verbose=verbose,
@@ -408,20 +434,45 @@ class AIronSuit(object):
         if self.model:
             summary(self.model)
 
-    def get_latent_insights(self, x, **kwargs):
-        """ Get insights of latent layers.
+    def visualize_representations(self,
+                                  x,
+                                  metadata=None,
+                                  logs_path=None,
+                                  hidden_layer_name=None,
+                                  latent_model_output=False,
+                                  ):
+        """ Visualize representations.
+
+        To visualize the representations on TensorBoard follow the steps:
+        1) Use the command line: ' + 'tensorboard --logdir=<logs_path>
+        alt-1) I previous step does not work, use the command line:
+            python <where TensorBoard package is installed>/main.py --logdir=<logs_path>
+        2) Use an internet browser: http://localhost:6006/#projector'
 
             Parameters:
                 x (list, array): Data to be mapped to latent representations.
-                hidden_layer_names (str, list): Names of the hidden layers ti get insights from.
-                embeddings (list, array): Embeddings to be saved.
-                embeddings_names (list, str): Embeddings names.
-                metadata (list, array): Metadata.
-                path (str): Path to save insights.
+                metadata (list(array), array): Metadata (a list of arrays or an array).
+                logs_path (str): Logs path.
+                hidden_layer_name (str): Name of the hidden layer to get insights from.
+                latent_model_output (bool): Whether to directly use the output of the latent model.
         """
-        if not self.latent_model:
-            self.create_latent_model(kwargs['hidden_layer_names'])
-        get_insights(x, self.latent_model, **kwargs)
+        if latent_model_output and self.latent_model is None:
+            warnings.warn('latent model should be created first')
+        method_l_path = self.__manage_path(logs_path, path_type='logs')
+        if hidden_layer_name is not None:
+            model = get_latent_model(self.model, hidden_layer_name)
+        else:
+            if latent_model_output:
+                model = self.latent_model
+            else:
+                model = self.model
+        representations_name = model.output_names[0]
+        save_representations(
+            representations=model.predict(x),
+            path=method_l_path,
+            representations_name=representations_name,
+            metadata=metadata
+        )
 
     def __save_load_model(self, name, mode, **kwargs):
         if mode == 'save':
@@ -482,3 +533,11 @@ class AIronSuit(object):
             self.__model_constructor_wrapper(self.model)
         if self.__cuda in kwargs and BACKEND != 'tensorflow':
             self.model.cuda()
+
+    def __manage_path(self, path, path_ext=None, path_type='results'):
+        default_path = self.results_path if path_type == 'results' else self.logs_path
+        path_ = path if path is not None else default_path
+        if path_ext:
+            path_ = os.path.join(path_, path_ext)
+        path_management(path_)
+        return path_
