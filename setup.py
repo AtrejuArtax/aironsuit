@@ -28,7 +28,7 @@ setuptools.setup(
         'hyperopt==0.2.7',
         'tensorflow==2.7.0',
         'tensorboard==2.7.0',
-        'airontools==0.1.10'
+        'airontools==0.1.11'
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
