@@ -20,7 +20,7 @@ working_path = os.path.join(HOME, 'airon', project_name)
 model_name = project_name + '_NN'
 num_classes = 10
 batch_size = 128
-epochs = 20
+epochs = 3
 
 # COMMAND ----------
 

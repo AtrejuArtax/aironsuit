@@ -18,14 +18,13 @@ HOME = os.path.expanduser("~")
 
 # Example Set-Up #
 
-project_name = 'simple_mnist_classifier'
+project_name = 'time_series_classifier'
 working_path = os.path.join(HOME, 'airon', project_name)
 model_name = project_name + '_NN'
-num_classes = 10
 batch_size = 32
 epochs = 3
 patience = 3
-max_evals = 2
+max_evals = 25
 precision = 'float32'
 
 # COMMAND ----------
@@ -36,9 +35,23 @@ path_management(working_path, modes=['rm', 'make'])
 # COMMAND ----------
 
 # Load and preprocess data
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
-x_train = np.expand_dims(x_train.astype('float32') / 255, -1)
-x_test = np.expand_dims(x_test.astype('float32') / 255, -1)
+
+
+def readucr(filename):
+    data = np.loadtxt(filename, delimiter="\t")
+    y = data[:, 0]
+    x = data[:, 1:]
+    return x, y.astype(int)
+
+
+root_url = 'https://raw.githubusercontent.com/hfawaz/cd-diagram/master/FordA/'
+x_train, y_train = readucr(root_url + "FordA_TRAIN.tsv")
+x_test, y_test = readucr(root_url + "FordA_TEST.tsv")
+x_train = x_train.reshape((x_train.shape[0], x_train.shape[1], 1))
+x_test = x_test.reshape((x_test.shape[0], x_test.shape[1], 1))
+num_classes = len(np.unique(y_train))
+y_train[y_train == -1] = 0
+y_test[y_test == -1] = 0
 y_train = to_categorical(y_train, num_classes)
 y_test = to_categorical(y_test, num_classes)
 
@@ -53,7 +66,8 @@ x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
 # Classifier Model constructor
 
 model_specs = {
-    'input_shape': (28, 28, 1),
+    'input_shape': x_train.shape[1:],
+    'units': num_classes,
     'loss': 'categorical_crossentropy',
     'optimizer': 'adam',
     'metrics': ['accuracy']
@@ -62,18 +76,27 @@ model_specs = {
 
 def classifier_model_constructor(**kwargs):
 
+    if kwargs['num_heads'] == 0:
+        num_heads = None
+        sequential = True
+    else:
+        num_heads = kwargs['num_heads']
+        sequential = False
+    classifier_kwargs = dict(
+        filters=kwargs['filters'],  # Number of filters used for the convolutional layer
+        kernel_size=kwargs['kernel_size'],  # Kernel size used for the convolutional layer
+        strides=2,  # Strides used for the convolutional layer
+        sequential_axis=1,  # Used to define the sequence for the self-attention or sequential layer
+        num_heads=num_heads,  # Self-attention heads applied after the convolutional layer
+        sequential=sequential,  # Whether to consider a sequential model or not
+        units=kwargs['units'],  # Dense units applied after the self-attention layer
+        activation='softmax',  # Output activation function
+        advanced_reg=True
+    )
     inputs = Input(shape=kwargs['input_shape'])
     outputs = layer_constructor(
         x=inputs,
-        filters=kwargs['filters'],  # Number of filters used for the convolutional layer
-        kernel_size=(kwargs['kernel_size'],
-                     kwargs['kernel_size']),  # Kernel size used for the convolutional layer
-        strides=2,  # Strides used for the convolutional layer
-        sequential_axis=-1,  # Channel axis, used to define the sequence for the self-attention layer
-        num_heads=kwargs['num_heads'],  # Self-attention heads applied after the convolutional layer
-        units=10,  # Dense units applied after the self-attention layer
-        activation='softmax',  # Output activation function
-        advanced_reg=True
+        **classifier_kwargs
     )
     model = Model(inputs=inputs, outputs=outputs)
     model.compile(
@@ -94,7 +117,7 @@ train_specs = {'batch_size': batch_size}
 hyperparam_space = {
     'filters': choice_hp('filters', [int(val) for val in np.arange(3, 30)]),
     'kernel_size': choice_hp('kernel_size', [int(val) for val in np.arange(3, 10)]),
-    'num_heads': choice_hp('num_heads', [int(val) for val in np.arange(2, 10)])
+    'num_heads': choice_hp('num_heads', [int(val) for val in np.arange(0, 10)])
 }
 
 # COMMAND ----------
