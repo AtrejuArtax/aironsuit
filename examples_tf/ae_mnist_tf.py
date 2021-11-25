@@ -22,7 +22,7 @@ num_classes = 10
 batch_size = 128
 epochs = 3
 patience = 3
-max_evals = 25
+max_evals = 3
 max_n_samples = None
 precision = 'float32'
 

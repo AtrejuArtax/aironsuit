@@ -25,7 +25,7 @@ num_classes = 10
 batch_size = 32
 epochs = 3
 patience = 3
-max_evals = 25
+max_evals = 2
 precision = 'float32'
 
 # COMMAND ----------
