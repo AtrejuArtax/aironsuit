@@ -9,7 +9,7 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name=PACKAGE_NAME,
-    version='0.1.12',
+    version='0.1.13',
     scripts=[],
     author='Claudi Ruiz Camps',
     author_email='claudi_ruiz@hotmail.com',
@@ -28,7 +28,7 @@ setuptools.setup(
         'hyperopt==0.2.7',
         'tensorflow==2.7.0',
         'tensorboard==2.7.0',
-        'airontools==0.1.12'
+        'airontools==0.1.13'
     ],
     classifiers=[
         'Programming Language :: Python :: 3',

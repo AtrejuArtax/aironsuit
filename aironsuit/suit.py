@@ -86,6 +86,8 @@ class AIronSuit(object):
                epochs,
                y_train=None,
                y_val=None,
+               sample_weight=None,
+               sample_weight_val=None,
                model_specs=None,
                results_path=None,
                logs_path=None,
@@ -113,6 +115,8 @@ class AIronSuit(object):
                 epochs (int): Number of epochs for model training.
                 y_train (list, np.array): Output data for training.
                 y_val (list, np.array): Output data for validation.
+                sample_weight (np.array): Weight per sample to be computed with the train metric and losses.
+                sample_weight_val (np.array): Weight per sample to be computed with the validation metric and losses.
                 model_specs (dict): Model specifications.
                 metric (str): Metric to be used for model design. If None validation loss is used.
                 trials (Trials): Object with design information.
@@ -157,7 +161,7 @@ class AIronSuit(object):
                 print('\n')
                 print('iteration : {}'.format(0 if trials.losses() is None else iteration))
                 [print('{}: {}'.format(key, value)) for key, value in specs.items()]
-                print(self.model.summary(line_length=200))
+                print(self.model.summary())
 
             # Train model
             trainer = self.__train(
@@ -168,53 +172,39 @@ class AIronSuit(object):
                 y_train=y_train,
                 x_val=x_val,
                 y_val=y_val,
+                sample_weight=sample_weight,
+                sample_weight_val=sample_weight_val,
                 callbacks=init_callbacks(raw_callbacks) if raw_callbacks else None,
                 verbose=verbose
             )
 
             # Design loss
-            # ToDo: compatible with custom metric
-            if metric in ['categorical_accuracy', 'accuracy']:
-                def prepare_for_acc(x):
-                    if not isinstance(x, list):
-                        x_ = [x]
-                    else:
-                        x_ = x.copy()
-                    for i in range(len(x_)):
-                        if len(x_[i].shape) == 1:
-                            x_[i] = np.where(x_[i] > 0.5, 1, 0)
-                        else:
-                            x_[i] = np.argmax(x_[i], axis=-1)
-                    return x_
-                y_pred = prepare_for_acc(trainer.predict(x_val))
-                y_val_ = prepare_for_acc(y_val)
-                acc_score = []
-                for i in range(len(y_pred)):
-                    acc_score.append(accuracy_score(y_pred[i],  y_val_[i]))
-                design_loss = 1 - np.mean(acc_score)
-            elif metric == 'i_auc':  # ToDo: make this work
-                y_pred = self.model.predict(x_val)
-                if not isinstance(y_pred, list):
-                    y_pred = [y_pred]
-                design_loss = []
-                for i in np.arange(0, self.__total_n_models):
-                    if len(np.bincount(y_val[i][:, -1])) > 1 and not math.isnan(np.sum(y_pred[i])):
-                        fpr, tpr, thresholds = roc_curve(y_val[i][:, -1], y_pred[i][:, -1])
-                        design_loss += [(1 - auc(fpr, tpr))]
-                design_loss = np.mean(design_loss) if len(design_loss) > 0 else 1
+            evaluate_kwargs = {}
+            if sample_weight_val is not None:
+                evaluate_kwargs['sample_weight'] = sample_weight_val
+            if y_val is not None:
+                design_loss = self.model.evaluate(x_val, y_val, **evaluate_kwargs)
             else:
-                if y_val is not None:
-                    design_loss = self.model.evaluate(x_val, y_val)
-                else:
-                    design_loss = self.model.evaluate(x_val)
-                if isinstance(design_loss, list) or isinstance(design_loss, tuple):
-                    design_loss = design_loss[0]
+                design_loss = self.model.evaluate(x_val, **evaluate_kwargs)
+            if metric is not None:
+                warning_message = 'chasing first element from model.evaluate instead of specified metric'
                 if isinstance(design_loss, dict):
-                    design_loss = [loss for _, loss in design_loss.items()][0]
-
+                    try:
+                        design_loss = design_loss[metric]
+                    except RuntimeError as e:
+                        print(e)
+                        warnings.warn(warning_message)
+                else:
+                    warnings.warn(warning_message)
+            if isinstance(design_loss, tuple):
+                design_loss = list(design_loss)
+            elif isinstance(design_loss, dict):
+                design_loss = [loss_ for _, loss_ in design_loss.items()]
+            if isinstance(design_loss, list):
+                design_loss = sum(design_loss)
             if verbose > 0:
                 print('\n')
-                print('Design Loss: ', design_loss)
+                print('design Loss: ', design_loss)
             status = STATUS_OK if not math.isnan(design_loss) and design_loss is not None else STATUS_FAIL
 
             # Update logs
@@ -339,7 +329,7 @@ class AIronSuit(object):
                 patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
         """
         method_r_path = self.__manage_path(results_path, path_ext='train')
-        method_l_path = self.__manage_path(logs_path, path_type='logs')
+        method_l_path = self.__manage_path(logs_path, path_type='logs')  # ToDo: fix this
         train_specs = {
             'batch_size': batch_size,
             'path': method_r_path}
@@ -494,6 +484,8 @@ class AIronSuit(object):
                 epochs,
                 x_train,
                 y_train,
+                sample_weight=None,
+                sample_weight_val=None,
                 x_val=None,
                 y_val=None,
                 callbacks=None,
@@ -501,7 +493,7 @@ class AIronSuit(object):
                 ):
         trainer_kwargs = train_specs.copy()
         trainer_kwargs.update({'module': model})
-        if callbacks:
+        if callbacks is not None:
             trainer_kwargs.update({'callbacks': callbacks})
         trainer = self.__trainer_class(**trainer_kwargs)
         trainer_fullargspec = list(getfullargspec(trainer.fit))[0]
@@ -512,6 +504,10 @@ class AIronSuit(object):
         train_kwargs.update({'epochs': epochs})
         for karg, val in zip(['verbose'], [verbose]):
             train_kwargs.update({karg: val})
+        if sample_weight is not None:
+            train_kwargs.update({'sample_weight': sample_weight})
+        if sample_weight_val is not None:
+            train_kwargs.update({'sample_weight_val': sample_weight_val})
         trainer.fit(x_train, y_train, **train_kwargs)
         return trainer
 

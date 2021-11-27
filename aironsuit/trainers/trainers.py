@@ -20,7 +20,7 @@ class AIronTrainer(object):
     """
 
     def __init__(self, module, **kwargs):
-        available_kwargs = ['callbacks', 'mode', 'class_weight', 'path', 'batch_size']
+        available_kwargs = ['callbacks', 'mode', 'class_weight', 'path', 'batch_size', 'sample_weight']
         assert all([kwarg in available_kwargs for kwarg in kwargs.keys()])
         self.module = module
         self.best_module_name = None
