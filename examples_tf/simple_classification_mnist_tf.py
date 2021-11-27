@@ -23,9 +23,9 @@ working_path = os.path.join(HOME, 'airon', project_name)
 model_name = project_name + '_NN'
 num_classes = 10
 batch_size = 32
-epochs = 3
+epochs = 100
 patience = 3
-max_evals = 2
+max_evals = 1
 precision = 'float32'
 
 # COMMAND ----------
