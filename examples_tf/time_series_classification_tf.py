@@ -1,7 +1,6 @@
 # Databricks notebook source
 import numpy as np
 from hyperopt import Trials
-from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.layers import Input
