@@ -1,10 +1,12 @@
 # Databricks notebook source
+import os
+
 import numpy as np
 from hyperopt import Trials
+from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.layers import Input
-import os
+
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from aironsuit.design.utils import choice_hp

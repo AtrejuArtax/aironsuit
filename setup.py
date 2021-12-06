@@ -1,5 +1,6 @@
-import setuptools
 import os
+
+import setuptools
 
 PACKAGE_NAME = 'aironsuit'
 

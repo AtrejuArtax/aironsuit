@@ -1,15 +1,17 @@
-import os
-import sys
-import pickle
 import getopt
+import os
+import pickle
 import random
+import sys
+
 import numpy as np
 from hyperopt import Trials
 from sklearn.metrics import classification_report
-from tensorflow.python.client import device_lib
 from tensorflow.keras.datasets import mnist
-from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.utils import to_categorical
+from tensorflow.python.client import device_lib
+
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from aironsuit.design.utils import choice_hp, uniform_hp
