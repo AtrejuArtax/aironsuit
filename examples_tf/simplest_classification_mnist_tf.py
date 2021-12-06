@@ -1,10 +1,12 @@
 # Databricks notebook source
+import os
+
 import numpy as np
+from tensorflow.keras.datasets import mnist
 from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
-from tensorflow.keras.datasets import mnist
 from tensorflow.keras.utils import to_categorical
-import os
+
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from airontools.constructors.layers import layer_constructor

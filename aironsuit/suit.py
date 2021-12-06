@@ -1,22 +1,24 @@
+import math
 import os
+import pickle
+import tempfile
 import warnings
+from inspect import getfullargspec
+
+import hyperopt
 import numpy as np
 import pandas as pd
-import pickle
-import math
-import tempfile
-from inspect import getfullargspec
-import hyperopt
 from hyperopt import Trials, STATUS_OK, STATUS_FAIL
-from sklearn.metrics import accuracy_score, roc_curve, auc
-from aironsuit.trainers import AIronTrainer
-from aironsuit.callbacks import init_callbacks, get_basic_callbacks
+
 from aironsuit.backend import get_backend
+from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.design.utils import setup_design_logs, update_design_logs
+from aironsuit.trainers import AIronTrainer
 from airontools.constructors.utils import Model, get_latent_model
-from airontools.visualization import save_representations
 from airontools.interactors import load_model, save_model, clear_session, summary
 from airontools.tools import path_management
+from airontools.visualization import save_representations
+
 BACKEND = get_backend()
 
 

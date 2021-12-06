@@ -1,9 +1,11 @@
 # Databricks notebook source
+import os
+
 import numpy as np
 from hyperopt import Trials
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.optimizers import Adam
-import os
+
 os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
 from aironsuit.suit import AIronSuit
 from aironsuit.design.utils import choice_hp

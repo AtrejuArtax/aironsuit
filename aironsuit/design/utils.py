@@ -1,6 +1,6 @@
+import tensorflow as tf
 from hyperopt.hp import uniform, choice
 from tensorboard.plugins.hparams import api as hp
-import tensorflow as tf
 
 
 def choice_hp(name: str, values: list):

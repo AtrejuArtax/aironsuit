@@ -1,5 +1,5 @@
-import os
 import glob
+import os
 
 
 def fit(module, x_train, y_train=None, x_val=None, y_val=None, sample_weight=None, sample_weight_val=None,
