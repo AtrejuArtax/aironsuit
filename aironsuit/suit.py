@@ -10,16 +10,13 @@ import numpy as np
 import pandas as pd
 from hyperopt import Trials, STATUS_OK, STATUS_FAIL
 
-from aironsuit.backend import get_backend
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.design.utils import setup_design_logs, update_design_logs
 from aironsuit.trainers import AIronTrainer
 from airontools.constructors.utils import Model, get_latent_model
 from airontools.interactors import load_model, save_model, clear_session, summary
 from airontools.tools import path_management
-from airontools.visualization import save_representations
-
-BACKEND = get_backend()
+from airontools.tensorboard import save_representations
 
 
 class AIronSuit(object):
@@ -272,8 +269,7 @@ class AIronSuit(object):
                 mode='load',
                 **{key: value for key, value in specs.items() if key != 'name'}
             )
-            if BACKEND == 'tensorflow' and \
-                    all([spec_ in specs.keys() for spec_ in ['optimizer', 'loss']]):
+            if all([spec_ in specs.keys() for spec_ in ['optimizer', 'loss']]):
                 compile_kwargs = {
                     'optimizer': specs['optimizer'],
                     'loss': specs['loss']
@@ -529,8 +525,6 @@ class AIronSuit(object):
         self.model = self.__model_constructor(**kwargs)
         if self.__model_constructor_wrapper:
             self.__model_constructor_wrapper(self.model)
-        if self.__cuda in kwargs and BACKEND != 'tensorflow':
-            self.model.cuda()
 
     def __manage_path(self, path, path_ext=None, path_type='results'):
         default_path = self.results_path if path_type == 'results' else self.logs_path
