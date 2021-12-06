@@ -33,7 +33,7 @@ from hyperopt import Trials
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.optimizers import Adam
 import os
-os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
+
 from aironsuit.suit import AIronSuit
 from airontools.preprocessing import train_val_split
 from airontools.constructors.models.unsupervised import ImageVAE

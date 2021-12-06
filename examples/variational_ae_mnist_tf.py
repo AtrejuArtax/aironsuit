@@ -6,12 +6,12 @@ from hyperopt import Trials
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.optimizers import Adam
 
-os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
-from aironsuit.suit import AIronSuit
 from aironsuit.design.utils import choice_hp
+from aironsuit.suit import AIronSuit
+from airontools.constructors.models.unsupervised.vae import ImageVAE
 from airontools.preprocessing import train_val_split
-from airontools.constructors.models.unsupervised import ImageVAE
 from airontools.tools import path_management
+
 HOME = os.path.expanduser("~")
 
 # COMMAND ----------

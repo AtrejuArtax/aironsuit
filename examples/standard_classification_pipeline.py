@@ -12,11 +12,11 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
 from tensorflow.python.client import device_lib
 
-os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
-from aironsuit.suit import AIronSuit
 from aironsuit.design.utils import choice_hp, uniform_hp
-from airontools.preprocessing import train_val_split
+from aironsuit.suit import AIronSuit
 from airontools.constructors.models.supervised.classification import ImageClassifierNN
+from airontools.preprocessing import train_val_split
+
 random.seed(0)
 np.random.seed(0)
 PROJECT = 'classification_pipeline'
