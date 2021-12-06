@@ -1,7 +1,7 @@
 # AIronSuit
 
 AIronSuit (Beta) is a Python library for automatic model design/selection and visualization purposes built to work with 
-[tensorflow](https://github.com/tensorflow/tensorflow) (or [pytorch](https://github.com/pytorch/pytorch) in the future) 
+[tensorflow](https://github.com/tensorflow/tensorflow) 
 as a backend. It aims to accelerate
 the development of deep learning approaches for research/development purposes by providing components relying on cutting 
 edge approaches. It is flexible and its components can be 
