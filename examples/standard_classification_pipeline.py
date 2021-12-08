@@ -11,11 +11,11 @@ from sklearn.metrics import classification_report
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
-from tensorflow.python.client import device_lib
 
 from aironsuit.design.utils import choice_hp, uniform_hp
 from aironsuit.suit import AIronSuit
 from airontools.constructors.models.supervised.classification import ImageClassifierNN
+from airontools.devices import get_available_gpus
 from airontools.preprocessing import train_val_split
 
 random.seed(0)
@@ -175,10 +175,7 @@ if __name__ == '__main__':
 
     if opts.h:
         sys.exit()
-
-    def get_available_gpus():
-        local_device_protos = device_lib.list_local_devices()
-        return [x.name for x in local_device_protos if x.device_type == 'GPU']
+    del opts.h
 
     if not opts.use_gpu:
         os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
