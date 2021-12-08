@@ -173,13 +173,10 @@ if __name__ == '__main__':
     opts = parser.parse_args()
     print(''.join(f'{k}={v}\n' for k, v in vars(opts).items()))
 
-    if opts.h:
-        sys.exit()
-    del opts.h
-
     if not opts.use_gpu:
         os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
     elif len(get_available_gpus()) == 0:
         warnings.warn('no gpus where found')
+    del opts.h, opts.use_gpu
 
     pipeline(**vars(opts))
