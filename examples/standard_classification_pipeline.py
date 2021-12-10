@@ -2,7 +2,6 @@ import argparse
 import os
 import pickle
 import random
-import sys
 import warnings
 
 import numpy as np
@@ -46,8 +45,8 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
     if max_n_samples is not None:  # ToDo: test cases when max_n_samples is not None, like it is now it will crash
         train_dataset = train_dataset[-max_n_samples:, ...]
         train_targets = train_targets[-max_n_samples:, ...]
-    train_dataset = np.expand_dims(train_dataset, -1).astype(precision) / 255
-    test_dataset = np.expand_dims(test_dataset, -1).astype(precision) / 255
+    train_dataset = np.expand_dims(train_dataset, -1) / 255
+    test_dataset = np.expand_dims(test_dataset, -1) / 255
     train_targets = to_categorical(train_targets, 10)
     test_targets = to_categorical(test_targets, 10)
     data_specs = dict(input_shape=tuple(train_dataset.shape[1:]))
@@ -158,9 +157,9 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--h', action='store_true')
-    parser.add_argument('--use_gpu', dest='use_gpu', action='store_true')
-    parser.add_argument('--new_design', dest='new_design', action='store_true', default=False)
-    parser.add_argument('--design', dest='design', action='store_true', default=True)
+    parser.add_argument('--use_cpu', dest='use_cpu', action='store_true')
+    parser.add_argument('--new_design', dest='new_design', action='store_true')
+    parser.add_argument('--design', dest='design', default=True)
     parser.add_argument('--max_n_samples', dest='max_n_samples', type=int,
                         default=None if EXECUTION_MODE == 'production' else 1000)
     parser.add_argument('--max_evals', dest='max_evals', type=int, default=250 if EXECUTION_MODE == 'production' else 2)
@@ -173,10 +172,10 @@ if __name__ == '__main__':
     opts = parser.parse_args()
     print(''.join(f'{k}={v}\n' for k, v in vars(opts).items()))
 
-    if not opts.use_gpu:
+    if opts.use_cpu:
         os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
     elif len(get_available_gpus()) == 0:
         warnings.warn('no gpus where found')
-    del opts.h, opts.use_gpu
+    del opts.h, opts.use_cpu
 
     pipeline(**vars(opts))

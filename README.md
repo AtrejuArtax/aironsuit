@@ -67,7 +67,7 @@ path_management(working_path, modes=['rm', 'make'])
 if max_n_samples is not None:
     train_dataset = train_dataset[-max_n_samples:, ...]
     target_dataset = target_dataset[-max_n_samples:, ...]
-train_dataset = np.expand_dims(train_dataset, -1).astype(precision) / 255
+train_dataset = np.expand_dims(train_dataset, -1) / 255
 
 # Split data per parallel model
 x_train, x_val, _, meta_val, _ = train_val_split(input_data=train_dataset, meta_data=target_dataset)

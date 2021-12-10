@@ -103,7 +103,7 @@ hyperparam_space.update({
 if max_n_samples is not None:
     train_dataset = train_dataset[-max_n_samples:, ...]
     train_targets = train_targets[-max_n_samples:, ...]
-train_dataset = train_dataset.astype(precision) / 255
+train_dataset = train_dataset / 255
 train_dataset = train_dataset.reshape((train_dataset.shape[0],
                                        train_dataset.shape[1] * train_dataset.shape[2]))
 encoder = OneHotEncoder(sparse=False)
