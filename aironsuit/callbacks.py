@@ -1,7 +1,33 @@
+import glob
 import os
 import tempfile
 
 from tensorflow.keras import callbacks
+
+
+def init_callbacks(raw_callbacks):
+    callbacks_ = []
+    if isinstance(raw_callbacks, list):
+        for raw_callback in raw_callbacks:
+            if isinstance(raw_callback, dict):
+                callback_name = list(raw_callback.keys())[0]
+                callback_ = raw_callback[callback_name]
+                if 'Checkpoint' in callback_name:
+                    path = callback_['kwargs']['dirname'] if 'dirname'in callback_['kwargs'].keys() \
+                        else callback_['kwargs']['filepath']
+                    best_model_name = os.path.join(path, 'best_epoch_model')
+                    best_model_files = glob.glob(best_model_name + '*')
+                    if len(best_model_files) > 0:
+                        for filename in glob.glob(best_model_name + '*'):
+                            os.remove(filename)
+                    del best_model_files
+                if 'kwargs' in callback_.keys():
+                    callbacks_ += [callback_['callback'](**callback_['kwargs'])]
+                else:
+                    callbacks_ += [callback_['callback']()]
+            else:
+                callbacks_ += [raw_callback]
+    return callbacks_
 
 
 def get_basic_callbacks(path=tempfile.gettempdir(), patience=3, name=None, verbose=0, epochs=None):

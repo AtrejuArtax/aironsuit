@@ -10,13 +10,13 @@ from sklearn.preprocessing import OneHotEncoder
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.optimizers import Adam
 
-os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
-from aironsuit.suit import AIronSuit
 from aironsuit.design.utils import choice_hp, uniform_hp
+from aironsuit.suit import AIronSuit
 from airontools.constructors.models.general import model_constructor
-from airontools.preprocessing import train_val_split
 from airontools.devices import get_available_gpus
+from airontools.preprocessing import train_val_split
 from airontools.tools import path_management
+
 random.seed(0)
 np.random.seed(0)
 HOME = os.path.expanduser("~")
@@ -103,7 +103,7 @@ hyperparam_space.update({
 if max_n_samples is not None:
     train_dataset = train_dataset[-max_n_samples:, ...]
     train_targets = train_targets[-max_n_samples:, ...]
-train_dataset = train_dataset.astype(precision) / 255
+train_dataset = train_dataset / 255
 train_dataset = train_dataset.reshape((train_dataset.shape[0],
                                        train_dataset.shape[1] * train_dataset.shape[2]))
 encoder = OneHotEncoder(sparse=False)

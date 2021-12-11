@@ -51,6 +51,4 @@ Thumbs.db
 build/
 *.egg-info
 
-examples_torch/lightning_logs*
-
 raw*

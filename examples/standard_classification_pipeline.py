@@ -1,8 +1,8 @@
-import getopt
+import argparse
 import os
 import pickle
 import random
-import sys
+import warnings
 
 import numpy as np
 from hyperopt import Trials
@@ -10,13 +10,13 @@ from sklearn.metrics import classification_report
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import to_categorical
-from tensorflow.python.client import device_lib
 
-os.environ['AIRONSUIT_BACKEND'] = 'tensorflow'
-from aironsuit.suit import AIronSuit
 from aironsuit.design.utils import choice_hp, uniform_hp
-from airontools.preprocessing import train_val_split
+from aironsuit.suit import AIronSuit
 from airontools.constructors.models.supervised.classification import ImageClassifierNN
+from airontools.devices import get_available_gpus
+from airontools.preprocessing import train_val_split
+
 random.seed(0)
 np.random.seed(0)
 PROJECT = 'classification_pipeline'
@@ -45,8 +45,8 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
     if max_n_samples is not None:  # ToDo: test cases when max_n_samples is not None, like it is now it will crash
         train_dataset = train_dataset[-max_n_samples:, ...]
         train_targets = train_targets[-max_n_samples:, ...]
-    train_dataset = np.expand_dims(train_dataset, -1).astype(precision) / 255
-    test_dataset = np.expand_dims(test_dataset, -1).astype(precision) / 255
+    train_dataset = np.expand_dims(train_dataset, -1) / 255
+    test_dataset = np.expand_dims(test_dataset, -1) / 255
     train_targets = to_categorical(train_targets, 10)
     test_targets = to_categorical(test_targets, 10)
     data_specs = dict(input_shape=tuple(train_dataset.shape[1:]))
@@ -155,81 +155,27 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--h', action='store_true')
+    parser.add_argument('--use_cpu', dest='use_cpu', action='store_true')
+    parser.add_argument('--new_design', dest='new_design', action='store_true')
+    parser.add_argument('--design', dest='design', default=True)
+    parser.add_argument('--max_n_samples', dest='max_n_samples', type=int,
+                        default=None if EXECUTION_MODE == 'production' else 1000)
+    parser.add_argument('--max_evals', dest='max_evals', type=int, default=250 if EXECUTION_MODE == 'production' else 2)
+    parser.add_argument('--epochs', dest='epochs', type=int, default=1000 if EXECUTION_MODE == 'production' else 2)
+    parser.add_argument('--batch_size', dest='batch_size', type=int, default=32)
+    parser.add_argument('--patience', dest='patience', type=int, default=5 if EXECUTION_MODE == 'production' else 2)
+    parser.add_argument('--verbose', dest='verbose', type=int, default=0)
+    parser.add_argument('--precision', dest='precision', type=str, default='float32')
 
-    argv = sys.argv[1:]
+    opts = parser.parse_args()
+    print(''.join(f'{k}={v}\n' for k, v in vars(opts).items()))
 
-    try:
-        opts, args = getopt.getopt(argv, 'h', [
-            'new_design=',
-            'design=',
-            'use_gpu=',
-            'max_n_samples=',
-            'max_evals=',
-            'epochs=',
-            'batch_size=',
-            'patience=',
-            'verbose=',
-            'precision='])
-    except getopt.GetoptError:
-        sys.exit(2)
-
-    pipeline_kwargs = dict(
-        new_design=True,
-        design=True,
-        max_n_samples=None if EXECUTION_MODE == 'production' else 1000,
-        max_evals=250 if EXECUTION_MODE == 'production' else 2,
-        epochs=1000 if EXECUTION_MODE == 'production' else 2,
-        batch_size=32,
-        patience=5 if EXECUTION_MODE == 'production' else 2,
-        verbose=0,
-        precision='float32'
-    )
-    use_gpu = True
-    for opt, arg in opts:
-
-        print('\n')
-        if opt == '-h':
-            sys.exit()
-        if opt in '--new_design':
-            pipeline_kwargs['new_design'] = arg == 'True'
-            print('new_design:' + arg)
-        elif opt in '--design':
-            pipeline_kwargs['design'] = arg == 'True'
-            print('design:' + arg)
-        elif opt in '--use_gpu':
-            use_gpu = arg == 'True'
-            print('use_gpu:' + arg)
-        elif opt in '--max_n_samples':
-            pipeline_kwargs['max_n_samples'] = int(arg) if arg != 'None' else None
-            print('max_n_samples:' + arg)
-        elif opt in '--max_evals':
-            pipeline_kwargs['max_evals'] = int(arg)
-            print('max_evals:' + arg)
-        elif opt in '--epochs':
-            pipeline_kwargs['epochs'] = int(arg)
-            print('epochs:' + arg)
-        elif opt in '--batch_size':
-            pipeline_kwargs['batch_size'] = int(arg)
-            print('batch_size:' + arg)
-        elif opt in '--patience':
-            pipeline_kwargs['patience'] = int(arg)
-            print('patience:' + arg)
-        elif opt in '--verbose':
-            pipeline_kwargs['verbose'] = int(arg)
-            print('verbose:' + arg)
-        elif opt in '--precision':
-            pipeline_kwargs['precision'] = arg
-            print('precision:' + arg)
-
-    def get_available_gpus():
-        local_device_protos = device_lib.list_local_devices()
-        return [x.name for x in local_device_protos if x.device_type == 'GPU']
-
-
-    if not use_gpu or len(get_available_gpus()) == 0:
+    if opts.use_cpu:
         os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
-        devices = ['/cpu:0']
-    else:
-        devices = [gpu_name.replace('/device:GPU:', '/gpu:') for gpu_name in get_available_gpus()]
+    elif len(get_available_gpus()) == 0:
+        warnings.warn('no gpus where found')
+    del opts.h, opts.use_cpu
 
-    pipeline(**pipeline_kwargs)
+    pipeline(**vars(opts))
