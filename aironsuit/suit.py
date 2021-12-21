@@ -210,7 +210,7 @@ class AIronSuit(object):
             if status == STATUS_OK:
                 update_design_logs(
                     path=os.path.join(method_l_path, str(len(trials.losses()))),
-                    hparams={value['logs']: hyper_candidates[key] for key, value in hyper_space.items()},
+                    hparams=hyper_space,
                     value=design_loss
                 )
 

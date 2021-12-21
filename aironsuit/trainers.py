@@ -59,9 +59,11 @@ def fit(module, x_train, y_train=None, x_val=None, y_val=None, sample_weight=Non
 
     # Train module
     training_kwargs = kwargs.copy()
-    training_kwargs.update({'x': x_train})
+    # training_kwargs.update({'x': x_train})
+    training_args = [x_train]
     if y_train is not None:
-        training_kwargs['y'] = y_train
+        # training_kwargs['y'] = y_train
+        training_args += [y_train]
     if sample_weight is not None:
         training_kwargs['sample_weight'] = sample_weight
     if not any([val_ is None for val_ in [x_val, y_val]]):
@@ -69,7 +71,7 @@ def fit(module, x_train, y_train=None, x_val=None, y_val=None, sample_weight=Non
             training_kwargs.update({'validation_data': (x_val, y_val, sample_weight_val)})
         else:
             training_kwargs.update({'validation_data': (x_val, y_val)})
-    module.fit(**training_kwargs)
+    module.fit(*training_args, **training_kwargs)
 
     # Best module
     if best_module_name:

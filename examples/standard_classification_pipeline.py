@@ -64,7 +64,8 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
         # Split data per parallel model
         x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
             input_data=train_dataset,
-            output_data=train_targets
+            output_data=train_targets,
+            return_tfrecord=True,
         )
 
         # Training specs
@@ -98,11 +99,11 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
             force_subclass_weights_loader=True,
             results_path=WORKING_PATH,
         )
+        import tensorflow as tf
+        ds = tf.data.Dataset.from_tensor_slices((x_train,  x_val)).batch(2).repeat()
         aironsuit.design(
-            x_train=x_train,
-            y_train=y_train,
-            x_val=x_val,
-            y_val=y_val,
+            x_train=ds,
+            x_val=ds,
             model_specs=model_specs,
             hyper_space=hyperparam_space,
             train_specs=train_specs,
@@ -158,7 +159,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--h', action='store_true')
     parser.add_argument('--use_cpu', dest='use_cpu', action='store_true')
-    parser.add_argument('--new_design', dest='new_design', action='store_true')
+    parser.add_argument('--new_design', dest='new_design', default=True)
     parser.add_argument('--design', dest='design', default=True)
     parser.add_argument('--max_n_samples', dest='max_n_samples', type=int,
                         default=None if EXECUTION_MODE == 'production' else 1000)
