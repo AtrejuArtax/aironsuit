@@ -11,6 +11,7 @@ from tensorflow.keras.utils import to_categorical
 from aironsuit.design.utils import choice_hp
 from aironsuit.suit import AIronSuit
 from airontools.constructors.layers import layer_constructor
+from airontools.interactors import save_model, load_model
 from airontools.preprocessing import train_val_split
 from airontools.tools import path_management
 
@@ -25,7 +26,7 @@ working_path = os.path.join(HOME, 'airon', project_name)
 model_name = project_name + '_NN'
 num_classes = 10
 batch_size = 32
-epochs = 100
+epochs = 1
 patience = 3
 max_evals = 1
 precision = 'float32'
@@ -79,20 +80,30 @@ class Ensemble(object):
             activation='softmax',  # Output activation function
             advanced_reg=True
         )
-        model = Model(inputs=inputs, outputs=outputs)
-        model.compile(
+        self.nn = Model(inputs=inputs, outputs=outputs)
+        self.__compile(
             loss=kwargs['loss'],
             optimizer=kwargs['optimizer'],
             metrics=kwargs['metrics']
         )
 
-        self.nn = model
+    def __compile(self, **kwargs):
+        self.nn.compile(**kwargs)
 
-    def fit(self, x, y, **nn_kwargs):
-        self.nn.fit(x, y, **nn_kwargs)
+    def compile(self, **kwargs):
+        self.__compile(**kwargs)
 
-    def evaluate(self, x, y, **nn_kwargs):
-        self.nn.evaluate(x, y, **nn_kwargs)
+    def fit(self, x, y, **kwargs):
+        self.nn.fit(x, y, **kwargs)
+
+    def evaluate(self, x, y, **kwargs):
+        return self.nn.evaluate(x, y, **kwargs)
+
+    def save_weights(self, path):
+        self.nn.save_weights(path)
+
+    def load_weights(self, path):
+        self.nn.load_weights(path)
 
 
 # COMMAND ----------
@@ -111,7 +122,11 @@ hyperparam_space = {
 # COMMAND ----------
 
 # Invoke AIronSuit
-aironsuit = AIronSuit(model_constructor=Ensemble)
+aironsuit = AIronSuit(
+    model_constructor=Ensemble,
+    force_subclass_weights_saver=True,
+    force_subclass_weights_loader=True
+)
 
 # COMMAND ----------
 
@@ -132,38 +147,6 @@ aironsuit.design(
     name=model_name,
     seed=0,
     patience=patience
-)
-aironsuit.summary()
-
-# COMMAND ----------
-
-# Evaluate
-score = aironsuit.evaluate(x_test, y_test)
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
-
-# COMMAND ----------
-
-# Save Model
-aironsuit.save_model(os.path.join(working_path, project_name + '_model'))
-del aironsuit
-
-# COMMAND ----------
-
-# Re-Invoke AIronSuit and load model
-aironsuit = AIronSuit()
-aironsuit.load_model(os.path.join(working_path, project_name + '_model'))
-aironsuit.model.compile(
-    loss='categorical_crossentropy',
-    optimizer='adam',
-    metrics=['accuracy']
-)
-
-# Further Training
-aironsuit.train(
-    epochs=epochs,
-    x_train=x_train,
-    y_train=y_train
 )
 
 # COMMAND ----------
