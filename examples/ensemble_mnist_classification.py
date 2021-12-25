@@ -3,6 +3,8 @@ import os
 
 import numpy as np
 from hyperopt import Trials
+from sklearn.metrics import accuracy_score
+from sklearn.neural_network import MLPClassifier
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
@@ -11,7 +13,6 @@ from tensorflow.keras.utils import to_categorical
 from aironsuit.design.utils import choice_hp
 from aironsuit.suit import AIronSuit
 from airontools.constructors.layers import layer_constructor
-from airontools.interactors import save_model, load_model
 from airontools.preprocessing import train_val_split
 from airontools.tools import path_management
 
@@ -55,19 +56,13 @@ x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
 
 # Classifier Model constructor
 
-model_specs = {
-    'input_shape': (28, 28, 1),
-    'loss': 'categorical_crossentropy',
-    'optimizer': 'adam',
-    'metrics': ['accuracy']
-}
-
 
 class Ensemble(object):
 
     def __init__(self, **kwargs):
 
-        inputs = Input(shape=kwargs['input_shape'])
+        # AIron NN
+        inputs = Input(shape=(28, 28, 1))
         outputs = layer_constructor(
             x=inputs,
             filters=kwargs['filters'],  # Number of filters used for the convolutional layer
@@ -80,30 +75,42 @@ class Ensemble(object):
             activation='softmax',  # Output activation function
             advanced_reg=True
         )
-        self.nn = Model(inputs=inputs, outputs=outputs)
-        self.__compile(
-            loss=kwargs['loss'],
-            optimizer=kwargs['optimizer'],
-            metrics=kwargs['metrics']
+        self.airon_nn = Model(inputs=inputs, outputs=outputs)
+        self.__airon_nn_compile()
+
+        # SKLearn NN
+        self.sklearn_nn = MLPClassifier()
+
+    def __airon_nn_compile(self,):
+        self.airon_nn.compile(
+            loss='categorical_crossentropy',
+            optimizer='adam',
+            metrics='accuracy'
         )
 
-    def __compile(self, **kwargs):
-        self.nn.compile(**kwargs)
-
-    def compile(self, **kwargs):
-        self.__compile(**kwargs)
+    def compile(self):
+        self.__airon_nn_compile()
 
     def fit(self, x, y, **kwargs):
-        self.nn.fit(x, y, **kwargs)
+        self.airon_nn.fit(x, y, **kwargs)
+        self.sklearn_nn.fit(
+            np.reshape(x, (len(x), np.prod(x.shape[1:]))),
+            y
+        )
 
     def evaluate(self, x, y, **kwargs):
-        return self.nn.evaluate(x, y, **kwargs)
+        return np.mean([
+            self.airon_nn.evaluate(x, y, **kwargs)[-1],
+            accuracy_score(
+                y,
+                self.sklearn_nn.predict(np.reshape(x, (len(x), np.prod(x.shape[1:])))))
+        ])
 
     def save_weights(self, path):
-        self.nn.save_weights(path)
+        self.airon_nn.save_weights(os.path.join(path, 'airon_nn'))
 
     def load_weights(self, path):
-        self.nn.load_weights(path)
+        self.airon_nn.load_weights(path)
 
 
 # COMMAND ----------
@@ -138,7 +145,6 @@ aironsuit.design(
     y_train=y_train,
     x_val=x_val,
     y_val=y_val,
-    model_specs=model_specs,
     hyper_space=hyperparam_space,
     train_specs=train_specs,
     max_evals=max_evals,
