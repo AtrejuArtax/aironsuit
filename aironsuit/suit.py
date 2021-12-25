@@ -256,6 +256,9 @@ class AIronSuit(object):
                     verbose=True,
                     return_argmin=False
                 )
+                # Save trials
+                with open(os.path.join(method_r_path, 'trials.hyperopt'), 'wb') as f:
+                    pickle.dump(trials, f)
             with open(os.path.join(method_r_path, 'best_design_' + name + '_hyper_candidates'), 'rb') as f:
                 best_hyper_candidates = pickle.load(f)
 
