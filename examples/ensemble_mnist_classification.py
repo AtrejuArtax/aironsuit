@@ -1,5 +1,6 @@
 # Databricks notebook source
 import os
+import pickle
 
 import numpy as np
 from hyperopt import Trials
@@ -10,7 +11,7 @@ from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
 from tensorflow.keras.utils import to_categorical
 
-from aironsuit.design.utils import choice_hp
+from aironsuit.design.utils import choice_hp, uniform_hp
 from aironsuit.suit import AIronSuit
 from airontools.constructors.layers import layer_constructor
 from airontools.preprocessing import train_val_split
@@ -76,10 +77,12 @@ class Ensemble(object):
             advanced_reg=True
         )
         self.airon_nn = Model(inputs=inputs, outputs=outputs)
+        self.airon_nn_impact = kwargs['airon_nn_impact']
         self.__airon_nn_compile()
 
         # SKLearn NN
         self.sklearn_nn = MLPClassifier()
+        self.sklearn_nn_impact = 1 - self.airon_nn_impact
 
     def __airon_nn_compile(self,):
         self.airon_nn.compile(
@@ -99,18 +102,20 @@ class Ensemble(object):
         )
 
     def evaluate(self, x, y, **kwargs):
-        return np.mean([
-            self.airon_nn.evaluate(x, y, **kwargs)[-1],
-            accuracy_score(
+        accuracy = self.airon_nn.evaluate(x, y, **kwargs)[-1] * self.airon_nn_impact
+        accuracy += accuracy_score(
                 y,
-                self.sklearn_nn.predict(np.reshape(x, (len(x), np.prod(x.shape[1:])))))
-        ])
+                self.sklearn_nn.predict(np.reshape(x, (len(x), np.prod(x.shape[1:]))))
+        ) * self.sklearn_nn_impact
+        return accuracy
 
     def save_weights(self, path):
         self.airon_nn.save_weights(os.path.join(path, 'airon_nn'))
+        pickle.dump(self.sklearn_nn, open(os.path.join(path, 'sklearn_nn'), 'wb'))
 
     def load_weights(self, path):
-        self.airon_nn.load_weights(path)
+        self.airon_nn.load_weights(os.path.join(path, 'airon_nn'))
+        self.sklearn_nn = pickle.load(open(os.path.join(path, 'sklearn_nn'), 'rb'))
 
 
 # COMMAND ----------
@@ -123,7 +128,8 @@ train_specs = {'batch_size': batch_size}
 hyperparam_space = {
     'filters': choice_hp('filters', [int(val) for val in np.arange(3, 30)]),
     'kernel_size': choice_hp('kernel_size', [int(val) for val in np.arange(3, 10)]),
-    'num_heads': choice_hp('num_heads', [int(val) for val in np.arange(2, 10)])
+    'num_heads': choice_hp('num_heads', [int(val) for val in np.arange(2, 10)]),
+    'airon_nn_impact': uniform_hp('airon_nn_impact', 0.1, 0.9),
 }
 
 # COMMAND ----------
@@ -158,6 +164,4 @@ aironsuit.design(
 # COMMAND ----------
 
 # Evaluate
-score = aironsuit.evaluate(x_test, y_test)
-print('Test loss:', score[0])
-print('Test accuracy:', score[1])
+print('Test accuracy:', aironsuit.evaluate(x_test, y_test))
