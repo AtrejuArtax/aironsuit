@@ -182,9 +182,18 @@ class AIronSuit(object):
             if sample_weight_val is not None:
                 evaluate_kwargs['sample_weight'] = sample_weight_val
             if y_val is not None:
-                design_loss = self.model.evaluate(x_val, y_val, **evaluate_kwargs)
+                design_loss = self.model.evaluate(
+                    x_val,
+                    y_val,
+                    verbose=verbose,
+                    **evaluate_kwargs
+                )
             else:
-                design_loss = self.model.evaluate(x_val, **evaluate_kwargs)
+                design_loss = self.model.evaluate(
+                    x_val,
+                    verbose=verbose,
+                    **evaluate_kwargs
+                )
             if metric is not None:
                 warning_message = 'chasing first element from model.evaluate instead of specified metric'
                 if isinstance(design_loss, dict):
