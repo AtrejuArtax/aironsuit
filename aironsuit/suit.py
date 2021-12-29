@@ -191,7 +191,7 @@ class AIronSuit(object):
             else:
                 design_loss = self.model.evaluate(
                     x_val,
-                    verbose=verbose,
+                    # verbose=verbose,  # ToDo: evaluate compatible with verbose
                     **evaluate_kwargs
                 )
             if metric is not None:
