@@ -156,10 +156,10 @@ class AIronSuit(object):
 
             # Print some information
             iteration = len(trials.losses())
+            print('\n')
+            print('iteration : {}'.format(0 if trials.losses() is None else iteration))
+            [print('{}: {}'.format(key, value)) for key, value in specs.items()]
             if verbose > 0:
-                print('\n')
-                print('iteration : {}'.format(0 if trials.losses() is None else iteration))
-                [print('{}: {}'.format(key, value)) for key, value in specs.items()]
                 print(self.model.summary())
 
             # Train model
@@ -191,7 +191,7 @@ class AIronSuit(object):
             else:
                 design_loss = self.model.evaluate(
                     x_val,
-                    verbose=verbose,
+                    # verbose=verbose,  # ToDo: evaluate compatible with verbose
                     **evaluate_kwargs
                 )
             if metric is not None:
@@ -229,7 +229,7 @@ class AIronSuit(object):
 
             # Save model if it is the best so far
             best_design_loss_name = os.path.join(method_r_path, '_'.join(['best', name, 'design_loss']))
-            trials_losses = [loss_ for loss_ in trials.losses() if loss_]
+            trials_losses = [loss_ for loss_ in trials.losses() if loss_ is not None]
             best_design_loss = min(trials_losses) if len(trials_losses) > 0 else None
             print('best val loss so far: ' + str(best_design_loss))
             print('current val loss: ' + str(design_loss))
