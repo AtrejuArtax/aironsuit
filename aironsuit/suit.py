@@ -214,6 +214,7 @@ class AIronSuit(object):
                 print('\n')
                 print('design Loss: ', design_loss)
             status = STATUS_OK if not math.isnan(design_loss) and design_loss is not None else STATUS_FAIL
+            print('status: ', status)
 
             # Update logs
             if status == STATUS_OK:

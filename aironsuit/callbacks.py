@@ -40,7 +40,7 @@ def get_basic_callbacks(path=tempfile.gettempdir(), patience=3, name=None, verbo
                                 {'callback': callbacks.ReduceLROnPlateau,
                                  'kwargs': dict(
                                      monitor='val_loss',
-                                     factor=0.2,
+                                     factor=0.9,
                                      patience=int(patience / 2),
                                      min_lr=0.0000001,
                                      verbose=verbose,
