@@ -43,7 +43,8 @@ def get_basic_callbacks(path=tempfile.gettempdir(), patience=3, name=None, verbo
                                      factor=0.2,
                                      patience=int(patience / 2),
                                      min_lr=0.0000001,
-                                     verbose=verbose)}})
+                                     verbose=verbose,
+                                     cooldown=1 + int(patience / 2))}})
     basic_callbacks.append({'EarlyStopping':
                                 {'callback': callbacks.EarlyStopping,
                                  'kwargs': dict(
