@@ -25,7 +25,7 @@ def setup_design_logs(path, hyper_space, metric='val_loss'):
         )
 
 
-def update_design_logs(path, hparams, value, metric='val_loss'):
+def update_design_logs(path, hparams, value, metric='val_loss', step=1):
     with tf.summary.create_file_writer(path).as_default():
         hp.hparams(hparams)  # record the values used in this trial
-        tf.summary.scalar(metric, value, step=1)
+        tf.summary.scalar(metric, value, step=step)

@@ -117,7 +117,7 @@ class AIronSuit(object):
                 sample_weight (np.array): Weight per sample to be computed with the train metric and losses.
                 sample_weight_val (np.array): Weight per sample to be computed with the validation metric and losses.
                 model_specs (dict): Model specifications.
-                metric (str): Metric to be used for model design. If None validation loss is used.
+                metric (str, int): Metric to be used for model design. If None validation loss is used.
                 trials (Trials): Object with design information.
                 name (str): Name of the model.
                 verbose (int): Verbosity.
@@ -165,7 +165,7 @@ class AIronSuit(object):
             # Train model
             trainer = self.__train(
                 train_specs=train_specs,
-                model=self.model,
+                model_specs=specs,
                 epochs=epochs,
                 x_train=x_train,
                 y_train=y_train,
@@ -173,37 +173,27 @@ class AIronSuit(object):
                 y_val=y_val,
                 sample_weight=sample_weight,
                 sample_weight_val=sample_weight_val,
-                callbacks=init_callbacks(raw_callbacks) if raw_callbacks else None,
+                raw_callbacks=raw_callbacks,
                 verbose=verbose
             )
 
             # Design loss
-            evaluate_kwargs = {}
+            evaluate_kwargs = dict(
+                x=x_val,
+                # verbose=verbose,  # ToDo: evaluate compatible with verbose
+            )
             if sample_weight_val is not None:
                 evaluate_kwargs['sample_weight'] = sample_weight_val
             if y_val is not None:
-                design_loss = self.model.evaluate(
-                    x_val,
-                    y_val,
-                    verbose=verbose,
-                    **evaluate_kwargs
-                )
-            else:
-                design_loss = self.model.evaluate(
-                    x_val,
-                    # verbose=verbose,  # ToDo: evaluate compatible with verbose
-                    **evaluate_kwargs
-                )
+                evaluate_kwargs['y'] = y_val
             if metric is not None:
-                warning_message = 'chasing first element from model.evaluate instead of specified metric'
-                if isinstance(design_loss, dict):
-                    try:
-                        design_loss = design_loss[metric]
-                    except RuntimeError as e:
-                        print(e)
-                        warnings.warn(warning_message)
+                if isinstance(metric, int) or isinstance(metric, str):
+                    design_loss = self.model.evaluate(**evaluate_kwargs)[metric]
                 else:
-                    warnings.warn(warning_message)
+                    evaluate_kwargs['model'] = self.model
+                    design_loss = metric(**evaluate_kwargs)
+            else:
+                design_loss = self.model.evaluate(**evaluate_kwargs)
             if isinstance(design_loss, tuple):
                 design_loss = list(design_loss)
             elif isinstance(design_loss, dict):
@@ -221,7 +211,8 @@ class AIronSuit(object):
                 update_design_logs(
                     path=os.path.join(method_l_path, str(len(trials.losses()))),
                     hparams={value['logs']: hyper_candidates[key] for key, value in hyper_space.items()},
-                    value=design_loss
+                    value=design_loss,
+                    step=len(trials.losses())
                 )
 
             # Save trials
@@ -232,8 +223,8 @@ class AIronSuit(object):
             best_design_loss_name = os.path.join(method_r_path, '_'.join(['best', name, 'design_loss']))
             trials_losses = [loss_ for loss_ in trials.losses() if loss_ is not None]
             best_design_loss = min(trials_losses) if len(trials_losses) > 0 else None
-            print('best val loss so far: ' + str(best_design_loss))
-            print('current val loss: ' + str(design_loss))
+            print('best metric so far: ' + str(best_design_loss))
+            print('current metric: ' + str(design_loss))
             best_design_loss_cond = best_design_loss is None or design_loss < best_design_loss
             save_cond = status == STATUS_OK and best_design_loss_cond
             print('save: ' + str(save_cond))
@@ -277,7 +268,7 @@ class AIronSuit(object):
             if model_specs:
                 specs.update(model_specs.copy())
             specs.update(best_hyper_candidates)
-            best_model = self.__save_load_model(
+            self.__save_load_model(
                 name=os.path.join(method_r_path, '_'.join(['best_design', name])),
                 mode='load',
                 **{key: value for key, value in specs.items() if key != 'name'}
@@ -289,23 +280,21 @@ class AIronSuit(object):
                 }
                 if 'metrics' in specs.keys():
                     compile_kwargs['metrics'] = specs['metrics']
-                best_model.compile(**compile_kwargs)
+                self.model.compile(**compile_kwargs)
             elif cuda:
-                best_model.cuda()
+                self.model.cuda()
             print('best hyper-parameters: ' + str(best_hyper_candidates))
 
             # Trainer
             trainer_kwargs = train_specs.copy()
-            trainer_kwargs.update({'module': best_model})
-            if raw_callbacks:
-                trainer_kwargs.update({'callbacks': init_callbacks(raw_callbacks)})
+            trainer_kwargs.update({'module': self.model})
             trainer = self.__trainer_class(**trainer_kwargs)
             if hasattr(trainer, 'initialize') and callable(trainer.initialize):
                 trainer.initialize()
 
-            return best_model, trainer
+            return trainer
 
-        self.model, self.__trainer = design()
+        self.__trainer = design()
 
     def train(self,
               epochs,
@@ -344,7 +333,7 @@ class AIronSuit(object):
         train_specs = {
             'batch_size': batch_size,
             'path': method_r_path}
-        callbacks_ = callbacks if callbacks else \
+        raw_callbacks = callbacks if callbacks else \
             get_basic_callbacks(
                 path=method_r_path,
                 patience=patience,
@@ -354,13 +343,12 @@ class AIronSuit(object):
             ) if use_basic_callbacks else None
         self.__trainer = self.__train(
                 train_specs=train_specs,
-                model=self.model,
                 epochs=epochs,
                 x_train=x_train,
                 y_train=y_train,
                 x_val=x_val,
                 y_val=y_val,
-                callbacks=callbacks_,
+                raw_callbacks=raw_callbacks,
                 verbose=verbose
         )
 
@@ -422,7 +410,7 @@ class AIronSuit(object):
                 name (str): Model name.
                 kwargs (dict): Custom or other arguments.
         """
-        self.model = self.__save_load_model(name=name, mode='load', **kwargs)
+        self.__save_load_model(name=name, mode='load', **kwargs)
 
     def clear_session(self):
         """ Clear session.
@@ -483,29 +471,28 @@ class AIronSuit(object):
                 save_model(model=self.model, name=name)
         elif mode == 'load':
             if self.__force_subclass_weights_loader:
-                model = self.__model_constructor(**kwargs)
-                model.load_weights(name)
-                return model
+                if len(kwargs) != 0:
+                    self.model = self.__model_constructor(**kwargs)
+                self.model.load_weights(name)
             else:
-                return load_model(name, custom_objects=self.__custom_objects)
+                self.model = load_model(name, custom_objects=self.__custom_objects)
 
     def __train(self,
                 train_specs,
-                model,
                 epochs,
                 x_train,
                 y_train,
+                model_specs=None,
                 sample_weight=None,
                 sample_weight_val=None,
                 x_val=None,
                 y_val=None,
-                callbacks=None,
+                raw_callbacks=None,
                 verbose=None
                 ):
+        model_specs = model_specs if model_specs is not None else {}
         trainer_kwargs = train_specs.copy()
-        trainer_kwargs.update({'module': model})
-        if callbacks is not None:
-            trainer_kwargs.update({'callbacks': callbacks})
+        trainer_kwargs.update({'module': self.model})
         trainer = self.__trainer_class(**trainer_kwargs)
         trainer_fullargspec = list(getfullargspec(trainer.fit))[0]
         train_kwargs = {}
@@ -513,6 +500,12 @@ class AIronSuit(object):
                 all([val_ in trainer_fullargspec for val_ in ['x_val', 'y_val']]):
             train_kwargs.update({'x_val': x_val, 'y_val': y_val})
         train_kwargs.update({'epochs': epochs})
+        if raw_callbacks is not None:
+            if all([isinstance(callback, dict) for callback in raw_callbacks]):
+                callbacks = init_callbacks(raw_callbacks)
+            else:
+                callbacks = raw_callbacks
+            train_kwargs.update({'callbacks': callbacks})
         for karg, val in zip(['verbose'], [verbose]):
             train_kwargs.update({karg: val})
         if sample_weight is not None:
