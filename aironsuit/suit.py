@@ -178,22 +178,20 @@ class AIronSuit(object):
             )
 
             # Design loss
-            evaluate_kwargs = dict(
-                x=x_val,
-                # verbose=verbose,  # ToDo: evaluate compatible with verbose
-            )
+            evaluate_args = [x_val]
+            if y_val is not None:
+                evaluate_args += [y_val]
+            evaluate_kwargs = {}
             if sample_weight_val is not None:
                 evaluate_kwargs['sample_weight'] = sample_weight_val
-            if y_val is not None:
-                evaluate_kwargs['y'] = y_val
             if metric is not None:
                 if isinstance(metric, int) or isinstance(metric, str):
-                    design_loss = self.model.evaluate(**evaluate_kwargs)[metric]
+                    design_loss = self.model.evaluate(*evaluate_args, **evaluate_kwargs)[metric]
                 else:
                     evaluate_kwargs['model'] = self.model
-                    design_loss = metric(**evaluate_kwargs)
+                    design_loss = metric(*evaluate_args, **evaluate_kwargs)
             else:
-                design_loss = self.model.evaluate(**evaluate_kwargs)
+                design_loss = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
                 if isinstance(design_loss, list):
                     design_loss = design_loss[0]
             if isinstance(design_loss, tuple):
