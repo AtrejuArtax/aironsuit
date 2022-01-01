@@ -194,6 +194,8 @@ class AIronSuit(object):
                     design_loss = metric(**evaluate_kwargs)
             else:
                 design_loss = self.model.evaluate(**evaluate_kwargs)
+                if isinstance(design_loss, list):
+                    design_loss = design_loss[0]
             if isinstance(design_loss, tuple):
                 design_loss = list(design_loss)
             elif isinstance(design_loss, dict):

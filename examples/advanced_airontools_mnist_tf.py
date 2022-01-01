@@ -145,7 +145,6 @@ aironsuit.design(
     name=model_name,
     verbose=verbose,
     seed=0,
-    metric=metric,
     patience=patience
 )
 aironsuit.summary()
