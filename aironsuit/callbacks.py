@@ -30,7 +30,8 @@ def init_callbacks(raw_callbacks):
     return callbacks_
 
 
-def get_basic_callbacks(path=tempfile.gettempdir(), patience=3, name=None, verbose=0, epochs=None):
+def get_basic_callbacks(path=tempfile.gettempdir(), patience=3, name=None, verbose=0, epochs=None, metric='val_loss',
+                        mode='min'):
     basic_callbacks = []
     name = name if name else 'NN'
     basic_callbacks.append({'TensorBoard':
@@ -39,24 +40,20 @@ def get_basic_callbacks(path=tempfile.gettempdir(), patience=3, name=None, verbo
     basic_callbacks.append({'ReduceLROnPlateau':
                                 {'callback': callbacks.ReduceLROnPlateau,
                                  'kwargs': dict(
-                                     monitor='val_loss',
-                                     factor=0.2,
+                                     monitor=metric,
+                                     factor=0.9,
                                      patience=int(patience / 2),
                                      min_lr=0.0000001,
-                                     verbose=verbose)}})
+                                     verbose=verbose,
+                                     cooldown=1 + int(patience / 2),
+                                     mode=mode)}})
     basic_callbacks.append({'EarlyStopping':
                                 {'callback': callbacks.EarlyStopping,
                                  'kwargs': dict(
-                                     monitor='val_loss',
+                                     monitor=metric,
                                      min_delta=0,
                                      patience=patience,
                                      verbose=verbose,
-                                     mode='min')}})
-    basic_callbacks.append({'ModelCheckpoint':
-                                {'callback': callbacks.ModelCheckpoint,
-                                 'kwargs': dict(
-                                     filepath=os.path.join(path, name),
-                                     save_best_only=True,
-                                     save_weights_only=True,
-                                     verbose=verbose)}})
+                                     mode=mode,
+                                     restore_best_weights=True)}})
     return basic_callbacks

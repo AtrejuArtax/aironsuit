@@ -84,15 +84,16 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
         # Automatic model design
         print('\n')
         print('Automatic model design \n')
-        trials = None
         trials_file_name = os.path.join(WORKING_PATH, 'design', 'trials.hyperopt')
-        if new_design:
+        trials_exist = os.path.isfile(trials_file_name)
+        if new_design or not trials_exist:
             trials = Trials()
-        elif os.path.isfile(trials_file_name):
+        else:
             try:
                 trials = pickle.load(open(trials_file_name, 'rb'))
             except RuntimeError as e:
                 print(e)
+                trials = Trials()
         aironsuit = AIronSuit(
             model_constructor=image_classifier,
             force_subclass_weights_saver=True,
@@ -159,7 +160,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--h', action='store_true')
     parser.add_argument('--use_cpu', dest='use_cpu', action='store_true')
-    parser.add_argument('--new_design', dest='new_design', default=True)
+    parser.add_argument('--new_design', dest='new_design', default=False)
     parser.add_argument('--design', dest='design', default=True)
     parser.add_argument('--max_n_samples', dest='max_n_samples', type=int,
                         default=None if EXECUTION_MODE == 'production' else 1000)
