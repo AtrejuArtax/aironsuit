@@ -9,18 +9,12 @@ class AIronTrainer(object):
         Attributes:
             module (Module): NN module.
             best_module_name (str): Best module name.
-            __class_weight (dict): Weight per class when performing a classification task.
-            __path (str): Path where to save intermediate optimizations.
 
     """
 
-    def __init__(self, module, **kwargs):
-        available_kwargs = ['callbacks', 'mode', 'class_weight', 'path', 'batch_size', 'sample_weight']
-        assert all([kwarg in available_kwargs for kwarg in kwargs.keys()])
+    def __init__(self, module):
         self.module = module
         self.best_module_name = None
-        self.__class_weight = kwargs['class_weight'] if 'class_weight' in kwargs else None
-        self.__path = kwargs['path'] if 'path' in kwargs else None
 
     def __setattr__(self, key, value):
         self.__dict__[key] = value
@@ -71,7 +65,12 @@ def fit(module, x_train, y_train=None, x_val=None, y_val=None, sample_weight=Non
             val_data += [val_data_]
     if len(val_data) != 0:
         training_kwargs.update({'validation_data': tuple(val_data)})
-    module.fit(*training_args, **training_kwargs)
+    if all([isinstance(data, tf.data.Dataset) for data in training_args]):
+        training_kwargs['validation_data'] = \
+            tf.data.Dataset.zip(training_kwargs['validation_data']).batch(kwargs['batch_size'])
+        module.fit(tf.data.Dataset.zip(tuple(training_args)).batch(kwargs['batch_size']), **training_kwargs)
+    else:
+        module.fit(*training_args, **training_kwargs)
 
     # Best module
     if best_module_name:

@@ -5,6 +5,7 @@ import random
 import warnings
 
 import numpy as np
+import tensorflow as tf
 from hyperopt import Trials
 from sklearn.metrics import classification_report
 from tensorflow.keras.datasets import mnist
@@ -65,6 +66,7 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
         x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
             input_data=train_dataset,
             output_data=train_targets,
+            return_tfrecord=True
         )
 
         # Training specs

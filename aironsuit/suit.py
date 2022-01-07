@@ -3,21 +3,19 @@ import os
 import pickle
 import tempfile
 import warnings
-from inspect import getfullargspec
 
 import hyperopt
 import numpy as np
 import pandas as pd
 from hyperopt import Trials, STATUS_OK, STATUS_FAIL
-import tensorflow as tf
 
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.design.utils import setup_design_logs, update_design_logs
 from aironsuit.trainers import AIronTrainer
 from airontools.constructors.utils import Model, get_latent_model
 from airontools.interactors import load_model, save_model, clear_session, summary
-from airontools.tools import path_management
 from airontools.tensorboard import save_representations
+from airontools.tools import path_management
 
 
 class AIronSuit(object):
@@ -491,10 +489,8 @@ class AIronSuit(object):
                 ):
         # ToDo: refactor this function
         model_specs = model_specs if model_specs is not None else {}
-        trainer_kwargs = train_specs.copy()
-        trainer_kwargs.update({'module': self.model})
-        trainer = self.__trainer_class(**trainer_kwargs)
-        train_kwargs = {}
+        trainer = self.__trainer_class(self.model)
+        train_kwargs = train_specs.copy()
         if x_val is not None:
             train_kwargs.update({'x_val': x_val})
         if y_val is not None:
