@@ -149,6 +149,10 @@ class AIronSuit(object):
 
         def design_trial(hyper_candidates):
 
+            # Save trials
+            with open(os.path.join(method_r_path, 'trials.hyperopt'), 'wb') as f:
+                pickle.dump(trials, f)
+
             # Create model
             specs = hyper_candidates.copy()
             if model_specs:
@@ -206,10 +210,6 @@ class AIronSuit(object):
                 print('design Loss: ', design_loss)
             status = STATUS_OK if not math.isnan(design_loss) and design_loss is not None else STATUS_FAIL
             print('status: ', status)
-
-            # Save trials
-            with open(os.path.join(method_r_path, 'trials.hyperopt'), 'wb') as f:
-                pickle.dump(trials, f)
 
             # Save model if it is the best so far
             best_design_loss_name = os.path.join(method_r_path, '_'.join(['best', name, 'design_loss']))
