@@ -66,9 +66,19 @@ def fit(module, x_train, y_train=None, x_val=None, y_val=None, sample_weight=Non
     if len(val_data) != 0:
         training_kwargs.update({'validation_data': tuple(val_data)})
     if all([isinstance(data, tf.data.Dataset) for data in training_args]):
+        # ToDo: make use of tfrecords for validation data too
         training_kwargs['validation_data'] = \
-            tf.data.Dataset.zip(training_kwargs['validation_data']).batch(kwargs['batch_size'])
-        module.fit(tf.data.Dataset.zip(tuple(training_args)).batch(kwargs['batch_size']), **training_kwargs)
+            tuple([tf.convert_to_tensor(list(val_data_.as_numpy_iterator()))
+                   for val_data_ in training_kwargs['validation_data']])
+        if sample_weight is not None:
+            training_args += [training_kwargs['sample_weight']]
+            del training_kwargs['sample_weight']
+            training_args = tf.data.Dataset.from_tensor_slices(
+                tuple([list(train_data_.as_numpy_iterator()) for train_data_ in training_args]))
+        else:
+            training_args = tf.data.Dataset.zip(tuple(training_args))
+        training_args = training_args.batch(kwargs['batch_size'])
+        module.fit(training_args, **training_kwargs)
     else:
         module.fit(*training_args, **training_kwargs)
 

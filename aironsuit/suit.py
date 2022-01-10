@@ -7,6 +7,7 @@ import warnings
 import hyperopt
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from hyperopt import Trials, STATUS_OK, STATUS_FAIL
 
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
@@ -189,12 +190,34 @@ class AIronSuit(object):
                 evaluate_kwargs['sample_weight'] = sample_weight_val
             if metric is not None:
                 if isinstance(metric, int) or isinstance(metric, str):
-                    design_loss = self.model.evaluate(*evaluate_args, **evaluate_kwargs)[metric]
+                    if all([isinstance(data, tf.data.Dataset) for data in evaluate_args]):
+                        if sample_weight_val is not None:
+                            evaluate_args += [evaluate_kwargs['sample_weight']]
+                            del evaluate_kwargs['sample_weight']
+                            evaluate_args = tf.data.Dataset.from_tensor_slices(
+                                tuple([list(eval_data_.as_numpy_iterator()) for eval_data_ in evaluate_args]))
+                        else:
+                            evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
+                        evaluate_args = evaluate_args.batch(train_specs['batch_size'])
+                        design_loss = self.model.evaluate(evaluate_args, **evaluate_kwargs)[metric]
+                    else:
+                        design_loss = self.model.evaluate(*evaluate_args, **evaluate_kwargs)[metric]
                 else:
                     evaluate_kwargs['model'] = self.model
                     design_loss = metric(*evaluate_args, **evaluate_kwargs)
             else:
-                design_loss = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
+                if all([isinstance(data, tf.data.Dataset) for data in evaluate_args]):
+                    if sample_weight_val is not None:
+                        evaluate_args += [evaluate_kwargs['sample_weight']]
+                        del evaluate_kwargs['sample_weight']
+                        evaluate_args = tf.data.Dataset.from_tensor_slices(
+                            tuple([list(eval_data_.as_numpy_iterator()) for eval_data_ in evaluate_args]))
+                    else:
+                        evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
+                    evaluate_args = evaluate_args.batch(train_specs['batch_size'])
+                    design_loss = self.model.evaluate(evaluate_args, **evaluate_kwargs)
+                else:
+                    design_loss = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
                 if isinstance(design_loss, list):
                     design_loss = design_loss[0]
             if isinstance(design_loss, tuple):
@@ -283,9 +306,7 @@ class AIronSuit(object):
             print('best hyper-parameters: ' + str(best_hyper_candidates))
 
             # Trainer
-            trainer_kwargs = train_specs.copy()
-            trainer_kwargs.update({'module': self.model})
-            trainer = self.__trainer_class(**trainer_kwargs)
+            trainer = self.__trainer_class(module=self.model)
             if hasattr(trainer, 'initialize') and callable(trainer.initialize):
                 trainer.initialize()
 
