@@ -43,6 +43,8 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
 
     # Load and preprocess data
     (train_dataset, train_targets), (test_dataset, test_targets) = mnist.load_data()
+    import tensorflow_datasets.public_api as tfds
+    ds = tfds.load(name='mnist', split=['train', 'test'])
     if max_n_samples is not None:  # ToDo: test cases when max_n_samples is not None, like it is now it will crash
         train_dataset = train_dataset[-max_n_samples:, ...]
         train_targets = train_targets[-max_n_samples:, ...]
