@@ -348,9 +348,7 @@ class AIronSuit(object):
         """
         method_r_path = self.__manage_path(results_path, path_ext='train')
         method_l_path = self.__manage_path(logs_path, path_type='logs')  # ToDo: fix this
-        train_specs = {
-            'batch_size': batch_size,
-            'path': method_r_path}
+        train_specs = {'batch_size': batch_size}
         raw_callbacks = callbacks if callbacks else \
             get_basic_callbacks(
                 path=method_r_path,
