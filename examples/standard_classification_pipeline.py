@@ -105,6 +105,8 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
                 trials = Trials()
         aironsuit = AIronSuit(
             model_constructor=image_classifier,
+            force_subclass_weights_saver=True,
+            force_subclass_weights_loader=True,
             results_path=WORKING_PATH,
         )
         aironsuit.design(
