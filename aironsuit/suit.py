@@ -3,11 +3,11 @@ import os
 import pickle
 import tempfile
 import warnings
-from inspect import getfullargspec
 
 import hyperopt
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from hyperopt import Trials, STATUS_OK, STATUS_FAIL
 
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
@@ -15,8 +15,8 @@ from aironsuit.design.utils import setup_design_logs, update_design_logs
 from aironsuit.trainers import AIronTrainer
 from airontools.constructors.utils import Model, get_latent_model
 from airontools.interactors import load_model, save_model, clear_session, summary
-from airontools.tools import path_management
 from airontools.tensorboard import save_representations
+from airontools.tools import path_management
 
 
 class AIronSuit(object):
@@ -148,6 +148,10 @@ class AIronSuit(object):
 
         def design_trial(hyper_candidates):
 
+            # Save trials
+            with open(os.path.join(method_r_path, 'trials.hyperopt'), 'wb') as f:
+                pickle.dump(trials, f)
+
             # Create model
             specs = hyper_candidates.copy()
             if model_specs:
@@ -186,12 +190,34 @@ class AIronSuit(object):
                 evaluate_kwargs['sample_weight'] = sample_weight_val
             if metric is not None:
                 if isinstance(metric, int) or isinstance(metric, str):
-                    design_loss = self.model.evaluate(*evaluate_args, **evaluate_kwargs)[metric]
+                    if all([isinstance(data, tf.data.Dataset) for data in evaluate_args]):
+                        if sample_weight_val is not None:
+                            evaluate_args += [evaluate_kwargs['sample_weight']]
+                            del evaluate_kwargs['sample_weight']
+                            evaluate_args = tf.data.Dataset.from_tensor_slices(
+                                tuple([list(eval_data_.as_numpy_iterator()) for eval_data_ in evaluate_args]))
+                        else:
+                            evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
+                        evaluate_args = evaluate_args.batch(train_specs['batch_size'])
+                        design_loss = self.model.evaluate(evaluate_args, **evaluate_kwargs)[metric]
+                    else:
+                        design_loss = self.model.evaluate(*evaluate_args, **evaluate_kwargs)[metric]
                 else:
                     evaluate_kwargs['model'] = self.model
                     design_loss = metric(*evaluate_args, **evaluate_kwargs)
             else:
-                design_loss = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
+                if all([isinstance(data, tf.data.Dataset) for data in evaluate_args]):
+                    if sample_weight_val is not None:
+                        evaluate_args += [evaluate_kwargs['sample_weight']]
+                        del evaluate_kwargs['sample_weight']
+                        evaluate_args = tf.data.Dataset.from_tensor_slices(
+                            tuple([list(eval_data_.as_numpy_iterator()) for eval_data_ in evaluate_args]))
+                    else:
+                        evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
+                    evaluate_args = evaluate_args.batch(train_specs['batch_size'])
+                    design_loss = self.model.evaluate(evaluate_args, **evaluate_kwargs)
+                else:
+                    design_loss = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
                 if isinstance(design_loss, list):
                     design_loss = design_loss[0]
             if isinstance(design_loss, tuple):
@@ -205,10 +231,6 @@ class AIronSuit(object):
                 print('design Loss: ', design_loss)
             status = STATUS_OK if not math.isnan(design_loss) and design_loss is not None else STATUS_FAIL
             print('status: ', status)
-
-            # Save trials
-            with open(os.path.join(method_r_path, 'trials.hyperopt'), 'wb') as f:
-                pickle.dump(trials, f)
 
             # Save model if it is the best so far
             best_design_loss_name = os.path.join(method_r_path, '_'.join(['best', name, 'design_loss']))
@@ -232,7 +254,7 @@ class AIronSuit(object):
                 # Update logs
                 update_design_logs(
                     path=os.path.join(method_l_path, str(len(trials.losses()))),
-                    hparams={value['logs']: hyper_candidates[key] for key, value in hyper_space.items()},
+                    hparams=hyper_space,
                     value=design_loss,
                     step=len(trials.losses())
                 )
@@ -284,9 +306,7 @@ class AIronSuit(object):
             print('best hyper-parameters: ' + str(best_hyper_candidates))
 
             # Trainer
-            trainer_kwargs = train_specs.copy()
-            trainer_kwargs.update({'module': self.model})
-            trainer = self.__trainer_class(**trainer_kwargs)
+            trainer = self.__trainer_class(module=self.model)
             if hasattr(trainer, 'initialize') and callable(trainer.initialize):
                 trainer.initialize()
 
@@ -328,9 +348,7 @@ class AIronSuit(object):
         """
         method_r_path = self.__manage_path(results_path, path_ext='train')
         method_l_path = self.__manage_path(logs_path, path_type='logs')  # ToDo: fix this
-        train_specs = {
-            'batch_size': batch_size,
-            'path': method_r_path}
+        train_specs = {'batch_size': batch_size}
         raw_callbacks = callbacks if callbacks else \
             get_basic_callbacks(
                 path=method_r_path,
@@ -488,15 +506,14 @@ class AIronSuit(object):
                 raw_callbacks=None,
                 verbose=None
                 ):
+        # ToDo: refactor this function
         model_specs = model_specs if model_specs is not None else {}
-        trainer_kwargs = train_specs.copy()
-        trainer_kwargs.update({'module': self.model})
-        trainer = self.__trainer_class(**trainer_kwargs)
-        trainer_fullargspec = list(getfullargspec(trainer.fit))[0]
-        train_kwargs = {}
-        if not any([val_ is None for val_ in [x_val, y_val]]) and \
-                all([val_ in trainer_fullargspec for val_ in ['x_val', 'y_val']]):
-            train_kwargs.update({'x_val': x_val, 'y_val': y_val})
+        trainer = self.__trainer_class(self.model)
+        train_kwargs = train_specs.copy()
+        if x_val is not None:
+            train_kwargs.update({'x_val': x_val})
+        if y_val is not None:
+            train_kwargs.update({'y_val': y_val})
         train_kwargs.update({'epochs': epochs})
         if raw_callbacks is not None:
             if all([isinstance(callback, dict) for callback in raw_callbacks]):

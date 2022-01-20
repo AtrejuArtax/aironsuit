@@ -3,6 +3,7 @@ import os
 import pickle
 import random
 import warnings
+from collections import Counter
 
 import numpy as np
 from hyperopt import Trials
@@ -51,6 +52,13 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
     test_targets = to_categorical(test_targets, 10)
     data_specs = dict(input_shape=tuple(train_dataset.shape[1:]))
 
+    # Sample weight
+    sample_weight = np.ones((train_targets.shape[0], 1))
+    counter = Counter(np.argmax(train_targets, axis=1).tolist())
+    highest_count = np.max(list(counter.values()))
+    for ind, count in counter.items():
+        sample_weight[np.argmax(train_targets, axis=1) == ind] = highest_count / count
+
     # Automatic model design #
 
     # Model specs
@@ -62,9 +70,11 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
     if design:
 
         # Split data per parallel model
-        x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
+        x_train, x_val, y_train, y_val, sample_weight_train, sample_weight_val, _ = train_val_split(
             input_data=train_dataset,
-            output_data=train_targets
+            output_data=train_targets,
+            meta_data=sample_weight,
+            return_tfrecord=True
         )
 
         # Training specs
@@ -102,12 +112,14 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
         aironsuit.design(
             x_train=x_train,
             y_train=y_train,
+            sample_weight=sample_weight_train,
             x_val=x_val,
             y_val=y_val,
+            sample_weight_val=sample_weight_val,
             model_specs=model_specs,
             hyper_space=hyperparam_space,
             train_specs=train_specs,
-            max_evals=max_evals,
+            max_evals=max_evals + len(trials.trials),
             epochs=epochs,
             trials=trials,
             name=model_name,
@@ -164,7 +176,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_n_samples', dest='max_n_samples', type=int,
                         default=None if EXECUTION_MODE == 'production' else 1000)
     parser.add_argument('--max_evals', dest='max_evals', type=int, default=250 if EXECUTION_MODE == 'production' else 2)
-    parser.add_argument('--epochs', dest='epochs', type=int, default=1000 if EXECUTION_MODE == 'production' else 2)
+    parser.add_argument('--epochs', dest='epochs', type=int, default=1000 if EXECUTION_MODE == 'production' else 25)
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=32)
     parser.add_argument('--patience', dest='patience', type=int, default=5 if EXECUTION_MODE == 'production' else 2)
     parser.add_argument('--verbose', dest='verbose', type=int, default=0)

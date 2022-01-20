@@ -1,5 +1,6 @@
 import glob
 import os
+import tensorflow as tf
 
 
 class AIronTrainer(object):
@@ -8,18 +9,12 @@ class AIronTrainer(object):
         Attributes:
             module (Module): NN module.
             best_module_name (str): Best module name.
-            __class_weight (dict): Weight per class when performing a classification task.
-            __path (str): Path where to save intermediate optimizations.
 
     """
 
-    def __init__(self, module, **kwargs):
-        available_kwargs = ['callbacks', 'mode', 'class_weight', 'path', 'batch_size', 'sample_weight']
-        assert all([kwarg in available_kwargs for kwarg in kwargs.keys()])
+    def __init__(self, module):
         self.module = module
         self.best_module_name = None
-        self.__class_weight = kwargs['class_weight'] if 'class_weight' in kwargs else None
-        self.__path = kwargs['path'] if 'path' in kwargs else None
 
     def __setattr__(self, key, value):
         self.__dict__[key] = value
@@ -56,20 +51,36 @@ class AIronTrainer(object):
 
 def fit(module, x_train, y_train=None, x_val=None, y_val=None, sample_weight=None, sample_weight_val=None,
         best_module_name=None, **kwargs):
-
+    # ToDo: refactor this function
     # Train module
     training_kwargs = kwargs.copy()
-    training_kwargs.update({'x': x_train})
+    training_args = [x_train]
     if y_train is not None:
-        training_kwargs['y'] = y_train
+        training_args += [y_train]
     if sample_weight is not None:
         training_kwargs['sample_weight'] = sample_weight
-    if not any([val_ is None for val_ in [x_val, y_val]]):
-        if sample_weight_val is not None:
-            training_kwargs.update({'validation_data': (x_val, y_val, sample_weight_val)})
+    val_data = []
+    for val_data_ in [x_val, y_val, sample_weight_val]:
+        if val_data_ is not None:
+            val_data += [val_data_]
+    if len(val_data) != 0:
+        training_kwargs.update({'validation_data': tuple(val_data)})
+    if all([isinstance(data, tf.data.Dataset) for data in training_args]):
+        # ToDo: make use of tfrecords for validation data too
+        training_kwargs['validation_data'] = \
+            tuple([tf.convert_to_tensor(list(val_data_.as_numpy_iterator()))
+                   for val_data_ in training_kwargs['validation_data']])
+        if sample_weight is not None:
+            training_args += [training_kwargs['sample_weight']]
+            del training_kwargs['sample_weight']
+            training_args = tf.data.Dataset.from_tensor_slices(
+                tuple([list(train_data_.as_numpy_iterator()) for train_data_ in training_args]))
         else:
-            training_kwargs.update({'validation_data': (x_val, y_val)})
-    module.fit(**training_kwargs)
+            training_args = tf.data.Dataset.zip(tuple(training_args))
+        training_args = training_args.batch(kwargs['batch_size'])
+        module.fit(training_args, **training_kwargs)
+    else:
+        module.fit(*training_args, **training_kwargs)
 
     # Best module
     if best_module_name:
