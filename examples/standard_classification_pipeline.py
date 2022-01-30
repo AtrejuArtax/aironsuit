@@ -77,9 +77,6 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
             return_tfrecord=True
         )
 
-        # Training specs
-        train_specs = {'batch_size': batch_size}
-
         # Hyper-parameter space
         hyperparam_space = {
             'dropout_rate': uniform_hp('dropout_rate', 0., 0.4),
@@ -118,7 +115,6 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
             sample_weight_val=sample_weight_val,
             model_specs=model_specs,
             hyper_space=hyperparam_space,
-            train_specs=train_specs,
             max_evals=max_evals + len(trials.trials),
             epochs=epochs,
             trials=trials,

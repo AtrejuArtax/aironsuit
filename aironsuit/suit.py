@@ -12,7 +12,6 @@ from hyperopt import Trials, STATUS_OK, STATUS_FAIL
 
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.design.utils import setup_design_logs, update_design_logs
-from aironsuit.trainers import AIronTrainer
 from airontools.constructors.utils import Model, get_latent_model
 from airontools.interactors import load_model, save_model, clear_session, summary
 from airontools.tensorboard import save_representations
@@ -29,9 +28,6 @@ class AIronSuit(object):
             results_path (str): Results path.
             logs_path (int): Logs path.
             __model_constructor (): NN model constructor.
-            __trainer (object): NN model constructor instance.
-            __trainer_class (AIronTrainer): NN model trainer.
-            __cuda (bool): Whether to use cuda or not.
             __devices (list): Devices where to make the computations.
             __total_n_models (int): Total number of models in parallel.
     """
@@ -42,8 +38,6 @@ class AIronSuit(object):
         model=None,
         results_path=os.path.join(tempfile.gettempdir(), "airon") + os.sep,
         logs_path=None,
-        trainer=None,
-        model_constructor_wrapper=None,
         custom_objects=None,
         force_subclass_weights_saver=False,
         force_subclass_weights_loader=False,
@@ -53,8 +47,6 @@ class AIronSuit(object):
                 model (Model): User customized model.
                 results_path (str): Results path.
                 logs_path (str): Logs path.
-                trainer (): Model trainer.
-                model_constructor_wrapper (): Model constructor wrapper.
                 custom_objects (dict): Custom objects when loading Keras models.
                 force_subclass_weights_saver (bool): To whether force the subclass weights saver or not, useful for
                 keras subclasses models.
@@ -69,11 +61,7 @@ class AIronSuit(object):
             logs_path if logs_path is not None else os.path.join(results_path, "logs")
         )
         self.__model_constructor = model_constructor
-        self.__trainer = None
-        self.__trainer_class = AIronTrainer if not trainer else trainer
-        self.__model_constructor_wrapper = model_constructor_wrapper
         self.__custom_objects = custom_objects
-        self.__cuda = None
         self.__devices = None
         self.__total_n_models = None
         self.__force_subclass_weights_saver = force_subclass_weights_saver
@@ -84,9 +72,9 @@ class AIronSuit(object):
         x_train,
         x_val,
         hyper_space,
-        train_specs,
         max_evals,
         epochs,
+        batch_size=32,
         y_train=None,
         y_val=None,
         sample_weight=None,
@@ -100,7 +88,6 @@ class AIronSuit(object):
         verbose=0,
         seed=None,
         raw_callbacks=None,
-        cuda=None,
         use_basic_callbacks=True,
         patience=3,
         save_val_inference=False,
@@ -111,11 +98,11 @@ class AIronSuit(object):
                 x_train (list, np.array): Input data for training.
                 x_val (list, np.array): Input data for validation.
                 hyper_space (dict): Hyper parameter space for model design.
-                train_specs (dict): Training specifications.
                 results_path (str): Results path.
                 logs_path (str): Logs path.
                 max_evals (integer): Maximum number of evaluations.
                 epochs (int): Number of epochs for model training.
+                batch_size (int): Number of samples per batch.
                 y_train (list, np.array): Output data for training.
                 y_val (list, np.array): Output data for validation.
                 sample_weight (np.array): Weight per sample to be computed with the train metric and losses.
@@ -127,7 +114,6 @@ class AIronSuit(object):
                 verbose (int): Verbosity.
                 seed (int): Seed for reproducible results.
                 raw_callbacks (list): Dictionary of raw callbacks.
-                cuda (bool): Whether cuda is available or not.
                 use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
                 patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
                 save_val_inference (bool): Whether or not to save validation inference when the best model is found.
@@ -138,7 +124,6 @@ class AIronSuit(object):
 
         setup_design_logs(method_l_path, hyper_space)
 
-        self.__cuda = cuda
         if trials is None:
             trials = Trials()
         raw_callbacks = (
@@ -176,10 +161,9 @@ class AIronSuit(object):
                 print(self.model.summary())
 
             # Train model
-            trainer = self.__train(
-                train_specs=train_specs,
-                model_specs=specs,
+            self.__train(
                 epochs=epochs,
+                batch_size=batch_size,
                 x_train=x_train,
                 y_train=y_train,
                 x_val=x_val,
@@ -195,6 +179,8 @@ class AIronSuit(object):
             if y_val is not None:
                 evaluate_args += [y_val]
             evaluate_kwargs = {}
+            if isinstance(self.model, Model):
+                evaluate_kwargs["verbose"] = verbose
             if sample_weight_val is not None:
                 evaluate_kwargs["sample_weight"] = sample_weight_val
             if metric is not None:
@@ -215,7 +201,7 @@ class AIronSuit(object):
                             )
                         else:
                             evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
-                        evaluate_args = evaluate_args.batch(train_specs["batch_size"])
+                        evaluate_args = evaluate_args.batch(batch_size)
                         design_loss = self.model.evaluate(
                             evaluate_args, **evaluate_kwargs
                         )[metric]
@@ -241,7 +227,7 @@ class AIronSuit(object):
                         )
                     else:
                         evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
-                    evaluate_args = evaluate_args.batch(train_specs["batch_size"])
+                    evaluate_args = evaluate_args.batch(batch_size)
                     design_loss = self.model.evaluate(evaluate_args, **evaluate_kwargs)
                 else:
                     design_loss = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
@@ -292,7 +278,7 @@ class AIronSuit(object):
                 ) as f:
                     pickle.dump(hyper_candidates, f, protocol=pickle.HIGHEST_PROTOCOL)
                 if save_val_inference and y_val is not None:
-                    y_inf = trainer.predict(x_val)
+                    y_inf = self.model.predict(x_val)
                     y_inf = (
                         np.concatenate(y_inf, axis=1)
                         if isinstance(y_inf, list)
@@ -358,18 +344,9 @@ class AIronSuit(object):
                 if "metrics" in specs.keys():
                     compile_kwargs["metrics"] = specs["metrics"]
                 self.model.compile(**compile_kwargs)
-            elif cuda:
-                self.model.cuda()
             print("best hyper-parameters: " + str(best_hyper_candidates))
 
-            # Trainer
-            trainer = self.__trainer_class(module=self.model)
-            if hasattr(trainer, "initialize") and callable(trainer.initialize):
-                trainer.initialize()
-
-            return trainer
-
-        self.__trainer = design()
+        design()
 
     def train(
         self,
@@ -408,7 +385,6 @@ class AIronSuit(object):
         method_l_path = self.__manage_path(
             logs_path, path_type="logs"
         )  # ToDo: fix this
-        train_specs = {"batch_size": batch_size}
         raw_callbacks = (
             callbacks
             if callbacks
@@ -422,9 +398,9 @@ class AIronSuit(object):
             if use_basic_callbacks
             else None
         )
-        self.__trainer = self.__train(
-            train_specs=train_specs,
+        self.__train(
             epochs=epochs,
+            batch_size=batch_size,
             x_train=x_train,
             y_train=y_train,
             x_val=x_val,
@@ -433,14 +409,13 @@ class AIronSuit(object):
             verbose=verbose,
         )
 
-    def inference(self, x, use_trainer=False):
+    def inference(self, x):
         """ Inference.
 
             Parameters:
                 x (list, np.array): Input data for training.
-                use_trainer (bool): Whether to use the current trainer or not.
         """
-        return self.__get_model_interactor(use_trainer).predict(x)
+        return self.model.predict(x)
 
     def latent_inference(self, x, layer_names=None):
         """ Latent inference.
@@ -463,18 +438,17 @@ class AIronSuit(object):
         assert self.model is not None
         self.latent_model = get_latent_model(self.model, hidden_layer_names)
 
-    def evaluate(self, x, y=None, use_trainer=False):
+    def evaluate(self, x, y=None):
         """ Evaluate.
 
             Parameters:
                 x (list, np.array): Input data for evaluation.
                 y (list, np.array): Target data for evaluation.
-                use_trainer (bool): Whether to use the current trainer or not.
         """
         args = [x]
         if y is not None:
             args += [y]
-        return self.__get_model_interactor(use_trainer).evaluate(*args)
+        return self.model.evaluate(*args)
 
     def save_model(self, name):
         """ Save the model.
@@ -561,58 +535,44 @@ class AIronSuit(object):
 
     def __train(
         self,
-        train_specs,
-        epochs,
         x_train,
         y_train,
-        model_specs=None,
-        sample_weight=None,
-        sample_weight_val=None,
         x_val=None,
         y_val=None,
+        batch_size=32,
+        sample_weight=None,
+        sample_weight_val=None,
         raw_callbacks=None,
-        verbose=None,
+        **kwargs
     ):
-        # ToDo: refactor this function
-        model_specs = model_specs if model_specs is not None else {}
-        trainer = self.__trainer_class(self.model)
-        train_kwargs = train_specs.copy()
-        if x_val is not None:
-            train_kwargs.update({"x_val": x_val})
-        if y_val is not None:
-            train_kwargs.update({"y_val": y_val})
-        train_kwargs.update({"epochs": epochs})
         if raw_callbacks is not None:
             if all([isinstance(callback, dict) for callback in raw_callbacks]):
                 callbacks = init_callbacks(raw_callbacks)
             else:
                 callbacks = raw_callbacks
-            train_kwargs.update({"callbacks": callbacks})
-        for karg, val in zip(["verbose"], [verbose]):
-            train_kwargs.update({karg: val})
+            kwargs.update({"callbacks": callbacks})
         if sample_weight is not None:
-            train_kwargs.update({"sample_weight": sample_weight})
-        if sample_weight_val is not None:
-            train_kwargs.update({"sample_weight_val": sample_weight_val})
-        trainer.fit(x_train, y_train, **train_kwargs)
-        return trainer
-
-    def __get_model_interactor(self, use_trainer):
-        if use_trainer:
-            if self.__trainer:
-                instance = self.__trainer
-            else:
-                instance = self.__trainer_class(model=self.model)
-                if hasattr(instance, "initialize") and callable(instance.initialize):
-                    instance.initialize()
+            kwargs.update({"sample_weight": sample_weight})
+        args = [x_train]
+        if y_train is not None:
+            args += [y_train]
+        val_data = []
+        for val_data_ in [x_val, y_val, sample_weight_val]:
+            if val_data_ is not None:
+                val_data += [val_data_]
+        if len(val_data) != 0:
+            kwargs.update({"validation_data": tuple(val_data)})
+        if all([isinstance(data, tf.data.Dataset) for data in args]):
+            kwargs["validation_data"] = tf.data.Dataset.zip(kwargs["validation_data"]).batch(batch_size)
+            if sample_weight_val is not None:
+                args += [sample_weight_val.batch(batch_size)]
+            training_args = tf.data.Dataset.zip(tuple(args)).batch(batch_size)
+            self.model.fit(training_args, **kwargs)
         else:
-            instance = self.model
-        return instance
+            self.model.fit(*args, **kwargs)
 
     def __create(self, **kwargs):
         self.model = self.__model_constructor(**kwargs)
-        if self.__model_constructor_wrapper:
-            self.__model_constructor_wrapper(self.model)
 
     def __manage_path(self, path, path_ext=None, path_type="results"):
         default_path = self.results_path if path_type == "results" else self.logs_path

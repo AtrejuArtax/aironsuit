@@ -66,9 +66,6 @@ output_specs = {'y': {'type': 'cat',
 data_specs = {'input_specs': input_specs,
               'output_specs': output_specs}
 
-# Training specs
-train_specs = {'batch_size': batch_size}
-
 # Model Specs
 model_specs = {
     'name': model_name,
@@ -138,9 +135,9 @@ aironsuit.design(
     y_val=y_val,
     hyper_space=hyperparam_space,
     model_specs=model_specs,
-    train_specs=train_specs,
     max_evals=max_evals,
     epochs=epochs,
+    batch_size=batch_size,
     trials=Trials(),
     name=model_name,
     verbose=verbose,
