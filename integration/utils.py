@@ -3,17 +3,15 @@ import subprocess
 import time
 from itertools import product
 
-from airontools.tools import path_management
 
-
-def test_application(application_name):
+def test_application(repos_path, application_name):
 
     # Install backend
 
     # Manage paths
-    scripts_path = os.path.join(os.environ['HOME'], 'repositories', application_name)
-    logs_path = os.path.join(os.environ['HOME'], 'logs', application_name).replace('.py', '')
-    path_management(logs_path)
+    scripts_path = os.path.join(repos_path, application_name)
+    logs_path = os.path.join(repos_path, 'logs', application_name).replace('.py', '')
+    os.makedirs(logs_path, exist_ok=True)
 
     # Test scripts
     if os.path.isdir(scripts_path):

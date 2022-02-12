@@ -1,12 +1,13 @@
 import getopt
 import os
+import pathlib
 import sys
 import time
 
 from utils import test_application
 
 BACKENDS = ['tensorflow']
-REPOS_PATH = os.path.join(os.path.expanduser('~'), 'repositories')
+REPOS_PATH = os.sep.join(str(pathlib.Path(__file__).parent.resolve()).split(os.sep)[:-2])
 APPLICATIONS = [
     [os.path.join('aironsuit', 'examples'), ['tensorflow']]
 ]
@@ -24,6 +25,7 @@ def packages_manager(packages, mode):
 
 
 def integration_test(test_version, quick_test):
+    # ToDo: automate building the packages and installing them
 
     # Local test packages
     local_test_packages = [
@@ -31,7 +33,7 @@ def integration_test(test_version, quick_test):
         os.path.join(REPOS_PATH, 'aironsuit', 'dist', 'aironsuit-' + test_version + '-py3-none-any.whl')]
 
     # Test applications
-    installed_backends = ['tensorflow', 'pytorch-lightning']
+    installed_backends = ['tensorflow']
     if not quick_test:
         packages_manager(installed_backends + TEST_PACKAGES, 'uninstall')
     for app_name, app_backends in APPLICATIONS:
@@ -40,7 +42,7 @@ def integration_test(test_version, quick_test):
             if 'tensorflow' in app_backends:
                 install_packages += OTHER_TF_PACKAGES
             packages_manager(install_packages, 'install')
-        test_application(app_name)
+        test_application(REPOS_PATH, app_name)
         if not quick_test:
             uninstall_packages = app_backends + TEST_PACKAGES
             if 'tensorflow' in app_backends:
@@ -59,7 +61,7 @@ if __name__ == '__main__':
     except getopt.GetoptError:
         sys.exit(2)
 
-    version = '0.1.14'
+    version = 'latest'
     quick = True
 
     for opt, arg in opts:
