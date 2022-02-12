@@ -10,7 +10,7 @@ def test_application(repos_path, application_name):
 
     # Manage paths
     scripts_path = os.path.join(repos_path, application_name)
-    logs_path = os.path.join(repos_path, 'logs', application_name).replace('.py', '')
+    logs_path = os.path.join(repos_path, 'integration_test_logs', application_name).replace('.py', '')
     os.makedirs(logs_path, exist_ok=True)
 
     # Test scripts
