@@ -50,7 +50,7 @@ def test_scripts(script_names, logs_path):
             while proc.poll() is None:
                 time.sleep(10)
             status = [script_name, 'PASSED' if proc.poll() == 0 else 'FAILED']
-            print('{} {} ({} seconds): {}'.format(status[0], arguments, round(time.time() - start_time), status[1]))
+            print('{} ({} seconds): {}'.format(log_file_name, round(time.time() - start_time), status[1]))
             arguments_list.remove(arguments)
 
 

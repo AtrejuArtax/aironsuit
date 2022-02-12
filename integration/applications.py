@@ -26,6 +26,7 @@ def packages_manager(packages, mode):
 
 def integration_test(test_version, quick_test):
     # ToDo: automate building the packages and installing them
+    # ToDO: automate integration test dependencies installation
 
     # Local test packages
     local_test_packages = [
