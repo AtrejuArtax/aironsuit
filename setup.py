@@ -29,6 +29,7 @@ setuptools.setup(
         'hyperopt',
         'tensorflow',
         'tensorboard',
+        'tensorflow_datasets',
         'airontools==0.1.16'
     ],
     classifiers=[
