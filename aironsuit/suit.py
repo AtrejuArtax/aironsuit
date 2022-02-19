@@ -551,25 +551,25 @@ class AIronSuit(object):
             else:
                 callbacks = raw_callbacks
             kwargs.update({"callbacks": callbacks})
-        if sample_weight is not None:
-            kwargs.update({"sample_weight": sample_weight})
-        args = [x_train]
+        fit_args = [x_train]
         if y_train is not None:
-            args += [y_train]
+            fit_args += [y_train]
         val_data = []
         for val_data_ in [x_val, y_val, sample_weight_val]:
             if val_data_ is not None:
                 val_data += [val_data_]
         if len(val_data) != 0:
             kwargs.update({"validation_data": tuple(val_data)})
-        if all([isinstance(data, tf.data.Dataset) for data in args]):
+        if all([isinstance(data, tf.data.Dataset) for data in fit_args]):
             kwargs["validation_data"] = tf.data.Dataset.zip(kwargs["validation_data"]).batch(batch_size)
-            if sample_weight_val is not None:
-                args += [sample_weight_val.batch(batch_size)]
-            training_args = tf.data.Dataset.zip(tuple(args)).batch(batch_size)
-            self.model.fit(training_args, **kwargs)
+            if sample_weight is not None:
+                warnings.warn('sample weight for training combined with tf datasets is not supported at the moment')
+            fit_args = [tf.data.Dataset.zip(tuple(fit_args)).batch(batch_size)]
         else:
-            self.model.fit(*args, **kwargs)
+            if sample_weight is not None:
+                kwargs['sample_weight'] = sample_weight
+            kwargs['batch_size'] = batch_size
+        self.model.fit(*fit_args, **kwargs)
 
     def __create(self, **kwargs):
         self.model = self.__model_constructor(**kwargs)
