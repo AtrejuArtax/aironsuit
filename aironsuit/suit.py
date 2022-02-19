@@ -295,6 +295,7 @@ class AIronSuit(object):
                     hparams=hyper_space,
                     value=design_loss,
                     step=len(trials.losses()),
+                    metric=metric,
                 )
 
             clear_session()
