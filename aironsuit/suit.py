@@ -185,6 +185,8 @@ class AIronSuit(object):
                 evaluate_kwargs["sample_weight"] = sample_weight_val
             if metric is not None:
                 if isinstance(metric, int) or isinstance(metric, str):
+                    if isinstance(metric, str):
+                        evaluate_kwargs.update({'return_dict': True})
                     if all(
                         [isinstance(data, tf.data.Dataset) for data in evaluate_args]
                     ):
