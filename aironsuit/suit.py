@@ -120,7 +120,7 @@ class AIronSuit(object):
         """
 
         method_r_path = self.__manage_path(results_path, path_ext="design")
-        method_l_path = self.__manage_path(logs_path, path_type="logs")
+        method_l_path = self.__manage_path(logs_path, path_ext="log_dir", path_type="logs")
 
         setup_design_logs(method_l_path, hyper_space)
 
@@ -506,7 +506,7 @@ class AIronSuit(object):
         """
         if latent_model_output and self.latent_model is None:
             warnings.warn("latent model should be created first")
-        method_l_path = self.__manage_path(logs_path, path_type="logs")
+        method_l_path = self.__manage_path(logs_path, path_ext="log_dir", path_type="logs")
         if hidden_layer_name is not None:
             model = get_latent_model(self.model, hidden_layer_name)
         else:
