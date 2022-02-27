@@ -74,7 +74,7 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
             input_data=train_dataset,
             output_data=train_targets,
             meta_data=sample_weight,
-            return_tfrecord=True,
+            return_tfrecord=False,  #ToDo: tfrecord compatible with airon predefined model classes (sub keras classes)
         )
 
         # Hyper-parameter space

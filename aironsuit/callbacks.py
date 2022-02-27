@@ -3,6 +3,13 @@ import os
 import tempfile
 
 from tensorflow.keras import callbacks
+from tensorflow.keras import backend as k_bck
+import gc
+
+class CleanMemory(callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        k_bck.clear_session()
+        gc.collect()
 
 
 def init_callbacks(raw_callbacks):
@@ -81,6 +88,14 @@ def get_basic_callbacks(
                     restore_best_weights=True,
                 ),
             }
+        }
+    )
+    basic_callbacks.append(
+        {
+            "CleanMemory":  {
+                "callback": CleanMemory,
+                "kwargs": dict()
+                }
         }
     )
     return basic_callbacks

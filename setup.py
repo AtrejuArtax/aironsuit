@@ -25,10 +25,10 @@ setuptools.setup(
     install_requires=[
         'numpy',
         'pandas',
-        'sklearn',
+        'scikit-learn',
         'hyperopt',
-        'tensorflow',
-        'tensorboard',
+        'tensorflow==2.7.0',
+        'tensorboard==2.7.0',
         'tensorflow_datasets',
         'airontools==0.1.16'
     ],
