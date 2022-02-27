@@ -27,10 +27,10 @@ setuptools.setup(
         'pandas',
         'scikit-learn',
         'hyperopt',
-        'tensorflow',
-        'tensorboard',
+        'tensorflow==2.7.0',
+        'tensorboard==2.7.0',
         'tensorflow_datasets',
-        'airontools==0.1.15'
+        'airontools==0.1.16'
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
