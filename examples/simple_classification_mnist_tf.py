@@ -25,7 +25,7 @@ working_path = os.path.join(HOME, 'airon', project_name)
 model_name = project_name + '_NN'
 num_classes = 10
 batch_size = 32
-epochs = 100
+epochs = 3
 patience = 3
 max_evals = 1
 precision = 'float32'
@@ -47,7 +47,8 @@ y_test = to_categorical(y_test, num_classes)
 # Split data per parallel model
 x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
     input_data=x_train,
-    output_data=y_train
+    output_data=y_train,
+    return_tfrecord=True,
 )
 
 # COMMAND ----------
