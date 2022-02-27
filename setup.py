@@ -27,7 +27,7 @@ setuptools.setup(
         'pandas',
         'sklearn',
         'hyperopt',
-        'tensorflow',
+        'tensorflow==2.7.0',
         'tensorboard',
         'tensorflow_datasets',
         'airontools==0.1.16'
