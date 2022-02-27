@@ -357,7 +357,7 @@ class AIronSuit(object):
         y_val=None,
         batch_size=32,
         callbacks=None,
-        verbose=None,
+        verbose=0,
         use_basic_callbacks=True,
         results_path=None,
         logs_path=None,

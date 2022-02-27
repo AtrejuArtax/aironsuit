@@ -118,7 +118,7 @@ aironsuit.design(
     trials=Trials(),
     name=model_name,
     seed=0,
-    patience=patience
+    patience=patience,
 )
 aironsuit.summary()
 
@@ -150,7 +150,9 @@ aironsuit.model.compile(
 aironsuit.train(
     epochs=epochs,
     x_train=x_train,
-    y_train=y_train
+    y_train=y_train,
+    x_val=x_val,
+    y_val=y_val,
 )
 
 # COMMAND ----------
