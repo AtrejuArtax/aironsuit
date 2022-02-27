@@ -14,7 +14,7 @@ from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.design.utils import setup_design_logs, update_design_logs
 from airontools.constructors.utils import Model, get_latent_model
 from airontools.interactors import load_model, save_model, clear_session, summary
-from airontools.tensorboard import save_representations
+from airontools.tensorboard_utils import save_representations
 from airontools.tools import path_management
 
 
