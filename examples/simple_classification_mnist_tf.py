@@ -89,9 +89,6 @@ def classifier_model_constructor(**kwargs):
 # COMMAND ----------
 
 
-# Training specs
-train_specs = {'batch_size': batch_size}
-
 # Hyper-parameter space
 hyperparam_space = {
     'filters': choice_hp('filters', [int(val) for val in np.arange(3, 30)]),
@@ -116,7 +113,6 @@ aironsuit.design(
     y_val=y_val,
     model_specs=model_specs,
     hyper_space=hyperparam_space,
-    train_specs=train_specs,
     max_evals=max_evals,
     epochs=epochs,
     trials=Trials(),

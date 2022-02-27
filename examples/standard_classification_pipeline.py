@@ -74,11 +74,8 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
             input_data=train_dataset,
             output_data=train_targets,
             meta_data=sample_weight,
-            return_tfrecord=True
+            return_tfrecord=True,
         )
-
-        # Training specs
-        train_specs = {'batch_size': batch_size}
 
         # Hyper-parameter space
         hyperparam_space = {
@@ -116,16 +113,16 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
             x_val=x_val,
             y_val=y_val,
             sample_weight_val=sample_weight_val,
+            batch_size=batch_size,
             model_specs=model_specs,
             hyper_space=hyperparam_space,
-            train_specs=train_specs,
             max_evals=max_evals + len(trials.trials),
             epochs=epochs,
             trials=trials,
             name=model_name,
             seed=0,
             patience=patience,
-            verbose=verbose
+            verbose=verbose,
         )
         del x_train, x_val, y_train, y_val
         aironsuit.summary()

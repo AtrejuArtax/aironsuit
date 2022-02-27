@@ -61,9 +61,6 @@ def ae_model_constructor(latent_dim):
 # COMMAND ----------
 
 
-# Training specs
-train_specs = {'batch_size': batch_size}
-
 # Hyper-parameter space
 hyperparam_space = {'latent_dim': choice_hp('latent_dim', [int(val) for val in np.arange(3, 6)])}
 
@@ -86,7 +83,6 @@ aironsuit.design(
     x_train=x_train,
     x_val=x_val,
     hyper_space=hyperparam_space,
-    train_specs=train_specs,
     max_evals=max_evals,
     epochs=epochs,
     trials=Trials(),
