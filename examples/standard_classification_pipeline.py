@@ -74,7 +74,7 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
             input_data=train_dataset,
             output_data=train_targets,
             meta_data=sample_weight,
-            return_tfrecord=True,
+            return_tfrecord=False,
         )
 
         # Hyper-parameter space
@@ -173,10 +173,10 @@ if __name__ == '__main__':
     parser.add_argument('--max_n_samples', dest='max_n_samples', type=int,
                         default=None if EXECUTION_MODE == 'production' else 1000)
     parser.add_argument('--max_evals', dest='max_evals', type=int, default=250 if EXECUTION_MODE == 'production' else 2)
-    parser.add_argument('--epochs', dest='epochs', type=int, default=1000 if EXECUTION_MODE == 'production' else 25)
+    parser.add_argument('--epochs', dest='epochs', type=int, default=1000 if EXECUTION_MODE == 'production' else 3)
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=32)
     parser.add_argument('--patience', dest='patience', type=int, default=5 if EXECUTION_MODE == 'production' else 2)
-    parser.add_argument('--verbose', dest='verbose', type=int, default=0)
+    parser.add_argument('--verbose', dest='verbose', type=int, default=2)
     parser.add_argument('--precision', dest='precision', type=str, default='float32')
 
     opts = parser.parse_args()

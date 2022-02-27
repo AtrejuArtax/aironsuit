@@ -251,7 +251,7 @@ class AIronSuit(object):
 
             # Save model if it is the best so far
             best_design_loss_name = os.path.join(
-                method_r_path, "_".join(["best", name, "design_loss"])
+                method_r_path, "_".join([name, "loss"])
             )
             trials_losses = [loss_ for loss_ in trials.losses() if loss_ is not None]
             best_design_loss = min(trials_losses) if len(trials_losses) > 0 else None
@@ -266,13 +266,13 @@ class AIronSuit(object):
                 df = pd.DataFrame(data=[design_loss], columns=["best_design_loss"])
                 df.to_pickle(best_design_loss_name)
                 self.__save_load_model(
-                    name=os.path.join(method_r_path, "_".join(["best_design", name])),
+                    name=os.path.join(method_r_path, name),
                     mode="save",
                 )
                 with open(
                     os.path.join(
                         method_r_path,
-                        "_".join(["best_design", name, "hyper_candidates"]),
+                        "_".join([name, "hyper_candidates"]),
                     ),
                     "wb",
                 ) as f:
@@ -320,7 +320,7 @@ class AIronSuit(object):
                     pickle.dump(trials, f)
             with open(
                 os.path.join(
-                    method_r_path, "best_design_" + name + "_hyper_candidates"
+                    method_r_path, name + "_hyper_candidates"
                 ),
                 "rb",
             ) as f:
@@ -332,7 +332,7 @@ class AIronSuit(object):
                 specs.update(model_specs.copy())
             specs.update(best_hyper_candidates)
             self.__save_load_model(
-                name=os.path.join(method_r_path, "_".join(["best_design", name])),
+                name=os.path.join(method_r_path, name),
                 mode="load",
                 **{key: value for key, value in specs.items() if key != "name"}
             )
