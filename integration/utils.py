@@ -2,6 +2,7 @@ import os
 import subprocess
 import time
 from itertools import product
+import sys
 
 
 def test_application(repos_path, application_name):
@@ -23,7 +24,7 @@ def test_application(repos_path, application_name):
 
 
 def test_scripts(script_names, logs_path):
-
+    
     # Test scripts
     for script_name in script_names:
 
@@ -33,7 +34,7 @@ def test_scripts(script_names, logs_path):
         while len(arguments_list) > 0:
             arguments = arguments_list[0]
             arguments_ = arguments.split() if arguments is not None else []
-            command_list = ['/home/claudi/anaconda3/bin/python', '-u', script_name] + arguments_
+            command_list = [sys.executable, '-u', script_name] + arguments_
             print('testing: ' + ' '.join(command_list))
             proc = subprocess.Popen(
                 command_list,

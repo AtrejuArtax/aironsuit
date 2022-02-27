@@ -25,7 +25,7 @@ setuptools.setup(
     install_requires=[
         'numpy',
         'pandas',
-        'sklearn',
+        'scikit-learn',
         'hyperopt',
         'tensorflow==2.7.0',
         'tensorboard==2.7.0',
