@@ -326,14 +326,6 @@ class AIronSuit(object):
                 specs.update(model_specs.copy())
             specs.update(hyper_candidates)
             self.model.load_weights(os.path.join(method_r_path, name))
-            if all([spec_ in specs.keys() for spec_ in ["optimizer", "loss"]]):
-                compile_kwargs = {
-                    "optimizer": specs["optimizer"],
-                    "loss": specs["loss"],
-                }
-                if "metrics" in specs.keys():
-                    compile_kwargs["metrics"] = specs["metrics"]
-                self.model.compile(**compile_kwargs)
             print("hyper-parameters: " + str(hyper_candidates))
 
         design()
