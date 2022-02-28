@@ -39,8 +39,7 @@ class AIronSuit(object):
         results_path=os.path.join(tempfile.gettempdir(), "airon") + os.sep,
         logs_path=None,
         custom_objects=None,
-        force_subclass_weights_saver=False,
-        force_subclass_weights_loader=False,
+        name='NN',
     ):
         """ Parameters:
                 model_constructor (): Function that returns a model.
@@ -48,24 +47,22 @@ class AIronSuit(object):
                 results_path (str): Results path.
                 logs_path (str): Logs path.
                 custom_objects (dict): Custom objects when loading Keras models.
-                force_subclass_weights_saver (bool): To whether force the subclass weights saver or not, useful for
-                keras subclasses models.
-                force_subclass_weights_loader (bool): To whether force the subclass weights loader or not, useful for
-                keras subclasses models.
+                name (str): Name of the model.
         """
 
         self.model = model
         self.latent_model = None
         self.results_path = results_path
         self.logs_path = (
-            logs_path if logs_path is not None else os.path.join(results_path, "logs")
+            os.path.join(logs_path, "log_dir") if logs_path is not None else os.path.join(results_path, "log_dir")
         )
         self.__model_constructor = model_constructor
         self.__custom_objects = custom_objects
         self.__devices = None
         self.__total_n_models = None
-        self.__force_subclass_weights_saver = force_subclass_weights_saver
-        self.__force_subclass_weights_loader = force_subclass_weights_loader
+        self.name = name
+        for path_ in [self.results_path, self.logs_path]:
+            path_management(path_)
 
     def design(
         self,
@@ -80,11 +77,8 @@ class AIronSuit(object):
         sample_weight=None,
         sample_weight_val=None,
         model_specs=None,
-        results_path=None,
-        logs_path=None,
         metric=None,
         trials=None,
-        name="NN",
         verbose=0,
         seed=None,
         raw_callbacks=None,
@@ -98,8 +92,6 @@ class AIronSuit(object):
                 x_train (list, np.array): Input data for training.
                 x_val (list, np.array): Input data for validation.
                 hyper_space (dict): Hyper parameter space for model design.
-                results_path (str): Results path.
-                logs_path (str): Logs path.
                 max_evals (integer): Maximum number of evaluations.
                 epochs (int): Number of epochs for model training.
                 batch_size (int): Number of samples per batch.
@@ -110,7 +102,6 @@ class AIronSuit(object):
                 model_specs (dict): Model specifications.
                 metric (str, int): Metric to be used for model design. If None validation loss is used.
                 trials (Trials): Object with design information.
-                name (str): Name of the model.
                 verbose (int): Verbosity.
                 seed (int): Seed for reproducible results.
                 raw_callbacks (list): Dictionary of raw callbacks.
@@ -119,10 +110,7 @@ class AIronSuit(object):
                 save_val_inference (bool): Whether or not to save validation inference when the best model is found.
         """
 
-        method_r_path = self.__manage_path(results_path, path_ext="design")
-        method_l_path = self.__manage_path(logs_path, path_ext="log_dir", path_type="logs")
-
-        setup_design_logs(method_l_path, hyper_space)
+        setup_design_logs(self.logs_path, hyper_space)
 
         if trials is None:
             trials = Trials()
@@ -130,9 +118,9 @@ class AIronSuit(object):
             raw_callbacks
             if raw_callbacks
             else get_basic_callbacks(
-                path=method_r_path,
+                path=self.results_path,
                 patience=patience,
-                name=name,
+                name=self.name,
                 verbose=verbose,
                 epochs=epochs,
             )
@@ -143,7 +131,7 @@ class AIronSuit(object):
         def design_trial(hyper_candidates):
 
             # Save trials
-            with open(os.path.join(method_r_path, "trials.hyperopt"), "wb") as f:
+            with open(os.path.join(self.results_path, "trials.hyperopt"), "wb") as f:
                 pickle.dump(trials, f)
 
             # Create model
@@ -253,25 +241,25 @@ class AIronSuit(object):
 
             # Save model if it is the best so far
             design_loss_name = os.path.join(
-                method_r_path, "_".join([name, "loss"])
+                self.results_path, "_".join([self.name, "loss"])
             )
             trials_losses = [loss_ for loss_ in trials.losses() if loss_ is not None]
-            design_loss = min(trials_losses) if len(trials_losses) > 0 else None
-            print("best metric so far: " + str(design_loss))
+            best_design_loss = min(trials_losses) if len(trials_losses) > 0 else None
+            print("best metric so far: " + str(best_design_loss))
             print("current metric: " + str(design_loss))
             design_loss_cond = (
-                design_loss is None or design_loss < design_loss
+                best_design_loss is None or design_loss < best_design_loss
             )
             save_cond = status == STATUS_OK and design_loss_cond
             print("save: " + str(save_cond))
             if save_cond:
                 df = pd.DataFrame(data=[design_loss], columns=["design_loss"])
                 df.to_pickle(design_loss_name)
-                self.model.save_weights(os.path.join(method_r_path, name))
+                self.model.save_weights(os.path.join(self.results_path, self.name))
                 with open(
                     os.path.join(
-                        method_r_path,
-                        "_".join([name, "hyper_candidates"]),
+                        self.results_path,
+                        "_".join([self.name, "hyper_candidates"]),
                     ),
                     "wb",
                 ) as f:
@@ -290,7 +278,7 @@ class AIronSuit(object):
                     )
                 # Update logs
                 update_design_logs(
-                    path=os.path.join(method_l_path, str(len(trials.losses()))),
+                    path=os.path.join(self.logs_path, str(len(trials.losses()))),
                     hparams=hyper_space,
                     value=design_loss,
                     step=len(trials.losses()),
@@ -310,22 +298,17 @@ class AIronSuit(object):
                                           algo=hyperopt.tpe.suggest, max_evals=max_evals, trials=trials, verbose=True,
                                           return_argmin=False, )
                 # Save trials
-                with open(os.path.join(method_r_path, "trials.hyperopt"), "wb") as f:
+                with open(os.path.join(self.results_path, "trials.hyperopt"), "wb") as f:
                     pickle.dump(trials, f)
-            with open(
-                os.path.join(
-                    method_r_path, name + "_hyper_candidates"
-                ),
-                "rb",
-            ) as f:
-                hyper_candidates = pickle.load(f)
+            hyper_candidates = self.load_hyper_candidates()
 
             # Best model
             specs = {}
             if model_specs:
                 specs.update(model_specs.copy())
             specs.update(hyper_candidates)
-            self.model.load_weights(os.path.join(method_r_path, name))
+            self.model = self.__model_constructor(**specs)
+            self.model.load_weights(os.path.join(self.results_path, self.name))
             print("hyper-parameters: " + str(hyper_candidates))
 
         design()
@@ -341,9 +324,6 @@ class AIronSuit(object):
         callbacks=None,
         verbose=0,
         use_basic_callbacks=True,
-        results_path=None,
-        logs_path=None,
-        name="NN",
         patience=3,
     ):
         """ Weight optimization.
@@ -358,22 +338,15 @@ class AIronSuit(object):
                 callbacks (dict): Dictionary of callbacks.
                 verbose (int): Verbosity.
                 use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
-                results_path (str): Results path.
-                logs_path (str): Logs path.
-                name (str): Name of the model.
                 patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
         """
-        method_r_path = self.__manage_path(results_path, path_ext="train")
-        method_l_path = self.__manage_path(
-            logs_path, path_type="logs"
-        )  # ToDo: fix this
         raw_callbacks = (
             callbacks
             if callbacks
             else get_basic_callbacks(
-                path=method_r_path,
+                path=self.results_path,
                 patience=patience,
-                name=name,
+                name=self.name,
                 verbose=verbose,
                 epochs=epochs,
             )
@@ -468,7 +441,6 @@ class AIronSuit(object):
         """
         if latent_model_output and self.latent_model is None:
             warnings.warn("latent model should be created first")
-        method_l_path = self.__manage_path(logs_path, path_ext="log_dir", path_type="logs")
         if hidden_layer_name is not None:
             model = get_latent_model(self.model, hidden_layer_name)
         else:
@@ -479,10 +451,23 @@ class AIronSuit(object):
         representations_name = model.output_names[0]
         save_representations(
             representations=model.predict(x),
-            path=method_l_path,
+            path=self.logs_path,
             representations_name=representations_name,
             metadata=metadata,
         )
+
+    def load_hyper_candidates(self):
+        """ Load hyper candidates.
+        """
+        with open(
+                os.path.join(
+                    self.results_path,
+                    "_".join([self.name, "hyper_candidates"])
+                ),
+                "rb",
+        ) as f:
+            hyper_candidates = pickle.load(f)
+        return hyper_candidates
 
     def __train(
         self,
@@ -524,11 +509,3 @@ class AIronSuit(object):
 
     def __create(self, **kwargs):
         self.model = self.__model_constructor(**kwargs)
-
-    def __manage_path(self, path, path_ext=None, path_type="results"):
-        default_path = self.results_path if path_type == "results" else self.logs_path
-        path_ = path if path is not None else default_path
-        if path_ext:
-            path_ = os.path.join(path_, path_ext)
-        path_management(path_)
-        return path_

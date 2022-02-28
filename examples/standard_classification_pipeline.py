@@ -102,9 +102,8 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
                 trials = Trials()
         aironsuit = AIronSuit(
             model_constructor=image_classifier,
-            force_subclass_weights_saver=True,
-            force_subclass_weights_loader=True,
             results_path=WORKING_PATH,
+            name=model_name,
         )
         aironsuit.design(
             x_train=x_train,
@@ -119,7 +118,6 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
             max_evals=max_evals + len(trials.trials),
             epochs=epochs,
             trials=trials,
-            name=model_name,
             seed=0,
             patience=patience,
             verbose=verbose,

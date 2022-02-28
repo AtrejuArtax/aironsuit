@@ -120,7 +120,8 @@ x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
 # Invoke AIronSuit
 aironsuit = AIronSuit(
     model_constructor=model_constructor,
-    results_path=working_path
+    results_path=working_path,
+    name=model_name,
 )
 
 # COMMAND ----------
@@ -139,7 +140,6 @@ aironsuit.design(
     epochs=epochs,
     batch_size=batch_size,
     trials=Trials(),
-    name=model_name,
     verbose=verbose,
     seed=0,
     patience=patience
