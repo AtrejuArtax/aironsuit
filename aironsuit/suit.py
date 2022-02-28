@@ -13,7 +13,7 @@ from hyperopt import Trials, STATUS_OK, STATUS_FAIL
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.design.utils import setup_design_logs, update_design_logs
 from airontools.constructors.utils import Model, get_latent_model
-from airontools.interactors import load_model, save_model, clear_session, summary
+from airontools.interactors import clear_session, summary
 from airontools.tensorboard_utils import save_representations
 from airontools.tools import path_management
 
@@ -267,10 +267,7 @@ class AIronSuit(object):
             if save_cond:
                 df = pd.DataFrame(data=[design_loss], columns=["design_loss"])
                 df.to_pickle(design_loss_name)
-                self.__save_load_model(
-                    name=os.path.join(method_r_path, name),
-                    mode="save",
-                )
+                self.model.save_weights(os.path.join(method_r_path, name))
                 with open(
                     os.path.join(
                         method_r_path,
@@ -308,16 +305,10 @@ class AIronSuit(object):
         def design():
 
             if len(trials.trials) < max_evals:
-                hyperopt.fmin(
-                    design_trial,
-                    rstate=None if seed is None else np.random.default_rng(seed),
-                    space={key: value["options"] for key, value in hyper_space.items()},
-                    algo=hyperopt.tpe.suggest,
-                    max_evals=max_evals,
-                    trials=trials,
-                    verbose=True,
-                    return_argmin=False,
-                )
+                self.fmin = hyperopt.fmin(design_trial, rstate=None if seed is None else np.random.default_rng(seed),
+                                          space={key: value["options"] for key, value in hyper_space.items()},
+                                          algo=hyperopt.tpe.suggest, max_evals=max_evals, trials=trials, verbose=True,
+                                          return_argmin=False, )
                 # Save trials
                 with open(os.path.join(method_r_path, "trials.hyperopt"), "wb") as f:
                     pickle.dump(trials, f)
@@ -334,11 +325,7 @@ class AIronSuit(object):
             if model_specs:
                 specs.update(model_specs.copy())
             specs.update(hyper_candidates)
-            self.__save_load_model(
-                name=os.path.join(method_r_path, name),
-                mode="load",
-                **{key: value for key, value in specs.items() if key != "name"}
-            )
+            self.model.load_weights(os.path.join(method_r_path, name))
             if all([spec_ in specs.keys() for spec_ in ["optimizer", "loss"]]):
                 compile_kwargs = {
                     "optimizer": specs["optimizer"],
@@ -453,23 +440,6 @@ class AIronSuit(object):
             args += [y]
         return self.model.evaluate(*args)
 
-    def save_model(self, name):
-        """ Save the model.
-
-            Parameters:
-                name (str): Model name.
-        """
-        self.__save_load_model(name=name, mode="save")
-
-    def load_model(self, name, **kwargs):
-        """ Load the model.
-
-            Parameters:
-                name (str): Model name.
-                kwargs (dict): Custom or other arguments.
-        """
-        self.__save_load_model(name=name, mode="load", **kwargs)
-
     def clear_session(self):
         """ Clear session.
         """
@@ -521,20 +491,6 @@ class AIronSuit(object):
             representations_name=representations_name,
             metadata=metadata,
         )
-
-    def __save_load_model(self, name, mode, **kwargs):
-        if mode == "save":
-            if self.__force_subclass_weights_saver:
-                self.model.save_weights(name)
-            else:
-                save_model(model=self.model, name=name)
-        elif mode == "load":
-            if self.__force_subclass_weights_loader:
-                if len(kwargs) != 0:
-                    self.model = self.__model_constructor(**kwargs)
-                self.model.load_weights(name)
-            else:
-                self.model = load_model(name, custom_objects=self.__custom_objects)
 
     def __train(
         self,
