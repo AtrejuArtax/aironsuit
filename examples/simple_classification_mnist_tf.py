@@ -117,7 +117,6 @@ aironsuit.design(
     max_evals=max_evals,
     epochs=epochs,
     trials=Trials(),
-    name=model_name,
     seed=0,
     patience=patience,
 )
@@ -133,17 +132,13 @@ print('Test accuracy:', score[1])
 # COMMAND ----------
 
 # Save Model
-aironsuit.model.save_weights(os.path.join(working_path, project_name + '_model'))
-best_hypers = aironsuit.load_hyper_candidates()
-del aironsuit
+aironsuit.save_model(os.path.join(working_path, project_name + '_model'))
 
 # COMMAND ----------
 
 # Re-Invoke AIronSuit and load model
-best_model_specs = model_specs.copy()
-best_model_specs.update(best_hypers)
-aironsuit = AIronSuit(model=classifier_model_constructor(**best_model_specs))
-aironsuit.model.load_weights(os.path.join(working_path, project_name + '_model'))
+aironsuit = AIronSuit()
+aironsuit.load_model(os.path.join(working_path, project_name + '_model'))
 aironsuit.model.compile(
     loss='categorical_crossentropy',
     optimizer='adam',
