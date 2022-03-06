@@ -13,7 +13,7 @@ from hyperopt import Trials, STATUS_OK, STATUS_FAIL
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.design.utils import setup_design_logs, update_design_logs
 from airontools.constructors.utils import Model, get_latent_model
-from airontools.interactors import clear_session, summary
+from airontools.interactors import load_model, save_model, clear_session, summary
 from airontools.tensorboard_utils import save_representations
 from airontools.tools import path_management
 
@@ -404,6 +404,21 @@ class AIronSuit(object):
         if y is not None:
             args += [y]
         return self.model.evaluate(*args)
+
+    def save_model(self, name):
+        """ Save the model.
+            Parameters:
+                name (str): Model name.
+        """
+        save_model(model=self.model, name=name)
+
+    def load_model(self, name, **kwargs):
+        """ Load the model.
+            Parameters:
+                name (str): Model name.
+                kwargs (dict): Custom or other arguments.
+        """
+        self.model = load_model(name, custom_objects=self.__custom_objects)
 
     def clear_session(self):
         """ Clear session.
