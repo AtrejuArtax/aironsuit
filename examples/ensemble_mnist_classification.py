@@ -133,8 +133,7 @@ hyperparam_space = {
 # Invoke AIronSuit
 aironsuit = AIronSuit(
     model_constructor=Ensemble,
-    force_subclass_weights_saver=True,
-    force_subclass_weights_loader=True
+    name=model_name,
 )
 
 # COMMAND ----------
@@ -151,7 +150,6 @@ aironsuit.design(
     max_evals=max_evals,
     epochs=epochs,
     trials=Trials(),
-    name=model_name,
     seed=0,
     patience=patience
 )

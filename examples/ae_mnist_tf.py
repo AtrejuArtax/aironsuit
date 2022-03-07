@@ -69,9 +69,8 @@ hyperparam_space = {'latent_dim': choice_hp('latent_dim', [int(val) for val in n
 # Invoke AIronSuit
 aironsuit = AIronSuit(
     model_constructor=ae_model_constructor,
-    force_subclass_weights_saver=True,
-    force_subclass_weights_loader=True,
-    results_path=working_path
+    results_path=working_path,
+    name=model_name,
 )
 
 # COMMAND ----------
@@ -86,7 +85,6 @@ aironsuit.design(
     max_evals=max_evals,
     epochs=epochs,
     trials=Trials(),
-    name=model_name,
     seed=0,
     patience=patience
 )

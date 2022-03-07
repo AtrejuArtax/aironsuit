@@ -117,7 +117,6 @@ aironsuit.design(
     max_evals=max_evals,
     epochs=epochs,
     trials=Trials(),
-    name=model_name,
     seed=0,
     patience=patience,
 )
@@ -134,7 +133,6 @@ print('Test accuracy:', score[1])
 
 # Save Model
 aironsuit.save_model(os.path.join(working_path, project_name + '_model'))
-del aironsuit
 
 # COMMAND ----------
 

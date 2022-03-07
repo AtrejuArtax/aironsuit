@@ -65,7 +65,7 @@ model.compile(
 # COMMAND ----------
 
 # Invoke AIronSuit
-aironsuit = AIronSuit(model=model)
+aironsuit = AIronSuit(model=model, name=model_name)
 aironsuit.summary()
 
 # COMMAND ----------
@@ -76,7 +76,6 @@ aironsuit.train(
     epochs=epochs,
     x_train=x_train,
     y_train=y_train,
-    name=model_name
 )
 
 # COMMAND ----------
@@ -89,4 +88,4 @@ print('Test accuracy:', score[1])
 # COMMAND ----------
 
 # Save Model
-aironsuit.save_model(os.path.join(working_path, project_name + '_model'))
+aironsuit.model.save_weights(os.path.join(working_path, project_name + '_model'))
