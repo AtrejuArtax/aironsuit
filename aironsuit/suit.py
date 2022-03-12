@@ -494,6 +494,8 @@ class AIronSuit(object):
         sample_weight=None,
         sample_weight_val=None,
         raw_callbacks=None,
+        patience=10,
+        optimise_hypers_on_the_fly=True,
         **kwargs
     ):
         if raw_callbacks is not None:
@@ -521,6 +523,14 @@ class AIronSuit(object):
                 kwargs['sample_weight'] = sample_weight
             kwargs['batch_size'] = batch_size
         self.model.fit(*fit_args, **kwargs)
+        if optimise_hypers_on_the_fly:
+            set_methods = [method for method in dir(self.model)
+                           if "set_hyper" in method and callable(getattr(self.model, method))]
+            get_methods = [method for method in dir(self.model)
+                           if "get_hyper" in method and callable(getattr(self.model, method))]
+            for i in range(patience):
+                pass
+
 
     def __create(self, **kwargs):
         self.model = self.__model_constructor(**kwargs)
