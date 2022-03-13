@@ -16,6 +16,7 @@ from airontools.constructors.utils import Model, get_latent_model
 from airontools.interactors import load_model, save_model, clear_session, summary
 from airontools.tensorboard_utils import save_representations
 from airontools.tools import path_management
+import random
 
 
 class AIronSuit(object):
@@ -85,6 +86,7 @@ class AIronSuit(object):
         use_basic_callbacks=True,
         patience=3,
         save_val_inference=False,
+        optimise_hypers_on_the_fly=False,
     ):
         """ Automatic model design.
 
@@ -108,6 +110,7 @@ class AIronSuit(object):
                 use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
                 patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
                 save_val_inference (bool): Whether or not to save validation inference when the best model is found.
+                optimise_hypers_on_the_fly (bool): Whether to perform optimisation of hypers on the fly.
         """
 
         setup_design_logs(self.logs_path, hyper_space)
@@ -160,6 +163,7 @@ class AIronSuit(object):
                 sample_weight_val=sample_weight_val,
                 raw_callbacks=raw_callbacks,
                 verbose=verbose,
+                optimise_hypers_on_the_fly=optimise_hypers_on_the_fly,
             )
 
             # Design loss
@@ -325,6 +329,7 @@ class AIronSuit(object):
         verbose=0,
         use_basic_callbacks=True,
         patience=3,
+        optimise_hypers_on_the_fly=False,
     ):
         """ Weight optimization.
 
@@ -339,6 +344,7 @@ class AIronSuit(object):
                 verbose (int): Verbosity.
                 use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
                 patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
+                optimise_hypers_on_the_fly (bool): Whether to perform optimisation of hypers on the fly.
         """
         raw_callbacks = (
             callbacks
@@ -362,6 +368,7 @@ class AIronSuit(object):
             y_val=y_val,
             raw_callbacks=raw_callbacks,
             verbose=verbose,
+            optimise_hypers_on_the_fly=optimise_hypers_on_the_fly,
         )
 
     def inference(self, x):
@@ -495,7 +502,7 @@ class AIronSuit(object):
         sample_weight_val=None,
         raw_callbacks=None,
         patience=10,
-        optimise_hypers_on_the_fly=True,
+        optimise_hypers_on_the_fly=False,
         **kwargs
     ):
         if raw_callbacks is not None:
@@ -524,13 +531,19 @@ class AIronSuit(object):
             kwargs['batch_size'] = batch_size
         self.model.fit(*fit_args, **kwargs)
         if optimise_hypers_on_the_fly:
-            set_methods = [method for method in dir(self.model)
-                           if "set_hyper" in method and callable(getattr(self.model, method))]
-            get_methods = [method for method in dir(self.model)
-                           if "get_hyper" in method and callable(getattr(self.model, method))]
-            for i in range(patience):
-                pass
-
+            if "epochs" in kwargs.keys():
+                kwargs["epochs"] = 1
+            actions_space = {method: getattr(self.model, "method").actions
+                             for method in dir(self.model)
+                             if "hyper_design" in method and callable(getattr(self.model, method))}
+            if len(actions_space.keys()) == 0:
+                warnings.warn("could not find actions to perform on the fly")
+            else:
+                print("Starting optimisation of hypers on the fly...")
+                for i in range(patience):
+                    for action_name, action_space in actions_space.items():
+                        getattr(self.model, action_name).set_action(random.choice(action_space))
+                    self.model.fit(*fit_args, **kwargs)
 
     def __create(self, **kwargs):
         self.model = self.__model_constructor(**kwargs)
