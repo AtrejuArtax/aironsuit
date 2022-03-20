@@ -121,6 +121,7 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
             seed=0,
             patience=patience,
             verbose=verbose,
+            optimise_hypers_on_the_fly=True,
         )
         del x_train, x_val, y_train, y_val
         aironsuit.summary()
