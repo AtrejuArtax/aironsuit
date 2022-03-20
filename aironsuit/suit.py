@@ -533,16 +533,16 @@ class AIronSuit(object):
         if optimise_hypers_on_the_fly:
             if "epochs" in kwargs.keys():
                 kwargs["epochs"] = 1
-            hyper_designs = {method: getattr(self.model, method).actions
+            hyper_designs = {method: getattr(self.model, method).actions_space
                              for method in dir(self.model)
-                             if "hyper_design" in method and callable(getattr(self.model, method))}
+                             if "hyper_design" in method}
             if len(hyper_designs) == 0:
                 warnings.warn("could not find hyper designs to perform on the fly")
             else:
                 print("Starting optimisation of hypers on the fly...")
                 for i in range(patience):
                     for hyper_design_name, action_space in hyper_designs.items():
-                        getattr(self.model, hyper_design_name).set_action(random.choice(action_space))
+                        getattr(self.model, hyper_design_name).set_action(random.choice(list(action_space.keys())))
                     self.model.fit(*fit_args, **kwargs)
 
     def __create(self, **kwargs):
