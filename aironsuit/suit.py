@@ -110,7 +110,11 @@ class AIronSuit(object):
                 save_val_inference (bool): Whether or not to save validation inference when the best model is found.
         """
 
-        setup_design_logs(self.logs_path, hyper_space)
+        setup_design_logs(
+            path=self.logs_path,
+            hyper_space=hyper_space,
+            metric=metric if isinstance(metric, str) else "val_loss",
+        )
 
         if trials is None:
             trials = Trials()
@@ -279,10 +283,10 @@ class AIronSuit(object):
                 # Update logs
                 update_design_logs(
                     path=os.path.join(self.logs_path, str(len(trials.losses()))),
-                    hparams=hyper_space,
+                    hparams={value["logs"]: specs[key] for key, value in hyper_space.items()},
                     value=design_loss,
                     step=len(trials.losses()),
-                    metric=metric,
+                    metric=metric if isinstance(metric, str) else "val_loss",
                 )
 
             clear_session()
