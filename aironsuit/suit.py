@@ -1,3 +1,4 @@
+import inspect
 import math
 import os
 import pickle
@@ -205,7 +206,10 @@ class AIronSuit(object):
                         )[metric]
                 else:
                     evaluate_kwargs["model"] = self.model
-                    design_loss = metric(*evaluate_args, **evaluate_kwargs)
+                    design_loss = metric(
+                        *evaluate_args,
+                        **{key: value for key, value in evaluate_kwargs.items() if key in metric.__annotations__.keys()}
+                    )
             else:
                 if all([isinstance(data, tf.data.Dataset) for data in evaluate_args]):
                     if sample_weight_val is not None:
