@@ -137,9 +137,9 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
             with open(best_file_name + '_hparams', 'rb') as handle:
                 specs.update(pickle.load(handle))
             aironsuit = AIronSuit(
-                model_constructor=image_classifier,
+                model=image_classifier(**specs),
+                name=model_name,
             )
-            aironsuit.load_model(best_file_name, **specs)
         except RuntimeError as e:
             aironsuit = None
             print(e)
