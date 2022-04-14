@@ -100,7 +100,10 @@ hyperparam_space = {
 # COMMAND ----------
 
 # Invoke AIronSuit
-aironsuit = AIronSuit(model_constructor=classifier_model_constructor)
+aironsuit = AIronSuit(
+    model_constructor=classifier_model_constructor,
+    name=model_name,
+)
 
 # COMMAND ----------
 
@@ -132,18 +135,24 @@ print('Test accuracy:', score[1])
 # COMMAND ----------
 
 # Save Model
-aironsuit.save_model(os.path.join(working_path, project_name + '_model'))
+aironsuit.model.save_weights(os.path.join(working_path, model_name))
+best_model_specs = model_specs.copy()
+best_model_specs.update(aironsuit.load_hyper_candidates())
+del aironsuit
 
 # COMMAND ----------
 
 # Re-Invoke AIronSuit and load model
-aironsuit = AIronSuit()
-aironsuit.load_model(os.path.join(working_path, project_name + '_model'))
+aironsuit = AIronSuit(
+    model=classifier_model_constructor(**best_model_specs),
+    name=model_name,
+)
 aironsuit.model.compile(
     loss='categorical_crossentropy',
     optimizer='adam',
     metrics=['accuracy']
 )
+aironsuit.model.load_weights(os.path.join(working_path, model_name))
 
 # Further Training
 aironsuit.train(
