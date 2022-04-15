@@ -21,12 +21,14 @@ def packages_manager(packages, mode):
 def integration_test():
 
     # Clear, build and install packages
-    for package_name in ["ariontools", "aironsuit"]:
-        repository_path = os.path.join(REPOS_PATH, package_name, os.sep)
+    for package_name in ["airontools", "aironsuit"]:
+        repository_path = os.path.join(REPOS_PATH, package_name) + os.sep
         for name in ["dist", "build", package_name + ".egg-info"]:
-            shutil.rmtree(os.path.join(repository_path, name))
+            name_path = os.path.join(repository_path, name)
+            if os.path.isdir(name_path):
+                shutil.rmtree(name_path)
+        os.system('cd {} && python setup.py bdist_wheel'.format(repository_path))
         build_name = os.listdir(os.path.join(repository_path, "dist"))[0]
-        os.system('python {}setup.py bdist_wheel'.format(build_name))
         for action, package_name_ in zip(["uninstall", "install"], [package_name, build_name]):
             os.system('pip {} {}'.format(action, package_name))
 
