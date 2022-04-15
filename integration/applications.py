@@ -3,78 +3,38 @@ import os
 import pathlib
 import sys
 import time
+import shutil
 
 from utils import test_application
 
-BACKENDS = ['tensorflow']
 REPOS_PATH = os.sep.join(str(pathlib.Path(__file__).parent.resolve()).split(os.sep)[:-2])
 APPLICATIONS = [
     [os.path.join('aironsuit', 'examples'), ['tensorflow']]
 ]
-TEST_PACKAGES = ['airontools', 'aironsuit']
-OTHER_TF_PACKAGES = ['tensorboard']
 
 
 def packages_manager(packages, mode):
-    if mode == 'install':
-        arguments = '--force-reinstall'
-    else:
-        arguments = '-y'
-    [os.system('pip {} {} {}'.format(mode, arguments, package)) for package in packages]
+    [os.system('pip {} {}'.format(mode, package)) for package in packages]
     time.sleep(10)
 
 
-def integration_test(test_version, quick_test):
-    # ToDo: automate building the packages and installing them
-    # ToDO: automate integration test dependencies installation
+def integration_test():
 
-    # Local test packages
-    local_test_packages = [
-        os.path.join(REPOS_PATH, 'airontools', 'dist', 'airontools-' + test_version + '-py3-none-any.whl'),
-        os.path.join(REPOS_PATH, 'aironsuit', 'dist', 'aironsuit-' + test_version + '-py3-none-any.whl')]
+    # Clear, build and install packages
+    for package_name in ["ariontools", "aironsuit"]:
+        repository_path = os.path.join(REPOS_PATH, package_name, os.sep)
+        for name in ["dist", "build", package_name + ".egg-info"]:
+            shutil.rmtree(os.path.join(repository_path, name))
+        build_name = os.listdir(os.path.join(repository_path, "dist"))[0]
+        os.system('python {}setup.py bdist_wheel'.format(build_name))
+        for action, package_name_ in zip(["uninstall", "install"], [package_name, build_name]):
+            os.system('pip {} {}'.format(action, package_name))
 
     # Test applications
-    installed_backends = ['tensorflow']
-    if not quick_test:
-        packages_manager(installed_backends + TEST_PACKAGES, 'uninstall')
     for app_name, app_backends in APPLICATIONS:
-        if not quick_test:
-            install_packages = local_test_packages + app_backends
-            if 'tensorflow' in app_backends:
-                install_packages += OTHER_TF_PACKAGES
-            packages_manager(install_packages, 'install')
         test_application(REPOS_PATH, app_name)
-        if not quick_test:
-            uninstall_packages = app_backends + TEST_PACKAGES
-            if 'tensorflow' in app_backends:
-                uninstall_packages += OTHER_TF_PACKAGES
-            packages_manager(uninstall_packages, 'uninstall')
-    if not quick_test:
-        packages_manager(installed_backends, 'install')
 
 
 if __name__ == '__main__':
 
-    argv = sys.argv[1:]
-
-    try:
-        opts, args = getopt.getopt(argv, 'h', ['version=', 'quick_test='])
-    except getopt.GetoptError:
-        sys.exit(2)
-
-    version = 'latest'
-    quick = True
-
-    for opt, arg in opts:
-
-        print('\n')
-        if opt == '-h':
-            sys.exit()
-        if opt in '--version':
-            version = arg
-            print('version:' + arg)
-        if opt in '--quick':
-            quick = arg
-            print('quick:' + arg)
-
-    integration_test(version, quick)
+    integration_test()
