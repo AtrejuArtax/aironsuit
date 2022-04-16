@@ -188,6 +188,8 @@ class AIronSuit(object):
                 verbose=verbose,
                 **additional_evaluation_kwargs
             )
+
+            # Define status
             status = (
                 STATUS_OK
                 if not math.isnan(evaluation) and evaluation is not None
