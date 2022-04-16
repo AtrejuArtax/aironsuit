@@ -25,7 +25,7 @@ model_name = project_name + '_NN'
 batch_size = 32
 epochs = 3
 patience = 3
-max_evals = 25
+max_evals = 3
 precision = 'float32'
 
 # COMMAND ----------

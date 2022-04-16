@@ -25,7 +25,7 @@ batch_size = 128
 epochs = 3
 patience = 3
 max_evals = 3
-max_n_samples = None
+max_n_samples = 1000
 precision = 'float32'
 
 # COMMAND ----------
