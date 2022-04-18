@@ -87,6 +87,8 @@ class AIronSuit(object):
         patience=3,
         save_val_inference=False,
         optimise_hypers_on_the_fly=False,
+        additional_train_kwargs=None,
+        additional_evaluation_kwargs=None,
     ):
         """ Automatic model design.
 
@@ -111,7 +113,12 @@ class AIronSuit(object):
                 patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
                 save_val_inference (bool): Whether or not to save validation inference when the best model is found.
                 optimise_hypers_on_the_fly (bool): Whether to perform optimisation of hypers on the fly.
+                additional_train_kwargs (dict): Additional key arguments for training.
+                additional_evaluation_kwargs (dict): Additional key arguments for evaluation.
         """
+
+        additional_train_kwargs = additional_train_kwargs if additional_train_kwargs is not None else {}
+        additional_evaluation_kwargs = additional_evaluation_kwargs if additional_evaluation_kwargs is not None else {}
 
         setup_design_logs(
             path=self.logs_path,
@@ -168,104 +175,44 @@ class AIronSuit(object):
                 raw_callbacks=raw_callbacks,
                 verbose=verbose,
                 optimise_hypers_on_the_fly=optimise_hypers_on_the_fly,
+                **additional_train_kwargs
             )
 
-            # Design loss
-            evaluate_args = [x_val]
-            if y_val is not None:
-                evaluate_args += [y_val]
-            evaluate_kwargs = {}
-            if isinstance(self.model, Model):
-                evaluate_kwargs["verbose"] = verbose
-            if sample_weight_val is not None:
-                evaluate_kwargs["sample_weight"] = sample_weight_val
-            if metric is not None:
-                if isinstance(metric, int) or isinstance(metric, str):
-                    if isinstance(metric, str):
-                        evaluate_kwargs.update({'return_dict': True})
-                    if all(
-                        [isinstance(data, tf.data.Dataset) for data in evaluate_args]
-                    ):
-                        if sample_weight_val is not None:
-                            evaluate_args += [evaluate_kwargs["sample_weight"]]
-                            del evaluate_kwargs["sample_weight"]
-                            evaluate_args = tf.data.Dataset.from_tensor_slices(
-                                tuple(
-                                    [
-                                        list(eval_data_.as_numpy_iterator())
-                                        for eval_data_ in evaluate_args
-                                    ]
-                                )
-                            )
-                        else:
-                            evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
-                        evaluate_args = evaluate_args.batch(batch_size)
-                        design_loss = self.model.evaluate(
-                            evaluate_args, **evaluate_kwargs
-                        )[metric]
-                    else:
-                        design_loss = self.model.evaluate(
-                            *evaluate_args, **evaluate_kwargs
-                        )[metric]
-                else:
-                    evaluate_kwargs["model"] = self.model
-                    design_loss = metric(
-                        *evaluate_args,
-                        **{key: value for key, value in evaluate_kwargs.items() if key in metric.__annotations__.keys()}
-                    )
-            else:
-                if all([isinstance(data, tf.data.Dataset) for data in evaluate_args]):
-                    if sample_weight_val is not None:
-                        evaluate_args += [evaluate_kwargs["sample_weight"]]
-                        del evaluate_kwargs["sample_weight"]
-                        evaluate_args = tf.data.Dataset.from_tensor_slices(
-                            tuple(
-                                [
-                                    list(eval_data_.as_numpy_iterator())
-                                    for eval_data_ in evaluate_args
-                                ]
-                            )
-                        )
-                    else:
-                        evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
-                    evaluate_args = evaluate_args.batch(batch_size)
-                    design_loss = self.model.evaluate(evaluate_args, **evaluate_kwargs)
-                else:
-                    design_loss = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
-                if isinstance(design_loss, list):
-                    design_loss = design_loss[0]
-            if isinstance(design_loss, tuple):
-                design_loss = list(design_loss)
-            elif isinstance(design_loss, dict):
-                design_loss = [loss_ for _, loss_ in design_loss.items()]
-            if isinstance(design_loss, list):
-                design_loss = sum(design_loss)
-            if verbose > 0:
-                print("\n")
-                print("design Loss: ", design_loss)
+            # Model evaluation
+            evaluation = self.__evaluate(
+                x=x_val,
+                y=y_val,
+                batch_size=batch_size,
+                sample_weight=sample_weight_val,
+                metric=metric,
+                verbose=verbose,
+                **additional_evaluation_kwargs
+            )
+
+            # Define status
             status = (
                 STATUS_OK
-                if not math.isnan(design_loss) and design_loss is not None
+                if not math.isnan(evaluation) and evaluation is not None
                 else STATUS_FAIL
             )
             print("status: ", status)
 
             # Save model if it is the best so far
-            design_loss_name = os.path.join(
+            evaluation_file_name = os.path.join(
                 self.results_path, "_".join([self.name, "loss"])
             )
             trials_losses = [loss_ for loss_ in trials.losses() if loss_ is not None]
-            best_design_loss = min(trials_losses) if len(trials_losses) > 0 else None
-            print("best metric so far: " + str(best_design_loss))
-            print("current metric: " + str(design_loss))
-            design_loss_cond = (
-                best_design_loss is None or design_loss < best_design_loss
+            best_evaluation = min(trials_losses) if len(trials_losses) > 0 else None
+            print("best evaluation so far: " + str(best_evaluation))
+            print("current evaluation: " + str(evaluation))
+            evaluation_cond = (
+                best_evaluation is None or evaluation < best_evaluation
             )
-            save_cond = status == STATUS_OK and design_loss_cond
+            save_cond = status == STATUS_OK and evaluation_cond
             print("save: " + str(save_cond))
             if save_cond:
-                df = pd.DataFrame(data=[design_loss], columns=["design_loss"])
-                df.to_pickle(design_loss_name)
+                df = pd.DataFrame(data=[evaluation], columns=["evaluation"])
+                df.to_pickle(evaluation_file_name)
                 self.model.save_weights(os.path.join(self.results_path, self.name))
                 with open(
                     os.path.join(
@@ -291,7 +238,7 @@ class AIronSuit(object):
                 update_design_logs(
                     path=os.path.join(self.logs_path, str(len(trials.losses()))),
                     hparams={value["logs"]: specs[key] for key, value in hyper_space.items()},
-                    value=design_loss,
+                    value=evaluation,
                     step=len(trials.losses()),
                     metric=metric if isinstance(metric, str) else "val_loss",
                 )
@@ -299,7 +246,7 @@ class AIronSuit(object):
             clear_session()
             del self.model
 
-            return {"loss": design_loss, "status": status}
+            return {"loss": evaluation, "status": status}
 
         def design():
 
@@ -510,14 +457,18 @@ class AIronSuit(object):
         raw_callbacks=None,
         patience=10,
         optimise_hypers_on_the_fly=False,
+        verbose=0,
         **kwargs
     ):
+        train_kwargs = kwargs.copy()
+        if isinstance(self.model, Model):
+            train_kwargs["verbose"] = verbose
         if raw_callbacks is not None:
             if all([isinstance(callback, dict) for callback in raw_callbacks]):
                 callbacks = init_callbacks(raw_callbacks)
             else:
                 callbacks = raw_callbacks
-            kwargs.update({"callbacks": callbacks})
+            train_kwargs.update({"callbacks": callbacks})
         fit_args = [x_train]
         if y_train is not None:
             fit_args += [y_train]
@@ -526,20 +477,20 @@ class AIronSuit(object):
             if val_data_ is not None:
                 val_data += [val_data_]
         if len(val_data) != 0:
-            kwargs.update({"validation_data": tuple(val_data)})
+            train_kwargs.update({"validation_data": tuple(val_data)})
         if all([isinstance(data, tf.data.Dataset) for data in fit_args]):
-            kwargs["validation_data"] = tf.data.Dataset.zip(kwargs["validation_data"]).batch(batch_size)
+            train_kwargs["validation_data"] = tf.data.Dataset.zip(train_kwargs["validation_data"]).batch(batch_size)
             if sample_weight is not None:
                 warnings.warn('sample weight for training combined with tf datasets is not supported at the moment')
             fit_args = [tf.data.Dataset.zip(tuple(fit_args)).batch(batch_size)]
         else:
             if sample_weight is not None:
-                kwargs['sample_weight'] = sample_weight
-            kwargs['batch_size'] = batch_size
-        self.model.fit(*fit_args, **kwargs)
+                train_kwargs['sample_weight'] = sample_weight
+            train_kwargs['batch_size'] = batch_size
+        self.model.fit(*fit_args, **train_kwargs)
         if optimise_hypers_on_the_fly:
-            if "epochs" in kwargs.keys():
-                kwargs["epochs"] = 1
+            if "epochs" in train_kwargs.keys():
+                train_kwargs["epochs"] = 1
             hyper_designs = {method: getattr(self.model, method).actions_space
                              for method in dir(self.model)
                              if "hyper_design" in method}
@@ -550,7 +501,91 @@ class AIronSuit(object):
                 for i in range(patience):
                     for hyper_design_name, action_space in hyper_designs.items():
                         getattr(self.model, hyper_design_name).set_action(random.choice(list(action_space.keys())))
-                    self.model.fit(*fit_args, **kwargs)
+                    self.model.fit(*fit_args, **train_kwargs)
+
+    def __evaluate(
+        self,
+        x,
+        y,
+        batch_size=32,
+        sample_weight=None,
+        metric=None,
+        verbose=0,
+        **kwargs
+    ):
+        evaluate_args = [x]
+        if y is not None:
+            evaluate_args += [y]
+        evaluate_kwargs = kwargs.copy()
+        if isinstance(self.model, Model):
+            evaluate_kwargs["verbose"] = verbose
+        if sample_weight is not None:
+            evaluate_kwargs["sample_weight"] = sample_weight
+        if metric is not None:
+            if isinstance(metric, int) or isinstance(metric, str):
+                if isinstance(metric, str):
+                    evaluate_kwargs.update({'return_dict': True})
+                if all(
+                        [isinstance(data, tf.data.Dataset) for data in evaluate_args]
+                ):
+                    if sample_weight is not None:
+                        evaluate_args += [evaluate_kwargs["sample_weight"]]
+                        del evaluate_kwargs["sample_weight"]
+                        evaluate_args = tf.data.Dataset.from_tensor_slices(
+                            tuple(
+                                [
+                                    list(eval_data_.as_numpy_iterator())
+                                    for eval_data_ in evaluate_args
+                                ]
+                            )
+                        )
+                    else:
+                        evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
+                    evaluate_args = evaluate_args.batch(batch_size)
+                    evaluation = self.model.evaluate(
+                        evaluate_args, **evaluate_kwargs
+                    )[metric]
+                else:
+                    evaluation = self.model.evaluate(
+                        *evaluate_args, **evaluate_kwargs
+                    )[metric]
+            else:
+                evaluate_kwargs["model"] = self.model
+                evaluation = metric(
+                    *evaluate_args,
+                    **{key: value for key, value in evaluate_kwargs.items() if key in metric.__annotations__.keys()}
+                )
+        else:
+            if all([isinstance(data, tf.data.Dataset) for data in evaluate_args]):
+                if sample_weight is not None:
+                    evaluate_args += [evaluate_kwargs["sample_weight"]]
+                    del evaluate_kwargs["sample_weight"]
+                    evaluate_args = tf.data.Dataset.from_tensor_slices(
+                        tuple(
+                            [
+                                list(eval_data_.as_numpy_iterator())
+                                for eval_data_ in evaluate_args
+                            ]
+                        )
+                    )
+                else:
+                    evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
+                evaluate_args = evaluate_args.batch(batch_size)
+                evaluation = self.model.evaluate(evaluate_args, **evaluate_kwargs)
+            else:
+                evaluation = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
+            if isinstance(evaluation, list):
+                evaluation = evaluation[0]
+        if isinstance(evaluation, tuple):
+            evaluation = list(evaluation)
+        elif isinstance(evaluation, dict):
+            evaluation = [loss_ for _, loss_ in evaluation.items()]
+        if isinstance(evaluation, list):
+            evaluation = sum(evaluation)
+        if verbose > 0:
+            print("\n")
+            print("Model Evaluation: ", evaluation)
+        return evaluation
 
     def __create(self, **kwargs):
         self.model = self.__model_constructor(**kwargs)
