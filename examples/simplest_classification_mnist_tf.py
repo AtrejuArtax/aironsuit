@@ -81,7 +81,7 @@ aironsuit.train(
 # COMMAND ----------
 
 # Evaluate
-score = aironsuit.evaluate(x_test, y_test)
+score = aironsuit.model.evaluate(x_test, y_test)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])
 

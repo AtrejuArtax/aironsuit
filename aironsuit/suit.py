@@ -175,6 +175,7 @@ class AIronSuit(object):
                 raw_callbacks=raw_callbacks,
                 verbose=verbose,
                 optimise_hypers_on_the_fly=optimise_hypers_on_the_fly,
+                additional_evaluation_kwargs=additional_evaluation_kwargs,
                 **additional_train_kwargs
             )
 
@@ -192,8 +193,7 @@ class AIronSuit(object):
             # Define status
             status = (
                 STATUS_OK
-                if not math.isnan(evaluation) and evaluation is not None
-                else STATUS_FAIL
+                if not math.isnan(evaluation) else STATUS_FAIL
             )
             print("status: ", status)
 
@@ -354,17 +354,35 @@ class AIronSuit(object):
         assert self.model is not None
         self.latent_model = get_latent_model(self.model, hidden_layer_names)
 
-    def evaluate(self, x, y=None):
+    def evaluate(
+            self,
+            x,
+            y=None,
+            batch_size=32,
+            sample_weight=None,
+            metric=None,
+            verbose=0,
+            **kwargs
+    ):
         """ Evaluate.
 
             Parameters:
                 x (list, np.array): Input data for evaluation.
-                y (list, np.array): Target data for evaluation.
+                y (list, np.array): Output data for evaluation.
+                batch_size (int): Number of samples per batch.
+                sample_weight (np.array): Weight per sample to be computed for the evaluation.
+                metric (str, int): Metric to be used for model design. If None validation loss is used.
+                verbose (int): Verbosity.
         """
-        args = [x]
-        if y is not None:
-            args += [y]
-        return self.model.evaluate(*args)
+        return self.__evaluate(
+            x,
+            y,
+            batch_size=batch_size,
+            sample_weight=sample_weight,
+            metric=metric,
+            verbose=verbose,
+            **kwargs
+        )
 
     def save_model(self, name):
         """ Save the model.
@@ -458,8 +476,11 @@ class AIronSuit(object):
         patience=10,
         optimise_hypers_on_the_fly=False,
         verbose=0,
+        additional_evaluation_kwargs=None,
+        metric=None,
         **kwargs
     ):
+        additional_evaluation_kwargs = additional_evaluation_kwargs if additional_evaluation_kwargs is None else {}
         train_kwargs = kwargs.copy()
         if isinstance(self.model, Model):
             train_kwargs["verbose"] = verbose
@@ -498,10 +519,32 @@ class AIronSuit(object):
                 warnings.warn("could not find hyper designs to perform on the fly")
             else:
                 print("Starting optimisation of hypers on the fly...")
+                prev_evaluation = self.__evaluate(
+                        x=x_val,
+                        y=y_val,
+                        batch_size=batch_size,
+                        sample_weight=sample_weight_val,
+                        metric=metric,
+                        verbose=verbose,
+                        **additional_evaluation_kwargs
+                    )
+                improvement = False
                 for i in range(patience):
-                    for hyper_design_name, action_space in hyper_designs.items():
-                        getattr(self.model, hyper_design_name).set_action(random.choice(list(action_space.keys())))
+                    if not improvement:
+                        for hyper_design_name, action_space in hyper_designs.items():
+                            getattr(self.model, hyper_design_name).set_action(random.choice(list(action_space.keys())))
                     self.model.fit(*fit_args, **train_kwargs)
+                    evaluation = self.__evaluate(
+                        x=x_val,
+                        y=y_val,
+                        batch_size=batch_size,
+                        sample_weight=sample_weight_val,
+                        metric=metric,
+                        verbose=verbose,
+                        **additional_evaluation_kwargs
+                        )
+                    improvement = evaluation < prev_evaluation
+                    prev_evaluation = evaluation
 
     def __evaluate(
         self,
