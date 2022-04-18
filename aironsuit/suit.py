@@ -354,17 +354,35 @@ class AIronSuit(object):
         assert self.model is not None
         self.latent_model = get_latent_model(self.model, hidden_layer_names)
 
-    def evaluate(self, x, y=None):
+    def evaluate(
+            self,
+            x,
+            y=None,
+            batch_size=32,
+            sample_weight=None,
+            metric=None,
+            verbose=0,
+            **kwargs
+    ):
         """ Evaluate.
 
             Parameters:
                 x (list, np.array): Input data for evaluation.
-                y (list, np.array): Target data for evaluation.
+                y (list, np.array): Output data for evaluation.
+                batch_size (int): Number of samples per batch.
+                sample_weight (np.array): Weight per sample to be computed for the evaluation.
+                metric (str, int): Metric to be used for model design. If None validation loss is used.
+                verbose (int): Verbosity.
         """
-        args = [x]
-        if y is not None:
-            args += [y]
-        return self.model.evaluate(*args)
+        return self.__evaluate(
+            x,
+            y,
+            batch_size=batch_size,
+            sample_weight=sample_weight,
+            metric=metric,
+            verbose=verbose,
+            **kwargs
+        )
 
     def save_model(self, name):
         """ Save the model.
@@ -459,7 +477,7 @@ class AIronSuit(object):
         optimise_hypers_on_the_fly=False,
         verbose=0,
         additional_evaluation_kwargs=None,
-        metric="val_loss",
+        metric=None,
         **kwargs
     ):
         additional_evaluation_kwargs = additional_evaluation_kwargs if additional_evaluation_kwargs is None else {}
