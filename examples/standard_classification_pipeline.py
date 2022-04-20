@@ -90,7 +90,7 @@ def pipeline(new_design, design, max_n_samples, max_evals, epochs, batch_size, p
         # Automatic model design
         print('\n')
         print('Automatic model design \n')
-        trials_file_name = os.path.join(WORKING_PATH, 'design', 'trials.hyperopt')
+        trials_file_name = os.path.join(WORKING_PATH, 'trials.hyperopt')
         trials_exist = os.path.isfile(trials_file_name)
         if new_design or not trials_exist:
             trials = Trials()
