@@ -87,7 +87,7 @@ aironsuit.design(
     trials=Trials(),
     seed=0,
     patience=patience,
-    metric="loss", 
+    metric="loss",
 )
 aironsuit.summary()
 del x_train
