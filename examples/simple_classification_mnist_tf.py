@@ -122,6 +122,7 @@ aironsuit.design(
     trials=Trials(),
     seed=0,
     patience=patience,
+    metric="loss",
 )
 aironsuit.summary()
 

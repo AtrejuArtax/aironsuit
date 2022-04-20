@@ -142,7 +142,8 @@ aironsuit.design(
     epochs=epochs,
     trials=Trials(),
     seed=0,
-    patience=patience
+    patience=patience,
+    metric=0,
 )
 aironsuit.summary()
 
