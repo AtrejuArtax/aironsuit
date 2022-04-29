@@ -195,6 +195,9 @@ class AIronSuit(object):
                 evaluation = [loss_ for _, loss_ in evaluation.items()]
             if isinstance(evaluation, list):
                 evaluation = sum(evaluation)
+            if verbose > 0:
+                print("\n")
+                print("Model Evaluation: ", evaluation)
 
             # Define status
             status = (
@@ -377,7 +380,7 @@ class AIronSuit(object):
                 y (list, np.array): Output data for evaluation.
                 batch_size (int): Number of samples per batch.
                 sample_weight (np.array): Weight per sample to be computed for the evaluation.
-                metric (str, int): Metric to be used for model design. If None validation loss is used.
+                metric (str, int, list, function): Metric to be used for model design. If None validation loss is used.
                 verbose (int): Verbosity.
         """
         return self.__evaluate(
@@ -624,9 +627,6 @@ class AIronSuit(object):
                 evaluation = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
             if isinstance(evaluation, list):
                 evaluation = evaluation[0]
-        if verbose > 0:
-            print("\n")
-            print("Model Evaluation: ", evaluation)
         return evaluation
 
     def __create(self, **kwargs):
