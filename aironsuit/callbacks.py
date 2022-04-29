@@ -50,7 +50,7 @@ def get_basic_callbacks(
     mode="min",
 ):
     basic_callbacks = []
-    name = name if name else "NN"
+    name = name if name else "Model"
     basic_callbacks.append(
         {
             "TensorBoard": {
