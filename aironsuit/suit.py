@@ -572,8 +572,10 @@ class AIronSuit(object):
             evaluate_kwargs["verbose"] = verbose
         if sample_weight is not None:
             evaluate_kwargs["sample_weight"] = sample_weight
+        keras_model = isinstance(self.model, Model)
+        data_as_tfrecords = all([isinstance(data, tf.data.Dataset) for data in evaluate_args])
         if any([isinstance(metric, var_type) for var_type in [int, str, list]]) or metric is None:
-            if all([isinstance(data, tf.data.Dataset) for data in evaluate_args]) and isinstance(self.model, Model):
+            if data_as_tfrecords and keras_model:
                 if sample_weight is not None:
                     evaluate_args += [evaluate_kwargs["sample_weight"]]
                     del evaluate_kwargs["sample_weight"]
@@ -590,7 +592,10 @@ class AIronSuit(object):
                 evaluate_args = evaluate_args.batch(batch_size)
             if isinstance(metric, str):
                 evaluate_kwargs.update({'return_dict': True})
-            evaluation = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
+            if data_as_tfrecords:
+                evaluation = self.model.evaluate(evaluate_args, **evaluate_kwargs)
+            else:
+                evaluation = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
             if isinstance(metric, list):
                 evaluation = [evaluation[key] for key in metric]
             elif metric is not None:
