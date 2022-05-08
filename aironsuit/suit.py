@@ -572,41 +572,8 @@ class AIronSuit(object):
             evaluate_kwargs["verbose"] = verbose
         if sample_weight is not None:
             evaluate_kwargs["sample_weight"] = sample_weight
-        if metric is not None:
-            non_metric_func = not any([isinstance(metric, var_type) for var_type in [int, str, list]])
-            if non_metric_func:
-                if isinstance(metric, str):
-                    # ToDo: Consider case of non keras model
-                    evaluate_kwargs.update({'return_dict': True})
-                if all(
-                        [isinstance(data, tf.data.Dataset) for data in evaluate_args]
-                ):
-                    if sample_weight is not None:
-                        evaluate_args += [evaluate_kwargs["sample_weight"]]
-                        del evaluate_kwargs["sample_weight"]
-                        evaluate_args = tf.data.Dataset.from_tensor_slices(
-                            tuple(
-                                [
-                                    list(eval_data_.as_numpy_iterator())
-                                    for eval_data_ in evaluate_args
-                                ]
-                            )
-                        )
-                    else:
-                        evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
-                    evaluate_args = evaluate_args.batch(batch_size)
-            evaluate_kwargs["model"] = self.model
-            evaluation = metric(
-                evaluate_args,
-                **{key: value for key, value in evaluate_kwargs.items() if key in metric.__annotations__.keys()}
-            )
-            if non_metric_func:
-                if isinstance(metric, list):
-                    evaluation = [evaluation[key] for key in metric]
-                else:
-                    evaluation = evaluation[metric]
-        else:
-            if all([isinstance(data, tf.data.Dataset) for data in evaluate_args]):
+        if any([isinstance(metric, var_type) for var_type in [int, str, list]]) or metric is None:
+            if all([isinstance(data, tf.data.Dataset) for data in evaluate_args]) and isinstance(self.model, Model):
                 if sample_weight is not None:
                     evaluate_args += [evaluate_kwargs["sample_weight"]]
                     del evaluate_kwargs["sample_weight"]
@@ -621,9 +588,19 @@ class AIronSuit(object):
                 else:
                     evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
                 evaluate_args = evaluate_args.batch(batch_size)
-                evaluation = self.model.evaluate(evaluate_args, **evaluate_kwargs)
-            else:
-                evaluation = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
+            if isinstance(metric, str):
+                evaluate_kwargs.update({'return_dict': True})
+            evaluation = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
+            if isinstance(metric, list):
+                evaluation = [evaluation[key] for key in metric]
+            elif metric is not None:
+                evaluation = evaluation[metric]
+        else:
+            evaluate_kwargs["model"] = self.model
+            evaluation = metric(
+                evaluate_args,
+                **{key: value for key, value in evaluate_kwargs.items() if key in metric.__annotations__.keys()}
+            )
         if return_number:
             evaluation = to_sum(evaluation)
         return evaluation
