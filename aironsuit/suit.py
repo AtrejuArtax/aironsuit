@@ -132,7 +132,7 @@ class AIronSuit(object):
             raw_callbacks
             if raw_callbacks
             else get_basic_callbacks(
-                path=self.results_path,
+                path=self.logs_path,
                 patience=patience,
                 name=self.name,
                 verbose=verbose,
@@ -304,7 +304,7 @@ class AIronSuit(object):
             callbacks
             if callbacks
             else get_basic_callbacks(
-                path=self.results_path,
+                path=self.logs_path,
                 patience=patience,
                 name=self.name,
                 verbose=verbose,
