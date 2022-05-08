@@ -12,6 +12,7 @@ from hyperopt import Trials, STATUS_OK, STATUS_FAIL
 
 from aironsuit.callbacks import init_callbacks, get_basic_callbacks
 from aironsuit.design.utils import setup_design_logs, update_design_logs
+from aironsuit._utils import to_sum
 from airontools.constructors.utils import Model, get_latent_model
 from airontools.interactors import load_model, save_model, clear_session, summary
 from airontools.tensorboard_utils import save_representations
@@ -104,7 +105,7 @@ class AIronSuit(object):
                 sample_weight (np.array): Weight per sample to be computed with the train metric and losses.
                 sample_weight_val (np.array): Weight per sample to be computed with the validation metric and losses.
                 model_specs (dict): Model specifications.
-                metric (str, int): Metric to be used for model design. If None validation loss is used.
+                metric (str, int, list, function): Metric to be used for model design. If None validation loss is used.
                 trials (Trials): Object with design information.
                 verbose (int): Verbosity.
                 seed (int): Seed for reproducible results.
@@ -189,6 +190,9 @@ class AIronSuit(object):
                 verbose=verbose,
                 **additional_evaluation_kwargs
             )
+            if verbose > 0:
+                print("\n")
+                print("Model Evaluation: ", evaluation)
 
             # Define status
             status = (
@@ -362,6 +366,7 @@ class AIronSuit(object):
             sample_weight=None,
             metric=None,
             verbose=0,
+            return_sum=False,
             **kwargs
     ):
         """ Evaluate.
@@ -371,8 +376,9 @@ class AIronSuit(object):
                 y (list, np.array): Output data for evaluation.
                 batch_size (int): Number of samples per batch.
                 sample_weight (np.array): Weight per sample to be computed for the evaluation.
-                metric (str, int): Metric to be used for model design. If None validation loss is used.
+                metric (str, int, list, function): Metric to be used for model design. If None validation loss is used.
                 verbose (int): Verbosity.
+                return_sum (bool): Whether to return just the sum of the metrics.
         """
         return self.__evaluate(
             x,
@@ -381,6 +387,7 @@ class AIronSuit(object):
             sample_weight=sample_weight,
             metric=metric,
             verbose=verbose,
+            return_number=return_sum,
             **kwargs
         )
 
@@ -554,6 +561,7 @@ class AIronSuit(object):
         sample_weight=None,
         metric=None,
         verbose=0,
+        return_number=True,
         **kwargs
     ):
         evaluate_args = [x]
@@ -564,42 +572,10 @@ class AIronSuit(object):
             evaluate_kwargs["verbose"] = verbose
         if sample_weight is not None:
             evaluate_kwargs["sample_weight"] = sample_weight
-        if metric is not None:
-            if isinstance(metric, int) or isinstance(metric, str):
-                if isinstance(metric, str):
-                    evaluate_kwargs.update({'return_dict': True})
-                if all(
-                        [isinstance(data, tf.data.Dataset) for data in evaluate_args]
-                ):
-                    if sample_weight is not None:
-                        evaluate_args += [evaluate_kwargs["sample_weight"]]
-                        del evaluate_kwargs["sample_weight"]
-                        evaluate_args = tf.data.Dataset.from_tensor_slices(
-                            tuple(
-                                [
-                                    list(eval_data_.as_numpy_iterator())
-                                    for eval_data_ in evaluate_args
-                                ]
-                            )
-                        )
-                    else:
-                        evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
-                    evaluate_args = evaluate_args.batch(batch_size)
-                    evaluation = self.model.evaluate(
-                        evaluate_args, **evaluate_kwargs
-                    )[metric]
-                else:
-                    evaluation = self.model.evaluate(
-                        *evaluate_args, **evaluate_kwargs
-                    )[metric]
-            else:
-                evaluate_kwargs["model"] = self.model
-                evaluation = metric(
-                    *evaluate_args,
-                    **{key: value for key, value in evaluate_kwargs.items() if key in metric.__annotations__.keys()}
-                )
-        else:
-            if all([isinstance(data, tf.data.Dataset) for data in evaluate_args]):
+        keras_model = isinstance(self.model, Model)
+        data_as_tfrecords = all([isinstance(data, tf.data.Dataset) for data in evaluate_args])
+        if any([isinstance(metric, var_type) for var_type in [int, str, list]]) or metric is None:
+            if data_as_tfrecords and keras_model:
                 if sample_weight is not None:
                     evaluate_args += [evaluate_kwargs["sample_weight"]]
                     del evaluate_kwargs["sample_weight"]
@@ -614,20 +590,24 @@ class AIronSuit(object):
                 else:
                     evaluate_args = tf.data.Dataset.zip(tuple(evaluate_args))
                 evaluate_args = evaluate_args.batch(batch_size)
+            if isinstance(metric, str):
+                evaluate_kwargs.update({'return_dict': True})
+            if data_as_tfrecords:
                 evaluation = self.model.evaluate(evaluate_args, **evaluate_kwargs)
             else:
                 evaluation = self.model.evaluate(*evaluate_args, **evaluate_kwargs)
-            if isinstance(evaluation, list):
-                evaluation = evaluation[0]
-        if isinstance(evaluation, tuple):
-            evaluation = list(evaluation)
-        elif isinstance(evaluation, dict):
-            evaluation = [loss_ for _, loss_ in evaluation.items()]
-        if isinstance(evaluation, list):
-            evaluation = sum(evaluation)
-        if verbose > 0:
-            print("\n")
-            print("Model Evaluation: ", evaluation)
+            if isinstance(metric, list):
+                evaluation = [evaluation[key] for key in metric]
+            elif metric is not None:
+                evaluation = evaluation[metric]
+        else:
+            evaluate_kwargs["model"] = self.model
+            evaluation = metric(
+                evaluate_args,
+                **{key: value for key, value in evaluate_kwargs.items() if key in metric.__annotations__.keys()}
+            )
+        if return_number:
+            evaluation = to_sum(evaluation)
         return evaluation
 
     def __create(self, **kwargs):
