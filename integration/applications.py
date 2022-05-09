@@ -5,6 +5,7 @@ import time
 
 from utils import test_application
 
+# Available tests: integration, performance
 EXECUTION_MODE = os.environ["EXECUTION_MODE"] if "EXECUTION_MODE" in os.environ else "integration"
 REPOS_PATH = os.sep.join(str(pathlib.Path(__file__).parent.resolve()).split(os.sep)[:-2])
 APPLICATIONS = [

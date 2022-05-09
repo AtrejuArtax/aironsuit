@@ -22,6 +22,7 @@ random.seed(0)
 np.random.seed(0)
 PROJECT = 'classification_pipeline'
 EXECUTION_MODE = os.environ['EXECUTION_MODE'] if 'EXECUTION_MODE' in os.environ else 'development'
+AS_PRODUCTION = EXECUTION_MODE in ["production", "performance"]
 WORKING_PATH = os.path.join(os.path.expanduser("~"), 'airon', PROJECT, EXECUTION_MODE)
 
 
@@ -169,11 +170,11 @@ if __name__ == '__main__':
     parser.add_argument('--new_design', dest='new_design', default=False)
     parser.add_argument('--design', dest='design', default=True)
     parser.add_argument('--max_n_samples', dest='max_n_samples', type=int,
-                        default=None if EXECUTION_MODE == 'production' else 1000)
-    parser.add_argument('--max_evals', dest='max_evals', type=int, default=250 if EXECUTION_MODE == 'production' else 2)
-    parser.add_argument('--epochs', dest='epochs', type=int, default=1000 if EXECUTION_MODE == 'production' else 25)
+                        default=None if AS_PRODUCTION else 1000)
+    parser.add_argument('--max_evals', dest='max_evals', type=int, default=250 if AS_PRODUCTION else 2)
+    parser.add_argument('--epochs', dest='epochs', type=int, default=1000 if AS_PRODUCTION else 25)
     parser.add_argument('--batch_size', dest='batch_size', type=int, default=32)
-    parser.add_argument('--patience', dest='patience', type=int, default=5 if EXECUTION_MODE == 'production' else 2)
+    parser.add_argument('--patience', dest='patience', type=int, default=5 if AS_PRODUCTION else 2)
     parser.add_argument('--verbose', dest='verbose', type=int, default=0)
     parser.add_argument('--precision', dest='precision', type=str, default='float32')
 
