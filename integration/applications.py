@@ -20,6 +20,8 @@ def packages_manager(packages, mode):
 
 def applications_test():
 
+    print(EXECUTION_MODE.upper(), " Test \n")
+
     # Clear, build and install packages
     for package_name in ["airontools", "aironsuit"]:
         repository_path = os.path.join(REPOS_PATH, package_name) + os.sep
