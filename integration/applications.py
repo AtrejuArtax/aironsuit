@@ -1,12 +1,11 @@
-import getopt
 import os
 import pathlib
-import sys
-import time
 import shutil
+import time
 
 from utils import test_application
 
+EXECUTION_MODE = os.environ["EXECUTION_MODE"] if "EXECUTION_MODE" in os.environ else "integration"
 REPOS_PATH = os.sep.join(str(pathlib.Path(__file__).parent.resolve()).split(os.sep)[:-2])
 APPLICATIONS = [
     [os.path.join('aironsuit', 'examples'), ['tensorflow']]
@@ -18,7 +17,7 @@ def packages_manager(packages, mode):
     time.sleep(10)
 
 
-def integration_test():
+def applications_test():
 
     # Clear, build and install packages
     for package_name in ["airontools", "aironsuit"]:
@@ -34,9 +33,13 @@ def integration_test():
 
     # Test applications
     for app_name, app_backends in APPLICATIONS:
-        test_application(REPOS_PATH, app_name)
+        test_application(
+            repos_path=REPOS_PATH,
+            application_name=app_name,
+            execution_mode=EXECUTION_MODE
+        )
 
 
 if __name__ == '__main__':
 
-    integration_test()
+    applications_test()

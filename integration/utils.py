@@ -5,7 +5,7 @@ from itertools import product
 import sys
 
 
-def test_application(repos_path, application_name):
+def test_application(repos_path, application_name, execution_mode):
 
     # Install backend
 
@@ -20,10 +20,14 @@ def test_application(repos_path, application_name):
                         if '.py' in script_name]
     else:
         script_names = [scripts_path]
-    test_scripts(script_names, logs_path=logs_path)
+    test_scripts(
+        script_names=script_names,
+        logs_path=logs_path,
+        execution_mode=execution_mode
+    )
 
 
-def test_scripts(script_names, logs_path):
+def test_scripts(script_names, logs_path, execution_mode):
     
     # Test scripts
     for script_name in script_names:
@@ -34,7 +38,7 @@ def test_scripts(script_names, logs_path):
         while len(arguments_list) > 0:
             arguments = arguments_list[0]
             arguments_ = arguments.split() if arguments is not None else []
-            command_list = [sys.executable, '-u', script_name] + arguments_
+            command_list = ["export EXECUTION_MODE={}", sys.executable, '-u', script_name] + arguments_
             print('testing: ' + ' '.join(command_list))
             proc = subprocess.Popen(
                 command_list,
