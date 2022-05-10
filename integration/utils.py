@@ -11,7 +11,7 @@ def test_application(repos_path, application_name, execution_mode):
 
     # Manage paths
     scripts_path = os.path.join(repos_path, application_name)
-    logs_path = os.path.join(repos_path, 'integration_test_logs', application_name).replace('.py', '')
+    logs_path = os.path.join(repos_path, 'test_logs', application_name).replace('.py', '')
     os.makedirs(logs_path, exist_ok=True)
 
     # Test scripts
@@ -48,8 +48,8 @@ def test_scripts(script_names, logs_path, execution_mode):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT
             )
-            log_file_name = os.path.join(logs_path, script_name.split(os.sep)[-1]).replace('.py', '')
-            log_file_name += '_'.join([execution_mode] + arguments_) + '.txt'
+            log_file_name = os.path.join(logs_path, script_name.split(os.sep)[-1]).replace('.py', '') + "_"
+            log_file_name += '_'.join([execution_mode + "_test"] + arguments_) + '.txt'
             if os.path.isfile(log_file_name):
                 os.remove(log_file_name)
             for line in proc.stdout:
