@@ -49,7 +49,7 @@ def test_scripts(script_names, logs_path, execution_mode):
                 stderr=subprocess.STDOUT
             )
             log_file_name = os.path.join(logs_path, script_name.split(os.sep)[-1]).replace('.py', '')
-            log_file_name += '_'.join(arguments_) + '.txt'
+            log_file_name += '_'.join([execution_mode] + arguments_) + '.txt'
             if os.path.isfile(log_file_name):
                 os.remove(log_file_name)
             for line in proc.stdout:

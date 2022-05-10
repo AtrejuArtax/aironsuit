@@ -20,7 +20,7 @@ def packages_manager(packages, mode):
 
 def applications_test():
 
-    print(EXECUTION_MODE.upper(), " Test \n")
+    print(EXECUTION_MODE.upper(), " TEST \n")
 
     # Clear, build and install packages
     for package_name in ["airontools", "aironsuit"]:
