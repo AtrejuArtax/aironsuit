@@ -38,7 +38,8 @@ def test_scripts(script_names, logs_path, execution_mode):
         while len(arguments_list) > 0:
             arguments = arguments_list[0]
             arguments_ = arguments.split() if arguments is not None else []
-            command_list = ["export EXECUTION_MODE={}", sys.executable, '-u', script_name] + arguments_
+            command_list = ["export EXECUTION_MODE={}".format(execution_mode), sys.executable, '-u', script_name] \
+                           + arguments_
             print('testing: ' + ' '.join(command_list))
             proc = subprocess.Popen(
                 command_list,
