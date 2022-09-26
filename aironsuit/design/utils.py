@@ -1,5 +1,5 @@
 import tensorflow as tf
-from hyperopt.hp import uniform, choice
+from hyperopt.hp import choice, uniform
 from tensorboard.plugins.hparams import api as hp
 
 

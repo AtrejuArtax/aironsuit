@@ -1,10 +1,11 @@
+import gc
 import glob
 import os
 import tempfile
 
-from tensorflow.keras import callbacks
 from tensorflow.keras import backend as k_bck
-import gc
+from tensorflow.keras import callbacks
+
 
 class CleanMemory(callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
@@ -90,12 +91,5 @@ def get_basic_callbacks(
             }
         }
     )
-    basic_callbacks.append(
-        {
-            "CleanMemory":  {
-                "callback": CleanMemory,
-                "kwargs": dict()
-                }
-        }
-    )
+    basic_callbacks.append({"CleanMemory": {"callback": CleanMemory, "kwargs": dict()}})
     return basic_callbacks
