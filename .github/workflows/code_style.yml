@@ -22,4 +22,3 @@ jobs:
       - uses: isort/isort-action@master
         with:
           configuration: "--profile black"
-
