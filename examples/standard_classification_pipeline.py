@@ -6,8 +6,7 @@ import warnings
 from collections import Counter
 
 import numpy as np
-from airontools.constructors.models.supervised.classification import \
-    ImageClassifierNN
+from airontools.constructors.models.supervised.classification import ImageClassifierNN
 from airontools.devices import get_available_gpus
 from airontools.preprocessing import train_val_split
 from hyperopt import Trials
