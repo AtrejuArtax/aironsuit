@@ -2,15 +2,15 @@
 import os
 
 import numpy as np
+from airontools.constructors.models.unsupervised.ae import ImageAE
+from airontools.preprocessing import train_val_split
+from airontools.tools import path_management
 from hyperopt import Trials
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.optimizers import Adam
 
 from aironsuit.design.utils import choice_hp
 from aironsuit.suit import AIronSuit
-from airontools.constructors.models.unsupervised.ae import ImageAE
-from airontools.preprocessing import train_val_split
-from airontools.tools import path_management
 
 HOME = os.path.expanduser("~")
 
@@ -18,20 +18,20 @@ HOME = os.path.expanduser("~")
 
 # Example Set-Up #
 
-model_name = 'AE_NN'
-working_path = os.path.join(HOME, 'airon', model_name)
+model_name = "AE_NN"
+working_path = os.path.join(HOME, "airon", model_name)
 num_classes = 10
 batch_size = 128
 epochs = 3
 patience = 3
 max_evals = 3
 max_n_samples = 1000
-precision = 'float32'
+precision = "float32"
 
 # COMMAND ----------
 
 # Make/remove paths
-path_management(working_path, modes=['rm', 'make'])
+path_management(working_path, modes=["rm", "make"])
 
 # COMMAND ----------
 
@@ -43,7 +43,9 @@ if max_n_samples is not None:
 train_dataset = np.expand_dims(train_dataset, -1) / 255
 
 # Split data per parallel model
-x_train, x_val, _, meta_val, _ = train_val_split(input_data=train_dataset, meta_data=target_dataset)
+x_train, x_val, _, meta_val, _ = train_val_split(
+    input_data=train_dataset, meta_data=target_dataset
+)
 
 # COMMAND ----------
 
@@ -58,11 +60,14 @@ def ae_model_constructor(latent_dim):
 
     return ae
 
+
 # COMMAND ----------
 
 
 # Hyper-parameter space
-hyperparam_space = {'latent_dim': choice_hp('latent_dim', [int(val) for val in np.arange(3, 6)])}
+hyperparam_space = {
+    "latent_dim": choice_hp("latent_dim", [int(val) for val in np.arange(3, 6)])
+}
 
 # COMMAND ----------
 
@@ -76,8 +81,8 @@ aironsuit = AIronSuit(
 # COMMAND ----------
 
 # Automatic Model Design
-print('\n')
-print('Automatic Model Design \n')
+print("\n")
+print("Automatic Model Design \n")
 aironsuit.design(
     x_train=x_train,
     x_val=x_val,
@@ -98,5 +103,5 @@ del x_train
 aironsuit.visualize_representations(
     x_val,
     metadata=meta_val,
-    hidden_layer_name='z',
+    hidden_layer_name="z",
 )
