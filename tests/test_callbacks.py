@@ -1,5 +1,5 @@
-from aironsuit.callbacks import basic_callbacks
+from aironsuit.callbacks import get_basic_callbacks
 
 
-def test_basic_callbacks():
-    assert isinstance(basic_callbacks(), dict)
+def test_get_basic_callbacks():
+    assert isinstance(get_basic_callbacks(), dict)
