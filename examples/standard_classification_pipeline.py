@@ -27,10 +27,14 @@ EXECUTION_MODE = (
 WORKING_PATH = os.path.join(os.path.expanduser("~"), "airon", PROJECT, EXECUTION_MODE)
 
 
-def image_classifier(input_shape, **reg_kwargs):
+def image_classifier(input_shape, n_classes, **kwargs):
 
     # Create an image classification model and compile it
-    classifier_nn = ImageClassifierNN(input_shape, **reg_kwargs)
+    classifier_nn = ImageClassifierNN(
+        input_shape=input_shape,
+        n_classes=n_classes,
+        **kwargs,
+    )
     classifier_nn.compile(optimizer=Adam())
 
     return classifier_nn
@@ -64,7 +68,10 @@ def pipeline(
     test_dataset = np.expand_dims(test_dataset, -1) / 255
     train_targets = to_categorical(train_targets, 10)
     test_targets = to_categorical(test_targets, 10)
-    data_specs = dict(input_shape=tuple(train_dataset.shape[1:]))
+    data_specs = dict(
+        input_shape=tuple(train_dataset.shape[1:]),
+        n_classes=train_targets.shape[-1],
+    )
 
     # Sample weight
     sample_weight = np.ones((train_targets.shape[0], 1))
@@ -76,7 +83,13 @@ def pipeline(
     # Automatic model design #
 
     # Model specs
-    model_specs = dict()
+    model_specs = dict(
+        filters=32,
+        kernel_size=15,
+        strides=2,
+        sequential_axis=-1,
+        num_heads=3,
+    )
     model_specs.update(data_specs)
 
     # Design
@@ -191,7 +204,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--h", action="store_true")
     parser.add_argument("--use_cpu", dest="use_cpu", action="store_true")
-    parser.add_argument("--new_design", dest="new_design", default=False)
+    parser.add_argument("--new_design", dest="new_design", default=True)
     parser.add_argument("--design", dest="design", default=True)
     parser.add_argument(
         "--max_n_samples",
