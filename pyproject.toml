@@ -5,6 +5,12 @@ name = "aironsuit"
 version = "0.1.20"
 description = "AIronSuit (Beta) is a Python library for automatic model design/selection and visualization purposes built to work with tensorflow as a backend."
 authors = ["Claudi Ruiz Camps <claudi_ruiz@hotmail.com>"]
+repository = "https://github.com/AtrejuArtax/aironsuit"
+classifiers= [
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3",
+]
 
 [tool.poetry.dependencies]
 python = ">=3.8.10,<3.10"
