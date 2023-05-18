@@ -19,7 +19,6 @@ def packages_manager(packages, mode):
 
 
 def integration_test():
-
     # Clear, build and install packages
     for package_name in ["airontools", "aironsuit"]:
         repository_path = os.path.join(REPOS_PATH, package_name) + os.sep
@@ -40,5 +39,4 @@ def integration_test():
 
 
 if __name__ == "__main__":
-
     integration_test()

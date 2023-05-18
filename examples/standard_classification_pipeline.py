@@ -28,7 +28,6 @@ WORKING_PATH = os.path.join(os.path.expanduser("~"), "airon", PROJECT, EXECUTION
 
 
 def image_classifier(input_shape, n_classes, **kwargs):
-
     # Create an image classification model and compile it
     classifier_nn = ImageClassifierNN(
         input_shape=input_shape,
@@ -51,7 +50,6 @@ def pipeline(
     verbose,
     precision,
 ):
-
     # Net name
     model_name = PROJECT + "_NN"
 
@@ -95,7 +93,6 @@ def pipeline(
     # Design
     aironsuit = None
     if design:
-
         # Split data per parallel model
         (
             x_train,
@@ -165,7 +162,6 @@ def pipeline(
     # Test Evaluation #
 
     if aironsuit is None:
-
         # Load aironsuit
         try:
             specs = model_specs.copy()
@@ -183,7 +179,6 @@ def pipeline(
             print(e)
 
     if aironsuit is not None:
-
         # Split data per parallel model
         x_test, _, y_test, _, _ = train_val_split(
             input_data=test_dataset, output_data=test_targets

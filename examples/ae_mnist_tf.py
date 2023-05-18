@@ -53,7 +53,6 @@ x_train, x_val, _, meta_val, _ = train_val_split(
 
 
 def ae_model_constructor(latent_dim):
-
     # Create AE model and compile it
     ae = ImageAE(latent_dim)
     ae.compile(optimizer=Adam())

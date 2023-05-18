@@ -152,7 +152,6 @@ class AIronSuit(object):
         )
 
         def design_trial(hyper_candidates):
-
             # Save trials
             with open(os.path.join(self.results_path, "trials.hyperopt"), "wb") as f:
                 pickle.dump(trials, f)
@@ -258,7 +257,6 @@ class AIronSuit(object):
             return {"loss": evaluation, "status": status}
 
         def design():
-
             if len(trials.trials) < max_evals:
                 self.fmin = hyperopt.fmin(
                     design_trial,

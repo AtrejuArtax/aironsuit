@@ -53,7 +53,6 @@ x_train, x_val, _, meta_val, _ = train_val_split(
 
 
 def vae_model_constructor(latent_dim):
-
     # Create VAE model and compile it
     vae = ImageVAE(latent_dim)
     vae.compile(optimizer=Adam())

@@ -59,7 +59,6 @@ x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
 
 class Ensemble(object):
     def __init__(self, **kwargs):
-
         # AIron NN
         inputs = Input(shape=(28, 28, 1))
         outputs = layer_constructor(
