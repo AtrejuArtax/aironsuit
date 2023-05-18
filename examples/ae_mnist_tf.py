@@ -2,12 +2,11 @@
 import os
 
 import numpy as np
-from airontools.constructors.models.unsupervised.ae import ImageAE
+import tensorflow as tf
+from airontools.constructors.models.unsupervised.ae import AE
 from airontools.preprocessing import train_val_split
 from airontools.tools import path_management
 from hyperopt import Trials
-from tensorflow.keras.datasets import mnist
-from tensorflow.keras.optimizers import Adam
 
 from aironsuit.design.utils import choice_hp
 from aironsuit.suit import AIronSuit
@@ -36,7 +35,7 @@ path_management(working_path, modes=["rm", "make"])
 # COMMAND ----------
 
 # Load and preprocess data
-(train_dataset, target_dataset), _ = mnist.load_data()
+(train_dataset, target_dataset), _ = tf.keras.datasets.mnist.load_data()
 if max_n_samples is not None:
     train_dataset = train_dataset[-max_n_samples:, ...]
     target_dataset = target_dataset[-max_n_samples:, ...]
@@ -54,8 +53,8 @@ x_train, x_val, _, meta_val, _ = train_val_split(
 
 def ae_model_constructor(latent_dim):
     # Create AE model and compile it
-    ae = ImageAE(latent_dim)
-    ae.compile(optimizer=Adam())
+    ae = AE(latent_dim)
+    ae.compile(optimizer=tf.keras.optimizers.Adam())
 
     return ae
 
