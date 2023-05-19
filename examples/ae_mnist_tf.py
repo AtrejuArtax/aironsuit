@@ -1,5 +1,6 @@
 # Databricks notebook source
 import os
+from typing import Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -40,6 +41,8 @@ if max_n_samples is not None:
     train_dataset = train_dataset[-max_n_samples:, ...]
     target_dataset = target_dataset[-max_n_samples:, ...]
 train_dataset = np.expand_dims(train_dataset, -1) / 255
+n_features = np.prod(train_dataset.shape[1:])
+train_dataset = train_dataset.reshape((train_dataset.shape[0], n_features))
 
 # Split data per parallel model
 x_train, x_val, _, meta_val, _ = train_val_split(
@@ -51,9 +54,12 @@ x_train, x_val, _, meta_val, _ = train_val_split(
 # AE Model constructor
 
 
-def ae_model_constructor(latent_dim):
+def ae_model_constructor(input_shape: Tuple[int], latent_dim: int):
     # Create AE model and compile it
-    ae = AE(latent_dim)
+    ae = AE(
+        input_shape=input_shape,
+        latent_dim=latent_dim,
+    )
     ae.compile(optimizer=tf.keras.optimizers.Adam())
 
     return ae
@@ -66,6 +72,9 @@ def ae_model_constructor(latent_dim):
 hyperparam_space = {
     "latent_dim": choice_hp("latent_dim", [int(val) for val in np.arange(3, 6)])
 }
+
+# COMMAND ----------
+model_specs = {"input_shape": x_train.shape[1:]}
 
 # COMMAND ----------
 
@@ -91,6 +100,7 @@ aironsuit.design(
     seed=0,
     patience=patience,
     metric="loss",
+    model_specs=model_specs,
 )
 aironsuit.summary()
 del x_train
