@@ -55,7 +55,7 @@ x_train, x_val, _, meta_val, _ = train_val_split(
 
 
 def ae_model_constructor(input_shape: Tuple[int], latent_dim: int):
-    # Create AE model and compile it
+    # Create an AE model and compile it
     ae = AE(
         input_shape=input_shape,
         latent_dim=latent_dim,
