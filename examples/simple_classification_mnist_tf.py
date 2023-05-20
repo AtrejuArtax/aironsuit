@@ -1,13 +1,13 @@
 # Databricks notebook source
 import os
+from typing import List, Tuple
 
 import numpy as np
+import tensorflow as tf
 from airontools.constructors.layers import layer_constructor
 from airontools.preprocessing import train_val_split
 from airontools.tools import path_management
 from hyperopt import Trials
-import tensorflow as tf
-from typing import Tuple, List
 
 from aironsuit.design.utils import choice_hp
 from aironsuit.suit import AIronSuit
@@ -36,7 +36,10 @@ path_management(working_path, modes=["rm", "make"])
 # COMMAND ----------
 
 # Load and preprocess data
-(train_dataset, train_target), (test_dataset, test_target) = tf.keras.datasets.mnist.load_data()
+(train_dataset, train_target), (
+    test_dataset,
+    test_target,
+) = tf.keras.datasets.mnist.load_data()
 train_dataset = np.expand_dims(train_dataset.astype("float32") / 255, -1)
 test_dataset = np.expand_dims(test_dataset.astype("float32") / 255, -1)
 n_features = np.prod(train_dataset.shape[1:])
@@ -62,13 +65,13 @@ model_specs = {
 
 
 def classifier_model_constructor(
-        input_shape: Tuple[int],
-        kernel_size: int,
-        filters: int,
-        num_heads: int,
-        loss: str,
-        optimizer: str,
-        metrics: List[str],
+    input_shape: Tuple[int],
+    kernel_size: int,
+    filters: int,
+    num_heads: int,
+    loss: str,
+    optimizer: str,
+    metrics: List[str],
 ):
     inputs = tf.keras.layers.Input(shape=input_shape)
     outputs = layer_constructor(
@@ -83,7 +86,9 @@ def classifier_model_constructor(
     )
     model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
     model.compile(
-        loss=loss, optimizer=optimizer, metrics=metrics,
+        loss=loss,
+        optimizer=optimizer,
+        metrics=metrics,
     )
 
     return model
