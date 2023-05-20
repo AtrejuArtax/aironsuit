@@ -2,9 +2,9 @@
 import os
 
 import numpy as np
+import tensorflow as tf
 from airontools.constructors.layers import layer_constructor
 from airontools.tools import path_management
-import tensorflow as tf
 
 from aironsuit.suit import AIronSuit
 

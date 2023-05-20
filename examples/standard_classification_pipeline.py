@@ -6,12 +6,12 @@ import warnings
 from collections import Counter
 
 import numpy as np
+import tensorflow as tf
 from airontools.constructors.models.supervised.classification import ImageClassifierNN
 from airontools.devices import get_available_gpus
 from airontools.preprocessing import train_val_split
 from hyperopt import Trials
 from sklearn.metrics import classification_report
-import tensorflow as tf
 
 from aironsuit.design.utils import choice_hp, uniform_hp
 from aironsuit.suit import AIronSuit
@@ -54,7 +54,10 @@ def pipeline(
     # Data Pre-processing #
 
     # Load and preprocess data
-    (train_dataset, train_targets), (test_dataset, test_targets) = tf.keras.datasets.mnist.load_data()
+    (train_dataset, train_targets), (
+        test_dataset,
+        test_targets,
+    ) = tf.keras.datasets.mnist.load_data()
     if (
         max_n_samples is not None
     ):  # ToDo: test cases when max_n_samples is not None, like it is now it will crash
