@@ -111,5 +111,5 @@ del x_train
 aironsuit.visualize_representations(
     x_val,
     metadata=meta_val,
-    hidden_layer_name="z",
+    hidden_layer_name="VAE_z",
 )

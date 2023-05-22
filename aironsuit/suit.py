@@ -61,6 +61,7 @@ class AIronSuit(object):
             if logs_path is not None
             else os.path.join(results_path, "log_dir")
         )
+        self.core_model: tf.keras.models.Model
         self.__model_constructor = model_constructor
         self.__custom_objects = custom_objects
         self.__devices = None
@@ -283,6 +284,7 @@ class AIronSuit(object):
             specs.update(hyper_candidates)
             self.model = self.__model_constructor(**specs)
             self.model.load_weights(os.path.join(self.results_path, self.name))
+            self.__extract_core_model()
             print("hyper-parameters: " + str(hyper_candidates))
 
         design()
@@ -417,6 +419,7 @@ class AIronSuit(object):
             kwargs (dict): Custom or other arguments.
         """
         self.model = load_model(name, custom_objects=self.__custom_objects)
+        self.__extract_core_model()
 
     def clear_session(self):
         """Clear session."""
@@ -453,15 +456,15 @@ class AIronSuit(object):
         if latent_model_output and self.latent_model is None:
             warnings.warn("latent model should be created first")
         if hidden_layer_name is not None:
-            model = get_latent_model(self.model, hidden_layer_name)
+            model = get_latent_model(self.core_model, hidden_layer_name)
         else:
             if latent_model_output:
                 model = self.latent_model
             else:
                 model = self.model
-        representations_name = model.output_names[0]
+        representations_name = self.core_model.output_names[0]
         save_representations(
-            representations=model.predict(x),
+            representations=self.core_model.predict(x),
             path=self.logs_path,
             representations_name=representations_name,
             metadata=metadata,
@@ -528,6 +531,7 @@ class AIronSuit(object):
                 train_kwargs["sample_weight"] = sample_weight
             train_kwargs["batch_size"] = batch_size
         self.model.fit(*fit_args, **train_kwargs)
+        self.__extract_core_model()
         if optimise_hypers_on_the_fly:
             if "epochs" in train_kwargs.keys():
                 train_kwargs["epochs"] = 1
@@ -637,3 +641,10 @@ class AIronSuit(object):
 
     def __create(self, **kwargs):
         self.model = self.__model_constructor(**kwargs)
+        self.__extract_core_model()
+
+    def __extract_core_model(self):
+        if isinstance(self.model, Model):
+            self.core_model = self.model.model
+        else:
+            self.core_model = self.model
