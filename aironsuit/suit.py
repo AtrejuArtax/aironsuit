@@ -462,11 +462,10 @@ class AIronSuit(object):
                 model = self.latent_model
             else:
                 model = self.model
-        representations_name = self.core_model.output_names[0]
         save_representations(
-            representations=self.core_model.predict(x),
+            representations=model.predict(x),
             path=self.logs_path,
-            representations_name=representations_name,
+            representations_name=model.output_names[0],
             metadata=metadata,
         )
 
@@ -531,7 +530,6 @@ class AIronSuit(object):
                 train_kwargs["sample_weight"] = sample_weight
             train_kwargs["batch_size"] = batch_size
         self.model.fit(*fit_args, **train_kwargs)
-        self.__extract_core_model()
         if optimise_hypers_on_the_fly:
             if "epochs" in train_kwargs.keys():
                 train_kwargs["epochs"] = 1
