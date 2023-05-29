@@ -61,7 +61,7 @@ class AIronSuit(object):
             if logs_path is not None
             else os.path.join(results_path, "log_dir")
         )
-        self.core_model: tf.keras.models.Model
+        self._keras_core_model: tf.keras.models.Model
         self.__model_constructor = model_constructor
         self.__custom_objects = custom_objects
         self.__devices = None
@@ -456,7 +456,7 @@ class AIronSuit(object):
         if latent_model_output and self.latent_model is None:
             warnings.warn("latent model should be created first")
         if hidden_layer_name is not None:
-            model = get_latent_model(self.core_model, hidden_layer_name)
+            model = get_latent_model(self._keras_core_model, hidden_layer_name)
         else:
             if latent_model_output:
                 model = self.latent_model
@@ -643,6 +643,6 @@ class AIronSuit(object):
 
     def __extract_core_model(self):
         if isinstance(self.model, Model):
-            self.core_model = self.model.model
+            self._keras_core_model = self.model.model
         else:
-            self.core_model = self.model
+            self._keras_core_model = self.model
