@@ -54,9 +54,10 @@ x_train, x_val, _, meta_val, _ = train_val_split(
 # AE Model constructor
 
 
-def ae_model_constructor(input_shape: Tuple[int], latent_dim: int):
+def ae_model_constructor(input_shape: Tuple[int], latent_dim: int, model_name: str):
     # Create an AE model and compile it
     ae = AE(
+        model_name=model_name,
         input_shape=input_shape,
         latent_dim=latent_dim,
     )
@@ -74,7 +75,10 @@ hyperparam_space = {
 }
 
 # COMMAND ----------
-model_specs = {"input_shape": x_train.shape[1:]}
+model_specs = {
+    "model_name": model_name,
+    "input_shape": x_train.shape[1:],
+}
 
 # COMMAND ----------
 
@@ -111,5 +115,5 @@ del x_train
 aironsuit.visualize_representations(
     x_val,
     metadata=meta_val,
-    hidden_layer_name="z",
+    hidden_layer_name="_".join([model_name, "z"]),
 )

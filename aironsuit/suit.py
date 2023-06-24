@@ -61,7 +61,6 @@ class AIronSuit(object):
             if logs_path is not None
             else os.path.join(results_path, "log_dir")
         )
-        self._keras_core_model: tf.keras.models.Model
         self.__model_constructor = model_constructor
         self.__custom_objects = custom_objects
         self.__devices = None
@@ -162,7 +161,7 @@ class AIronSuit(object):
             specs = hyper_candidates.copy()
             if model_specs:
                 specs.update(model_specs)
-            self.__create(**specs)
+            self.model = self.__model_constructor(**specs)
 
             # Print some information
             iteration = len(trials.losses())
@@ -284,7 +283,6 @@ class AIronSuit(object):
             specs.update(hyper_candidates)
             self.model = self.__model_constructor(**specs)
             self.model.load_weights(os.path.join(self.results_path, self.name))
-            self.__extract_core_model()
             print("hyper-parameters: " + str(hyper_candidates))
 
         design()
@@ -419,7 +417,6 @@ class AIronSuit(object):
             kwargs (dict): Custom or other arguments.
         """
         self.model = load_model(name, custom_objects=self.__custom_objects)
-        self.__extract_core_model()
 
     def clear_session(self):
         """Clear session."""
@@ -456,7 +453,7 @@ class AIronSuit(object):
         if latent_model_output and self.latent_model is None:
             warnings.warn("latent model should be created first")
         if hidden_layer_name is not None:
-            model = get_latent_model(self._keras_core_model, hidden_layer_name)
+            model = get_latent_model(self.model, hidden_layer_name)
         else:
             if latent_model_output:
                 model = self.latent_model
@@ -636,13 +633,3 @@ class AIronSuit(object):
         if return_number:
             evaluation = to_sum(evaluation)
         return evaluation
-
-    def __create(self, **kwargs):
-        self.model = self.__model_constructor(**kwargs)
-        self.__extract_core_model()
-
-    def __extract_core_model(self):
-        if isinstance(self.model, Model):
-            self._keras_core_model = self.model.model
-        else:
-            self._keras_core_model = self.model
