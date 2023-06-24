@@ -73,11 +73,10 @@ model_specs = {
 
 
 def classifier_model_constructor(**kwargs):
-    if kwargs["num_heads"] == 0:
-        num_heads = None
+    num_heads = kwargs["num_heads"]
+    if num_heads == 0:
         sequential = True
     else:
-        num_heads = kwargs["num_heads"]
         sequential = False
     classifier_kwargs = dict(
         filters=kwargs["filters"],  # Number of filters used for the convolutional layer
@@ -107,7 +106,7 @@ def classifier_model_constructor(**kwargs):
 # Hyper-parameter space
 hyperparam_space = {
     "filters": choice_hp("filters", [int(val) for val in np.arange(3, 30)]),
-    "kernel_size": choice_hp("kernel_size", [int(val) for val in np.arange(3, 10)]),
+    "kernel_size": choice_hp("kernel_size", [int(val) for val in np.arange(10, 15)]),
     "num_heads": choice_hp("num_heads", [int(val) for val in np.arange(0, 10)]),
 }
 
@@ -133,7 +132,6 @@ aironsuit.design(
     trials=Trials(),
     seed=0,
     patience=patience,
-    metric=0,
 )
 aironsuit.summary()
 

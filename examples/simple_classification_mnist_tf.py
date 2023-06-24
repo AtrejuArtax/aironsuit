@@ -100,7 +100,7 @@ def classifier_model_constructor(
 # Hyper-parameter space
 hyperparam_space = {
     "filters": choice_hp("filters", [int(val) for val in np.arange(3, 30)]),
-    "kernel_size": choice_hp("kernel_size", [int(val) for val in np.arange(3, 10)]),
+    "kernel_size": choice_hp("kernel_size", [int(val) for val in np.arange(15, 20)]),
     "num_heads": choice_hp("num_heads", [int(val) for val in np.arange(2, 10)]),
 }
 
