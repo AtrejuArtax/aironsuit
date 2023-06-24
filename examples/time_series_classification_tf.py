@@ -90,7 +90,6 @@ def classifier_model_constructor(**kwargs):
         sequential=sequential,  # Whether to consider a sequential model or not
         units=kwargs["units"],  # Dense units applied after the self-attention layer
         activation="softmax",  # Output activation function
-        advanced_reg=True,
     )
     inputs = tf.keras.layers.Input(shape=kwargs["input_shape"])
     outputs = layer_constructor(x=inputs, **classifier_kwargs)
