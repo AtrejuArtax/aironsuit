@@ -46,7 +46,6 @@ def pipeline(
     batch_size,
     patience,
     verbose,
-    precision,
 ):
     # Net name
     model_name = PROJECT + "_NN"
@@ -228,7 +227,6 @@ if __name__ == "__main__":
         default=5 if EXECUTION_MODE == "production" else 2,
     )
     parser.add_argument("--verbose", dest="verbose", type=int, default=0)
-    parser.add_argument("--precision", dest="precision", type=str, default="float32")
 
     opts = parser.parse_args()
     print("".join(f"{k}={v}\n" for k, v in vars(opts).items()))
