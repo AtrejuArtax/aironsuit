@@ -1,5 +1,5 @@
 absl-py==1.4.0
-airontools==0.1.23
+airontools==0.1.24
 array-record==0.4.0
 astunparse==1.6.3
 attrs==23.1.0
@@ -38,7 +38,7 @@ numpy==1.23.5
 oauthlib==3.2.2
 opt-einsum==3.3.0
 packaging==23.1
-pandas==2.0.2
+pandas==2.0.3
 pathspec==0.11.1
 platformdirs==3.8.0
 pluggy==0.13.1
@@ -64,7 +64,6 @@ tensorflow-datasets==4.9.2
 tensorflow-estimator==2.12.0
 tensorflow-macos==2.12.0
 tensorflow-metadata==1.13.1
-tensorflow-metal==0.8.0
 termcolor==2.3.0
 threadpoolctl==3.1.0
 toml==0.10.2

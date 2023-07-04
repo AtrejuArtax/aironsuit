@@ -19,7 +19,7 @@ numpy = "*"
 pandas = "*"
 hyperopt = "*"
 scikit-learn = "^1.2.2"
-airontools = "0.1.23"
+airontools = "0.1.24"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
