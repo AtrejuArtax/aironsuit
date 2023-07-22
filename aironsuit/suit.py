@@ -9,7 +9,8 @@ import hyperopt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from airontools.constructors.utils import Model, get_latent_model
+from airontools.constructors.models.model import Model
+from airontools.constructors.utils import get_latent_model
 from airontools.interactors import clear_session, load_model, save_model, summary
 from airontools.tensorboard_utils import save_representations
 from airontools.tools import path_management
@@ -152,7 +153,6 @@ class AIronSuit(object):
         )
 
         def design_trial(hyper_candidates):
-
             # Save trials
             with open(os.path.join(self.results_path, "trials.hyperopt"), "wb") as f:
                 pickle.dump(trials, f)
@@ -161,7 +161,7 @@ class AIronSuit(object):
             specs = hyper_candidates.copy()
             if model_specs:
                 specs.update(model_specs)
-            self.__create(**specs)
+            self.model = self.__model_constructor(**specs)
 
             # Print some information
             iteration = len(trials.losses())
@@ -258,7 +258,6 @@ class AIronSuit(object):
             return {"loss": evaluation, "status": status}
 
         def design():
-
             if len(trials.trials) < max_evals:
                 self.fmin = hyperopt.fmin(
                     design_trial,
@@ -460,11 +459,10 @@ class AIronSuit(object):
                 model = self.latent_model
             else:
                 model = self.model
-        representations_name = model.output_names[0]
         save_representations(
             representations=model.predict(x),
             path=self.logs_path,
-            representations_name=representations_name,
+            representations_name=model.output_names[0],
             metadata=metadata,
         )
 
@@ -635,6 +633,3 @@ class AIronSuit(object):
         if return_number:
             evaluation = to_sum(evaluation)
         return evaluation
-
-    def __create(self, **kwargs):
-        self.model = self.__model_constructor(**kwargs)

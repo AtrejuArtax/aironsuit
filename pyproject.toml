@@ -5,6 +5,7 @@ name = "aironsuit"
 version = "0.1.20"
 description = "AIronSuit (Beta) is a Python library for automatic model design/selection and visualization purposes built to work with tensorflow as a backend."
 authors = ["Claudi Ruiz Camps <claudi_ruiz@hotmail.com>"]
+license = "License :: OSI Approved :: BSD License"
 repository = "https://github.com/AtrejuArtax/aironsuit"
 classifiers= [
         "License :: OSI Approved :: BSD License",
@@ -13,20 +14,21 @@ classifiers= [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8.10,<3.10"
+python = ">=3.9,<3.11"
+numpy = "*"
+pandas = "*"
+hyperopt = "*"
+scikit-learn = "^1.2.2"
+airontools = "0.1.24"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
-protobuf = "^3.20"
-numpy = "*"
-pandas = "*"
-sklearn = "*"
-tensorflow = "2.7.0"
-tensorboard = "2.7.0"
-tensorflow_datasets = "*"
-airontools = "0.1.17"
-hyperopt = "*"
+pip = "^23.1.2"
+black = "^23.3.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"

@@ -6,7 +6,6 @@ from itertools import product
 
 
 def test_application(repos_path, application_name):
-
     # Install backend
 
     # Manage paths
@@ -29,10 +28,8 @@ def test_application(repos_path, application_name):
 
 
 def test_scripts(script_names, logs_path):
-
     # Test scripts
     for script_name in script_names:
-
         start_time = time.time()
         arguments_list = get_script_arguments(script_name)
         arguments_list = arguments_list if len(arguments_list) > 0 else [None]

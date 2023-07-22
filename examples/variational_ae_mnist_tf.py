@@ -1,13 +1,13 @@
 # Databricks notebook source
 import os
+from typing import Tuple
 
 import numpy as np
-from airontools.constructors.models.unsupervised.vae import ImageVAE
+import tensorflow as tf
+from airontools.constructors.models.unsupervised.vae import VAE
 from airontools.preprocessing import train_val_split
 from airontools.tools import path_management
 from hyperopt import Trials
-from tensorflow.keras.datasets import mnist
-from tensorflow.keras.optimizers import Adam
 
 from aironsuit.design.utils import choice_hp
 from aironsuit.suit import AIronSuit
@@ -36,11 +36,13 @@ path_management(working_path, modes=["rm", "make"])
 # COMMAND ----------
 
 # Load and preprocess data
-(train_dataset, target_dataset), _ = mnist.load_data()
+(train_dataset, target_dataset), _ = tf.keras.datasets.mnist.load_data()
 if max_n_samples is not None:
     train_dataset = train_dataset[-max_n_samples:, ...]
     target_dataset = target_dataset[-max_n_samples:, ...]
 train_dataset = np.expand_dims(train_dataset, -1) / 255
+n_features = np.prod(train_dataset.shape[1:])
+train_dataset = train_dataset.reshape((train_dataset.shape[0], n_features))
 
 # Split data per parallel model
 x_train, x_val, _, meta_val, _ = train_val_split(
@@ -52,11 +54,14 @@ x_train, x_val, _, meta_val, _ = train_val_split(
 # VAE Model constructor
 
 
-def vae_model_constructor(latent_dim):
-
-    # Create VAE model and compile it
-    vae = ImageVAE(latent_dim)
-    vae.compile(optimizer=Adam())
+def vae_model_constructor(input_shape: Tuple[int], latent_dim: int, model_name: str):
+    # Create a VAE model and compile it
+    vae = VAE(
+        model_name=model_name,
+        input_shape=input_shape,
+        latent_dim=latent_dim,
+    )
+    vae.compile(optimizer=tf.keras.optimizers.Adam())
 
     return vae
 
@@ -67,6 +72,12 @@ def vae_model_constructor(latent_dim):
 # Hyper-parameter space
 hyperparam_space = {
     "latent_dim": choice_hp("latent_dim", [int(val) for val in np.arange(3, 6)])
+}
+
+# COMMAND ----------
+model_specs = {
+    "model_name": model_name,
+    "input_shape": x_train.shape[1:],
 }
 
 # COMMAND ----------
@@ -93,6 +104,7 @@ aironsuit.design(
     seed=0,
     patience=patience,
     metric="loss",
+    model_specs=model_specs,
 )
 aironsuit.summary()
 del x_train
@@ -103,5 +115,5 @@ del x_train
 aironsuit.visualize_representations(
     x_val,
     metadata=meta_val,
-    hidden_layer_name="z",
+    hidden_layer_name="_".join([model_name, "encoder"]),
 )

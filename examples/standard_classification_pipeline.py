@@ -6,14 +6,12 @@ import warnings
 from collections import Counter
 
 import numpy as np
+import tensorflow as tf
 from airontools.constructors.models.supervised.classification import ImageClassifierNN
 from airontools.devices import get_available_gpus
 from airontools.preprocessing import train_val_split
 from hyperopt import Trials
 from sklearn.metrics import classification_report
-from tensorflow.keras.datasets import mnist
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.utils import to_categorical
 
 from aironsuit.design.utils import choice_hp, uniform_hp
 from aironsuit.suit import AIronSuit
@@ -28,14 +26,13 @@ WORKING_PATH = os.path.join(os.path.expanduser("~"), "airon", PROJECT, EXECUTION
 
 
 def image_classifier(input_shape, n_classes, **kwargs):
-
     # Create an image classification model and compile it
     classifier_nn = ImageClassifierNN(
         input_shape=input_shape,
         n_classes=n_classes,
         **kwargs,
     )
-    classifier_nn.compile(optimizer=Adam())
+    classifier_nn.compile(optimizer=tf.keras.optimizers.Adam())
 
     return classifier_nn
 
@@ -49,16 +46,17 @@ def pipeline(
     batch_size,
     patience,
     verbose,
-    precision,
 ):
-
     # Net name
     model_name = PROJECT + "_NN"
 
     # Data Pre-processing #
 
     # Load and preprocess data
-    (train_dataset, train_targets), (test_dataset, test_targets) = mnist.load_data()
+    (train_dataset, train_targets), (
+        test_dataset,
+        test_targets,
+    ) = tf.keras.datasets.mnist.load_data()
     if (
         max_n_samples is not None
     ):  # ToDo: test cases when max_n_samples is not None, like it is now it will crash
@@ -66,8 +64,8 @@ def pipeline(
         train_targets = train_targets[-max_n_samples:, ...]
     train_dataset = np.expand_dims(train_dataset, -1) / 255
     test_dataset = np.expand_dims(test_dataset, -1) / 255
-    train_targets = to_categorical(train_targets, 10)
-    test_targets = to_categorical(test_targets, 10)
+    train_targets = tf.keras.utils.to_categorical(train_targets, 10)
+    test_targets = tf.keras.utils.to_categorical(test_targets, 10)
     data_specs = dict(
         input_shape=tuple(train_dataset.shape[1:]),
         n_classes=train_targets.shape[-1],
@@ -95,7 +93,6 @@ def pipeline(
     # Design
     aironsuit = None
     if design:
-
         # Split data per parallel model
         (
             x_train,
@@ -165,7 +162,6 @@ def pipeline(
     # Test Evaluation #
 
     if aironsuit is None:
-
         # Load aironsuit
         try:
             specs = model_specs.copy()
@@ -183,7 +179,6 @@ def pipeline(
             print(e)
 
     if aironsuit is not None:
-
         # Split data per parallel model
         x_test, _, y_test, _, _ = train_val_split(
             input_data=test_dataset, output_data=test_targets
@@ -232,7 +227,6 @@ if __name__ == "__main__":
         default=5 if EXECUTION_MODE == "production" else 2,
     )
     parser.add_argument("--verbose", dest="verbose", type=int, default=0)
-    parser.add_argument("--precision", dest="precision", type=str, default="float32")
 
     opts = parser.parse_args()
     print("".join(f"{k}={v}\n" for k, v in vars(opts).items()))

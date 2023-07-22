@@ -1,15 +1,13 @@
 # Databricks notebook source
 import os
+from typing import List, Tuple
 
 import numpy as np
+import tensorflow as tf
 from airontools.constructors.layers import layer_constructor
 from airontools.preprocessing import train_val_split
 from airontools.tools import path_management
 from hyperopt import Trials
-from tensorflow.keras.datasets import mnist
-from tensorflow.keras.layers import Input
-from tensorflow.keras.models import Model
-from tensorflow.keras.utils import to_categorical
 
 from aironsuit.design.utils import choice_hp
 from aironsuit.suit import AIronSuit
@@ -38,17 +36,20 @@ path_management(working_path, modes=["rm", "make"])
 # COMMAND ----------
 
 # Load and preprocess data
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
-x_train = np.expand_dims(x_train.astype("float32") / 255, -1)
-x_test = np.expand_dims(x_test.astype("float32") / 255, -1)
-y_train = to_categorical(y_train, num_classes)
-y_test = to_categorical(y_test, num_classes)
+(train_dataset, train_target), (
+    test_dataset,
+    test_target,
+) = tf.keras.datasets.mnist.load_data()
+train_dataset = np.expand_dims(train_dataset.astype("float32") / 255, -1)
+test_dataset = np.expand_dims(test_dataset.astype("float32") / 255, -1)
+n_features = np.prod(train_dataset.shape[1:])
+train_target = tf.keras.utils.to_categorical(train_target, num_classes)
+test_target = tf.keras.utils.to_categorical(test_target, num_classes)
 
 # Split data per parallel model
 x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
-    input_data=x_train,
-    output_data=y_train,
-    return_tfrecord=True,
+    input_data=train_dataset,
+    output_data=train_target,
 )
 
 # COMMAND ----------
@@ -56,35 +57,38 @@ x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
 # Classifier Model constructor
 
 model_specs = {
-    "input_shape": (28, 28, 1),
+    "input_shape": train_dataset.shape[1:],
     "loss": "categorical_crossentropy",
     "optimizer": "adam",
     "metrics": ["accuracy"],
 }
 
 
-def classifier_model_constructor(**kwargs):
-
-    inputs = Input(shape=kwargs["input_shape"])
+def classifier_model_constructor(
+    input_shape: Tuple[int],
+    kernel_size: int,
+    filters: int,
+    num_heads: int,
+    loss: str,
+    optimizer: str,
+    metrics: List[str],
+):
+    inputs = tf.keras.layers.Input(shape=input_shape)
     outputs = layer_constructor(
         x=inputs,
-        filters=kwargs["filters"],  # Number of filters used for the convolutional layer
-        kernel_size=(
-            kwargs["kernel_size"],
-            kwargs["kernel_size"],
-        ),  # Kernel size used for the convolutional layer
+        filters=filters,  # Number of filters used for the convolutional layer
+        kernel_size=kernel_size,  # Kernel size used for the convolutional layer
         strides=2,  # Strides used for the convolutional layer
         sequential_axis=-1,  # Channel axis, used to define the sequence for the self-attention layer
-        num_heads=kwargs[
-            "num_heads"
-        ],  # Self-attention heads applied after the convolutional layer
+        num_heads=num_heads,  # Self-attention heads applied after the convolutional layer
         units=10,  # Dense units applied after the self-attention layer
         activation="softmax",  # Output activation function
-        advanced_reg=True,
     )
-    model = Model(inputs=inputs, outputs=outputs)
+    model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
     model.compile(
-        loss=kwargs["loss"], optimizer=kwargs["optimizer"], metrics=kwargs["metrics"]
+        loss=loss,
+        optimizer=optimizer,
+        metrics=metrics,
     )
 
     return model
@@ -96,7 +100,7 @@ def classifier_model_constructor(**kwargs):
 # Hyper-parameter space
 hyperparam_space = {
     "filters": choice_hp("filters", [int(val) for val in np.arange(3, 30)]),
-    "kernel_size": choice_hp("kernel_size", [int(val) for val in np.arange(3, 10)]),
+    "kernel_size": choice_hp("kernel_size", [int(val) for val in np.arange(15, 20)]),
     "num_heads": choice_hp("num_heads", [int(val) for val in np.arange(2, 10)]),
 }
 
@@ -132,7 +136,7 @@ aironsuit.summary()
 # COMMAND ----------
 
 # Evaluate
-score = aironsuit.model.evaluate(x_test, y_test)
+score = aironsuit.model.evaluate(test_dataset, test_target)
 print("Test loss:", score[0])
 print("Test accuracy:", score[1])
 
@@ -168,6 +172,6 @@ aironsuit.train(
 # COMMAND ----------
 
 # Evaluate
-score = aironsuit.model.evaluate(x_test, y_test)
+score = aironsuit.model.evaluate(test_dataset, test_target)
 print("Test loss:", score[0])
 print("Test accuracy:", score[1])

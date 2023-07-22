@@ -2,12 +2,9 @@
 import os
 
 import numpy as np
+import tensorflow as tf
 from airontools.constructors.layers import layer_constructor
 from airontools.tools import path_management
-from tensorflow.keras.datasets import mnist
-from tensorflow.keras.layers import Input
-from tensorflow.keras.models import Model
-from tensorflow.keras.utils import to_categorical
 
 from aironsuit.suit import AIronSuit
 
@@ -32,28 +29,27 @@ path_management(working_path, modes=["rm", "make"])
 # COMMAND ----------
 
 # Load data
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 
 # Preprocess data
 x_train = np.expand_dims(x_train.astype("float32") / 255, -1)
 x_test = np.expand_dims(x_test.astype("float32") / 255, -1)
-y_train = to_categorical(y_train, num_classes)
-y_test = to_categorical(y_test, num_classes)
+y_train = tf.keras.utils.to_categorical(y_train, num_classes)
+y_test = tf.keras.utils.to_categorical(y_test, num_classes)
 
 # COMMAND ----------
 
 # Create model
 input_shape = (28, 28, 1)
-inputs = Input(shape=input_shape)
+inputs = tf.keras.layers.Input(shape=input_shape)
 outputs = layer_constructor(
     x=inputs,
-    input_shape=input_shape,
     units=10,
     activation="softmax",
     filters=5,
     kernel_size=15,
 )
-model = Model(inputs=inputs, outputs=outputs)
+model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
 model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
 
 # COMMAND ----------
