@@ -9,11 +9,11 @@ import hyperopt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from airontools.constructors.utils import Model, get_latent_model
-from airontools.interactors import (clear_session, load_model, save_model,
-                                    summary)
+from airontools.constructors.models.model import Model
+from airontools.constructors.utils import get_latent_model
+from airontools.interactors import load_model, save_model, summary
+from airontools.path_utils import path_management
 from airontools.tensorboard_utils import save_representations
-from airontools.tools import path_management
 from hyperopt import STATUS_FAIL, STATUS_OK, Trials
 
 from aironsuit._utils import to_sum
@@ -252,7 +252,7 @@ class AIronSuit(object):
                     metric=metric if isinstance(metric, str) else "val_loss",
                 )
 
-            clear_session()
+            tf.keras.backend.clear_session()
             del self.model
 
             return {"loss": evaluation, "status": status}
