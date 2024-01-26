@@ -1,20 +1,19 @@
 import os
 import pathlib
-import shutil
-import time
 
-from utils import test_application
+from utils import run_application
 
-REPOS_PATH = os.sep.join(
-    str(pathlib.Path(__file__).parent.resolve()).split(os.sep)[:-2]
-)
-APPLICATIONS = [[os.path.join("aironsuit", "examples"), ["tensorflow"]]]
+REPO_PATH = os.sep.join(str(pathlib.Path(__file__).parent.resolve()).split(os.sep)[:-1])
+APPLICATIONS = ["examples"]
 
 
 def integration_test():
     # Test applications
-    for app_name, app_backends in APPLICATIONS:
-        test_application(REPOS_PATH, app_name)
+    for name in APPLICATIONS:
+        run_application(
+            repo_path=REPO_PATH,
+            application_name=name,
+        )
 
 
 if __name__ == "__main__":
