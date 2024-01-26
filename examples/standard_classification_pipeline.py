@@ -4,6 +4,7 @@ import pickle
 import random
 import warnings
 from collections import Counter
+from typing import Tuple
 
 import numpy as np
 from airontools.constructors.models.supervised.classification import ImageClassifierNN
@@ -27,7 +28,7 @@ EXECUTION_MODE = (
 WORKING_PATH = os.path.join(os.path.expanduser("~"), "airon", PROJECT, EXECUTION_MODE)
 
 
-def image_classifier(input_shape, n_classes, **kwargs):
+def image_classifier(input_shape: Tuple[None, int], n_classes: int, **kwargs):
 
     # Create an image classification model and compile it
     classifier_nn = ImageClassifierNN(
@@ -41,15 +42,14 @@ def image_classifier(input_shape, n_classes, **kwargs):
 
 
 def pipeline(
-    new_design,
-    design,
-    max_n_samples,
-    max_evals,
-    epochs,
-    batch_size,
-    patience,
-    verbose,
-    precision,
+    new_design: bool,
+    design: bool,
+    max_n_samples: int,
+    max_evals: int,
+    epochs: int,
+    batch_size: int,
+    patience: int,
+    verbose: int,
 ):
 
     # Net name
