@@ -16,6 +16,7 @@ classifiers= [
 python = "=3.9.18"
 tensorflow = {version = "2.13", markers = "sys_platform != 'darwin'"}
 tensorflow-macos = {version = "2.13", markers = "sys_platform == 'darwin'"}
+hyperopt = "^0.2.7"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
