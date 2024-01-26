@@ -10,7 +10,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from airontools.constructors.utils import Model, get_latent_model
-from airontools.interactors import clear_session, load_model, save_model, summary
+from airontools.interactors import (clear_session, load_model, save_model,
+                                    summary)
 from airontools.tensorboard_utils import save_representations
 from airontools.tools import path_management
 from hyperopt import STATUS_FAIL, STATUS_OK, Trials
@@ -152,7 +153,6 @@ class AIronSuit(object):
         )
 
         def design_trial(hyper_candidates):
-
             # Save trials
             with open(os.path.join(self.results_path, "trials.hyperopt"), "wb") as f:
                 pickle.dump(trials, f)
@@ -258,7 +258,6 @@ class AIronSuit(object):
             return {"loss": evaluation, "status": status}
 
         def design():
-
             if len(trials.trials) < max_evals:
                 self.fmin = hyperopt.fmin(
                     design_trial,

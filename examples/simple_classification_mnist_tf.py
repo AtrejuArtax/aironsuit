@@ -64,7 +64,6 @@ model_specs = {
 
 
 def classifier_model_constructor(**kwargs):
-
     inputs = Input(shape=kwargs["input_shape"])
     outputs = layer_constructor(
         x=inputs,

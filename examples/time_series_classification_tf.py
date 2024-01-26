@@ -75,7 +75,6 @@ model_specs = {
 
 
 def classifier_model_constructor(**kwargs):
-
     if kwargs["num_heads"] == 0:
         num_heads = None
         sequential = True

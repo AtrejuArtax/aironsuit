@@ -7,7 +7,8 @@ from collections import Counter
 from typing import Tuple
 
 import numpy as np
-from airontools.constructors.models.supervised.classification import ImageClassifierNN
+from airontools.constructors.models.supervised.classification import \
+    ImageClassifierNN
 from airontools.devices import get_available_gpus
 from airontools.preprocessing import train_val_split
 from hyperopt import Trials
@@ -29,7 +30,6 @@ WORKING_PATH = os.path.join(os.path.expanduser("~"), "airon", PROJECT, EXECUTION
 
 
 def image_classifier(input_shape: Tuple[None, int], n_classes: int, **kwargs):
-
     # Create an image classification model and compile it
     classifier_nn = ImageClassifierNN(
         input_shape=input_shape,
@@ -51,7 +51,6 @@ def pipeline(
     patience: int,
     verbose: int,
 ):
-
     # Net name
     model_name = PROJECT + "_NN"
 
@@ -95,7 +94,6 @@ def pipeline(
     # Design
     aironsuit = None
     if design:
-
         # Split data per parallel model
         (
             x_train,
@@ -165,7 +163,6 @@ def pipeline(
     # Test Evaluation #
 
     if aironsuit is None:
-
         # Load aironsuit
         try:
             specs = model_specs.copy()
@@ -183,7 +180,6 @@ def pipeline(
             print(e)
 
     if aironsuit is not None:
-
         # Split data per parallel model
         x_test, _, y_test, _, _ = train_val_split(
             input_data=test_dataset, output_data=test_targets
