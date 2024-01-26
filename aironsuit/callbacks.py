@@ -3,13 +3,12 @@ import glob
 import os
 import tempfile
 
-from tensorflow.keras import backend as k_bck
-from tensorflow.keras import callbacks
+import tensorflow as tf
 
 
-class CleanMemory(callbacks.Callback):
+class CleanMemory(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
-        k_bck.clear_session()
+        tf.keras.backend.clear_session()
         gc.collect()
 
 
@@ -55,7 +54,7 @@ def get_basic_callbacks(
     basic_callbacks.append(
         {
             "TensorBoard": {
-                "callback": callbacks.TensorBoard,
+                "callback": tf.keras.callbacks.TensorBoard,
                 "kwargs": dict(log_dir=os.path.join(path, name + "_logs")),
             }
         }
@@ -63,7 +62,7 @@ def get_basic_callbacks(
     basic_callbacks.append(
         {
             "ReduceLROnPlateau": {
-                "callback": callbacks.ReduceLROnPlateau,
+                "callback": tf.keras.callbacks.ReduceLROnPlateau,
                 "kwargs": dict(
                     monitor=metric,
                     factor=0.9,
@@ -79,7 +78,7 @@ def get_basic_callbacks(
     basic_callbacks.append(
         {
             "EarlyStopping": {
-                "callback": callbacks.EarlyStopping,
+                "callback": tf.keras.callbacks.EarlyStopping,
                 "kwargs": dict(
                     monitor=metric,
                     min_delta=0,

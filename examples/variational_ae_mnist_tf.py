@@ -2,12 +2,11 @@
 import os
 
 import numpy as np
-from airontools.constructors.models.unsupervised.vae import ImageVAE
-from airontools.preprocessing import train_val_split
-from airontools.tools import path_management
+import tensorflow as tf
+from airontools.constructors.models.unsupervised.vae import VAE
+from airontools.path_utils import path_management
+from airontools.preprocessing_utils import train_val_split
 from hyperopt import Trials
-from tensorflow.keras.datasets import mnist
-from tensorflow.keras.optimizers import Adam
 
 from aironsuit.design.utils import choice_hp
 from aironsuit.suit import AIronSuit
@@ -36,7 +35,7 @@ path_management(working_path, modes=["rm", "make"])
 # COMMAND ----------
 
 # Load and preprocess data
-(train_dataset, target_dataset), _ = mnist.load_data()
+(train_dataset, target_dataset), _ = tf.keras.datasets.mnist.load_data()
 if max_n_samples is not None:
     train_dataset = train_dataset[-max_n_samples:, ...]
     target_dataset = target_dataset[-max_n_samples:, ...]
@@ -54,8 +53,8 @@ x_train, x_val, _, meta_val, _ = train_val_split(
 
 def vae_model_constructor(latent_dim):
     # Create VAE model and compile it
-    vae = ImageVAE(latent_dim)
-    vae.compile(optimizer=Adam())
+    vae = VAE(latent_dim)
+    vae.compile(optimizer=tf.keras.optimizers.Adam())
 
     return vae
 

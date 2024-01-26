@@ -7,15 +7,13 @@ from collections import Counter
 from typing import Tuple
 
 import numpy as np
-from airontools.constructors.models.supervised.classification import \
+import tensorflow as tf
+from airontools.constructors.models.supervised.image_classifier import \
     ImageClassifierNN
 from airontools.devices import get_available_gpus
-from airontools.preprocessing import train_val_split
+from airontools.preprocessing_utils import train_val_split
 from hyperopt import Trials
 from sklearn.metrics import classification_report
-from tensorflow.keras.datasets import mnist
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.utils import to_categorical
 
 from aironsuit.design.utils import choice_hp, uniform_hp
 from aironsuit.suit import AIronSuit
@@ -36,7 +34,7 @@ def image_classifier(input_shape: Tuple[None, int], n_classes: int, **kwargs):
         n_classes=n_classes,
         **kwargs,
     )
-    classifier_nn.compile(optimizer=Adam())
+    classifier_nn.compile(optimizer=tf.keras.optimizers.Adam())
 
     return classifier_nn
 
@@ -57,7 +55,10 @@ def pipeline(
     # Data Pre-processing #
 
     # Load and preprocess data
-    (train_dataset, train_targets), (test_dataset, test_targets) = mnist.load_data()
+    (train_dataset, train_targets), (
+        test_dataset,
+        test_targets,
+    ) = tf.keras.datasets.mnist.load_data()
     if (
         max_n_samples is not None
     ):  # ToDo: test cases when max_n_samples is not None, like it is now it will crash
@@ -65,8 +66,8 @@ def pipeline(
         train_targets = train_targets[-max_n_samples:, ...]
     train_dataset = np.expand_dims(train_dataset, -1) / 255
     test_dataset = np.expand_dims(test_dataset, -1) / 255
-    train_targets = to_categorical(train_targets, 10)
-    test_targets = to_categorical(test_targets, 10)
+    train_targets = tf.keras.utils.to_categorical(train_targets, 10)
+    test_targets = tf.keras.utils.to_categorical(test_targets, 10)
     data_specs = dict(
         input_shape=tuple(train_dataset.shape[1:]),
         n_classes=train_targets.shape[-1],

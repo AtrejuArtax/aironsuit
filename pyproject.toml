@@ -17,6 +17,8 @@ python = "=3.9.18"
 tensorflow = {version = "2.13", markers = "sys_platform != 'darwin'"}
 tensorflow-macos = {version = "2.13", markers = "sys_platform == 'darwin'"}
 hyperopt = "^0.2.7"
+airontools = "^0.1.37"
+pandas = "^2.2.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
