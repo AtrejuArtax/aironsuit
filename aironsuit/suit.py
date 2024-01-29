@@ -408,7 +408,7 @@ class AIronSuit(object):
         Parameters:
             name (str): Model name.
         """
-        save_model(model=self.model, name=name)
+        save_model(model=self.model, filepath=name)
 
     def load_model(self, name, **kwargs):
         """Load the model.
@@ -420,7 +420,7 @@ class AIronSuit(object):
 
     def clear_session(self):
         """Clear session."""
-        clear_session()
+        tf.keras.backend.clear_session()
 
     def summary(self):
         """Show model summary."""
@@ -439,7 +439,7 @@ class AIronSuit(object):
 
         To visualize the representations on TensorBoard follow the steps:
         1) Use the command line: ' + 'tensorboard --logdir=<logs_path>
-        alt-1) I previous step does not work, use the command line:
+        alt-1) If previous step does not work, use the command line:
             python <where TensorBoard package is installed>/main.py --logdir=<logs_path>
         2) Use an internet browser: http://localhost:6006/#projector'
 

@@ -1,5 +1,6 @@
 # Databricks notebook source
 import os
+from typing import Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -40,6 +41,9 @@ if max_n_samples is not None:
     train_dataset = train_dataset[-max_n_samples:, ...]
     target_dataset = target_dataset[-max_n_samples:, ...]
 train_dataset = np.expand_dims(train_dataset, -1) / 255
+train_dataset = train_dataset.reshape(
+    (len(train_dataset), np.prod(list(train_dataset.shape)[1:]))
+)
 
 # Split data per parallel model
 x_train, x_val, _, meta_val, _ = train_val_split(
@@ -51,15 +55,23 @@ x_train, x_val, _, meta_val, _ = train_val_split(
 # VAE Model constructor
 
 
-def vae_model_constructor(latent_dim):
+def vae_model_constructor(input_shape: Tuple[int], latent_dim: int):
     # Create VAE model and compile it
-    vae = VAE(latent_dim)
+    vae = VAE(
+        input_shape=input_shape,
+        latent_dim=latent_dim,
+    )
     vae.compile(optimizer=tf.keras.optimizers.Adam())
 
     return vae
 
 
 # COMMAND ----------
+
+# Model specs
+model_specs = dict(
+    input_shape=tuple(list(x_train.shape)[1:]),
+)
 
 
 # Hyper-parameter space
@@ -84,6 +96,7 @@ print("Automatic Model Design \n")
 aironsuit.design(
     x_train=x_train,
     x_val=x_val,
+    model_specs=model_specs,
     hyper_space=hyperparam_space,
     max_evals=max_evals,
     epochs=epochs,
@@ -94,12 +107,3 @@ aironsuit.design(
 )
 aironsuit.summary()
 del x_train
-
-# COMMAND ----------
-
-# Get latent insights
-aironsuit.visualize_representations(
-    x_val,
-    metadata=meta_val,
-    hidden_layer_name="z",
-)
