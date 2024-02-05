@@ -8,8 +8,7 @@ from typing import Tuple
 
 import numpy as np
 import tensorflow as tf
-from airontools.constructors.models.supervised.image_classifier import \
-    ImageClassifierNN
+from airontools.constructors.models.supervised.image_classifier import ImageClassifierNN
 from airontools.devices import get_available_gpus
 from airontools.preprocessing_utils import train_val_split
 from hyperopt import Trials
