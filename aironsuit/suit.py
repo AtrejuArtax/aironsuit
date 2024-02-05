@@ -4,6 +4,7 @@ import pickle
 import random
 import tempfile
 import warnings
+from typing import Union, List, Optional, Any, Dict, Callable
 
 import hyperopt
 import numpy as np
@@ -19,6 +20,7 @@ from hyperopt import STATUS_FAIL, STATUS_OK, Trials
 from aironsuit._utils import to_sum
 from aironsuit.callbacks import get_basic_callbacks, init_callbacks
 from aironsuit.design.utils import setup_design_logs, update_design_logs
+from numpy.typing import NDArray
 
 
 class AIronSuit(object):
@@ -71,54 +73,54 @@ class AIronSuit(object):
 
     def design(
         self,
-        x_train,
-        x_val,
-        hyper_space,
-        max_evals,
-        epochs,
-        batch_size=32,
-        y_train=None,
-        y_val=None,
-        sample_weight=None,
-        sample_weight_val=None,
-        model_specs=None,
-        metric=None,
-        trials=None,
-        verbose=0,
-        seed=None,
-        raw_callbacks=None,
-        use_basic_callbacks=True,
-        patience=3,
-        save_val_inference=False,
-        optimise_hypers_on_the_fly=False,
-        additional_train_kwargs=None,
-        additional_evaluation_kwargs=None,
+        x_train: Union[NDArray, List[NDArray]],
+        x_val: Union[NDArray, List[NDArray]],
+        hyper_space: Dict[str, Any],
+        max_evals: int,
+        epochs: int,
+        batch_size: Optional[int] = 32,
+        y_train: Optional[Union[NDArray, List[NDArray]]] = None,
+        y_val: Optional[Union[NDArray, List[NDArray]]] = None,
+        sample_weight: Optional[Union[NDArray, List[NDArray]]] = None,
+        sample_weight_val: Optional[Union[NDArray, List[NDArray]]] = None,
+        model_specs: Optional[Dict[str, Any]] = None,
+        metric: Optional[str, Callable] = None,
+        trials: Optional[Trials] = None,
+        verbose: Optional[int] = 0,
+        seed: Optional[int] = 0,
+        raw_callbacks: Optional[List[tf.keras.callbacks.Callback]] = None,
+        use_basic_callbacks: Optional[bool] = True,
+        patience: Optional[int] = 3,
+        save_val_inference: Optional[bool] = False,
+        optimise_hypers_on_the_fly: Optional[bool] = False,
+        additional_train_kwargs: Optional[Dict[str, Any]] = None,
+        additional_evaluation_kwargs: Optional[Dict[str, Any]] = None,
     ):
         """Automatic model design.
 
         Parameters:
-            x_train (list, np.array): Input data for training.
-            x_val (list, np.array): Input data for validation.
-            hyper_space (dict): Hyper parameter space for model design.
-            max_evals (integer): Maximum number of evaluations.
-            epochs (int): Number of epochs for model training.
-            batch_size (int): Number of samples per batch.
-            y_train (list, np.array): Output data for training.
-            y_val (list, np.array): Output data for validation.
-            sample_weight (np.array): Weight per sample to be computed with the train metric and losses.
-            sample_weight_val (np.array): Weight per sample to be computed with the validation metric and losses.
-            model_specs (dict): Model specifications.
-            metric (str, int, list, function): Metric to be used for model design. If None validation loss is used.
-            trials (Trials): Object with design information.
-            verbose (int): Verbosity.
-            seed (int): Seed for reproducible results.
-            raw_callbacks (list): Dictionary of raw callbacks.
-            use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
-            patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
-            save_val_inference (bool): Whether or not to save validation inference when the best model is found.
-            optimise_hypers_on_the_fly (bool): Whether to perform optimisation of hypers on the fly.
-            additional_train_kwargs (dict): Additional key arguments for training.
-            additional_evaluation_kwargs (dict): Additional key arguments for evaluation.
+            x_train: Input data for training.
+            x_val: Input data for validation.
+            hyper_space: Hyper parameter space for model design.
+            max_evals: Maximum number of evaluations.
+            epochs: Number of epochs for model training.
+            batch_size: Number of samples per batch.
+            y_train: Output data for training.
+            y_val: Output data for validation.
+            sample_weight: Weight per sample to be computed with the train metric and losses.
+            sample_weight_val: Weight per sample to be computed with the validation metric and losses.
+            model_specs: Model specifications.
+            metric: Metric to be used for model design. If None validation loss is used.
+            trials: Object with design information.
+            verbose: Verbosity.
+            seed: Seed for reproducible results.
+            raw_callbacks: Dictionary of raw callbacks.
+            use_basic_callbacks: Whether to use basic callbacks or not. Callbacks argument has preference.
+            patience: Patience in epochs for validation los improvement, only active when use_basic_callbacks.
+            save_val_inference: Whether not to save validation inference when the best model is found.
+            optimise_hypers_on_the_fly: Whether to perform optimisation of hypers on the fly.
+            additional_train_kwargs: Additional key arguments for training.
+            additional_evaluation_kwargs: Additional key arguments for evaluation.
         """
 
         additional_train_kwargs = (
