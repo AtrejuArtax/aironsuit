@@ -8,7 +8,8 @@ from typing import Tuple
 
 import numpy as np
 import tensorflow as tf
-from airontools.constructors.models.supervised.image_classifier import ImageClassifierNN
+from airontools.constructors.models.supervised.image_classifier import \
+    ImageClassifierNN
 from airontools.devices import get_available_gpus
 from airontools.preprocessing_utils import train_val_split
 from hyperopt import Trials
@@ -156,6 +157,7 @@ def pipeline(
             verbose=verbose,
             optimise_hypers_on_the_fly=True,
             metric="loss",
+            try_to_reuse_weights=True,
         )
         del x_train, x_val, y_train, y_val
         aironsuit.summary()

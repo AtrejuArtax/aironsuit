@@ -4,7 +4,7 @@ import pickle
 import random
 import tempfile
 import warnings
-from typing import Union, List, Optional, Any, Dict, Callable
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import hyperopt
 import numpy as np
@@ -16,11 +16,11 @@ from airontools.interactors import load_model, save_model, summary
 from airontools.path_utils import path_management
 from airontools.tensorboard_utils import save_representations
 from hyperopt import STATUS_FAIL, STATUS_OK, Trials
+from numpy.typing import NDArray
 
 from aironsuit._utils import to_sum
 from aironsuit.callbacks import get_basic_callbacks, init_callbacks
 from aironsuit.design.utils import setup_design_logs, update_design_logs
-from numpy.typing import NDArray
 
 
 class AIronSuit(object):
@@ -84,7 +84,7 @@ class AIronSuit(object):
         sample_weight: Optional[Union[NDArray, List[NDArray]]] = None,
         sample_weight_val: Optional[Union[NDArray, List[NDArray]]] = None,
         model_specs: Optional[Dict[str, Any]] = None,
-        metric: Optional[str, Callable] = None,
+        metric: Optional[Union[str, Callable]] = None,
         trials: Optional[Trials] = None,
         verbose: Optional[int] = 0,
         seed: Optional[int] = 0,
@@ -95,6 +95,7 @@ class AIronSuit(object):
         optimise_hypers_on_the_fly: Optional[bool] = False,
         additional_train_kwargs: Optional[Dict[str, Any]] = None,
         additional_evaluation_kwargs: Optional[Dict[str, Any]] = None,
+        try_to_reuse_weights: Optional[bool] = False,
     ):
         """Automatic model design.
 
@@ -121,6 +122,7 @@ class AIronSuit(object):
             optimise_hypers_on_the_fly: Whether to perform optimisation of hypers on the fly.
             additional_train_kwargs: Additional key arguments for training.
             additional_evaluation_kwargs: Additional key arguments for evaluation.
+            try_to_reuse_weights: Whether to try to reuse weights.
         """
 
         additional_train_kwargs = (
@@ -165,7 +167,7 @@ class AIronSuit(object):
             specs = hyper_candidates.copy()
             if model_specs:
                 specs.update(model_specs)
-            self.__create(**specs)
+            self.__create(try_to_reuse_weights=try_to_reuse_weights, **specs)
 
             # Print some information
             iteration = len(trials.losses())
@@ -641,5 +643,10 @@ class AIronSuit(object):
             evaluation = to_sum(evaluation)
         return evaluation
 
-    def __create(self, **kwargs):
+    def __create(self, try_to_reuse_weights: bool, **kwargs):
         self.model = self.__model_constructor(**kwargs)
+        if try_to_reuse_weights:
+            try:
+                self.model.load_weights(os.path.join(self.results_path, self.name))
+            except Exception as e:
+                print(e)
