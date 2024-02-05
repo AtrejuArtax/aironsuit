@@ -45,7 +45,7 @@ y_test = tf.keras.utils.to_categorical(y_test, num_classes)
 x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
     input_data=x_train,
     output_data=y_train,
-    return_tfrecord=True,
+    return_tfrecord=False,
 )
 
 # COMMAND ----------
