@@ -141,15 +141,17 @@ class AIronSuit(object):
         raw_callbacks = (
             raw_callbacks
             if raw_callbacks
-            else get_basic_callbacks(
-                path=self.logs_path,
-                patience=patience,
-                name=self.name,
-                verbose=verbose,
-                epochs=epochs,
+            else (
+                get_basic_callbacks(
+                    path=self.logs_path,
+                    patience=patience,
+                    name=self.name,
+                    verbose=verbose,
+                    epochs=epochs,
+                )
+                if use_basic_callbacks
+                else None
             )
-            if use_basic_callbacks
-            else None
         )
 
         def design_trial(hyper_candidates):
@@ -319,15 +321,17 @@ class AIronSuit(object):
         raw_callbacks = (
             callbacks
             if callbacks
-            else get_basic_callbacks(
-                path=self.logs_path,
-                patience=patience,
-                name=self.name,
-                verbose=verbose,
-                epochs=epochs,
+            else (
+                get_basic_callbacks(
+                    path=self.logs_path,
+                    patience=patience,
+                    name=self.name,
+                    verbose=verbose,
+                    epochs=epochs,
+                )
+                if use_basic_callbacks
+                else None
             )
-            if use_basic_callbacks
-            else None
         )
         self.__train(
             epochs=epochs,
