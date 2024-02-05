@@ -2,13 +2,11 @@
 import os
 
 import numpy as np
+import tensorflow as tf
 from airontools.constructors.layers import layer_constructor
-from airontools.preprocessing import train_val_split
-from airontools.tools import path_management
+from airontools.path_utils import path_management
+from airontools.preprocessing_utils import train_val_split
 from hyperopt import Trials
-from tensorflow.keras.layers import Input
-from tensorflow.keras.models import Model
-from tensorflow.keras.utils import to_categorical
 
 from aironsuit.design.utils import choice_hp
 from aironsuit.suit import AIronSuit
@@ -53,8 +51,8 @@ x_test = x_test.reshape((x_test.shape[0], x_test.shape[1], 1))
 num_classes = len(np.unique(y_train))
 y_train[y_train == -1] = 0
 y_test[y_test == -1] = 0
-y_train = to_categorical(y_train, num_classes)
-y_test = to_categorical(y_test, num_classes)
+y_train = tf.keras.utils.to_categorical(y_train, num_classes)
+y_test = tf.keras.utils.to_categorical(y_test, num_classes)
 
 # Split data per parallel model
 x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
@@ -75,7 +73,6 @@ model_specs = {
 
 
 def classifier_model_constructor(**kwargs):
-
     if kwargs["num_heads"] == 0:
         num_heads = None
         sequential = True
@@ -93,11 +90,10 @@ def classifier_model_constructor(**kwargs):
         sequential=sequential,  # Whether to consider a sequential model or not
         units=kwargs["units"],  # Dense units applied after the self-attention layer
         activation="softmax",  # Output activation function
-        advanced_reg=True,
     )
-    inputs = Input(shape=kwargs["input_shape"])
+    inputs = tf.keras.layers.Input(shape=kwargs["input_shape"])
     outputs = layer_constructor(x=inputs, **classifier_kwargs)
-    model = Model(inputs=inputs, outputs=outputs)
+    model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
     model.compile(
         loss=kwargs["loss"], optimizer=kwargs["optimizer"], metrics=kwargs["metrics"]
     )

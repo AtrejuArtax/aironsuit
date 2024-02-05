@@ -5,17 +5,13 @@ import time
 from itertools import product
 
 
-def test_application(repos_path, application_name):
-
-    # Install backend
-
+def run_application(repo_path: str, application_name: str):
     # Manage paths
-    scripts_path = os.path.join(repos_path, application_name)
+    scripts_path = os.path.join(repo_path, application_name)
     logs_path = os.path.join(
-        repos_path, "integration_test_logs", application_name
+        repo_path, "integration_test_logs", application_name
     ).replace(".py", "")
     os.makedirs(logs_path, exist_ok=True)
-
     # Test scripts
     if os.path.isdir(scripts_path):
         script_names = [
@@ -25,14 +21,12 @@ def test_application(repos_path, application_name):
         ]
     else:
         script_names = [scripts_path]
-    test_scripts(script_names, logs_path=logs_path)
+    run_scripts(script_names, logs_path=logs_path)
 
 
-def test_scripts(script_names, logs_path):
-
+def run_scripts(script_names, logs_path):
     # Test scripts
     for script_name in script_names:
-
         start_time = time.time()
         arguments_list = get_script_arguments(script_name)
         arguments_list = arguments_list if len(arguments_list) > 0 else [None]
@@ -40,9 +34,14 @@ def test_scripts(script_names, logs_path):
             arguments = arguments_list[0]
             arguments_ = arguments.split() if arguments is not None else []
             command_list = [sys.executable, "-u", script_name] + arguments_
+            env = os.environ.copy()
+            env["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
             print("testing: " + " ".join(command_list))
             proc = subprocess.Popen(
-                command_list, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+                command_list,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                env=env,
             )
             log_file_name = os.path.join(
                 logs_path, script_name.split(os.sep)[-1]

@@ -23,6 +23,9 @@ dist/
 target/
 dist/
 
+# Integration test logs
+integration_test_logs/
+
 # JetBrains IDE
 .idea/
 

@@ -3,16 +3,13 @@ import os
 import pickle
 
 import numpy as np
+import tensorflow as tf
 from airontools.constructors.layers import layer_constructor
-from airontools.preprocessing import train_val_split
-from airontools.tools import path_management
+from airontools.path_utils import path_management
+from airontools.preprocessing_utils import train_val_split
 from hyperopt import Trials
 from sklearn.metrics import accuracy_score
 from sklearn.neural_network import MLPClassifier
-from tensorflow.keras.datasets import mnist
-from tensorflow.keras.layers import Input
-from tensorflow.keras.models import Model
-from tensorflow.keras.utils import to_categorical
 
 from aironsuit.design.utils import choice_hp, uniform_hp
 from aironsuit.suit import AIronSuit
@@ -41,11 +38,11 @@ path_management(working_path, modes=["rm", "make"])
 # COMMAND ----------
 
 # Load and preprocess data
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 x_train = np.expand_dims(x_train.astype("float32") / 255, -1)
 x_test = np.expand_dims(x_test.astype("float32") / 255, -1)
-y_train = to_categorical(y_train, num_classes)
-y_test = to_categorical(y_test, num_classes)
+y_train = tf.keras.utils.to_categorical(y_train, num_classes)
+y_test = tf.keras.utils.to_categorical(y_test, num_classes)
 
 # Split data per parallel model
 x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
@@ -59,9 +56,8 @@ x_train, x_val, y_train, y_val, train_val_inds = train_val_split(
 
 class Ensemble(object):
     def __init__(self, **kwargs):
-
         # AIron NN
-        inputs = Input(shape=(28, 28, 1))
+        inputs = tf.keras.layers.Input(shape=(28, 28, 1))
         outputs = layer_constructor(
             x=inputs,
             filters=kwargs[
@@ -78,9 +74,8 @@ class Ensemble(object):
             ],  # Self-attention heads applied after the convolutional layer
             units=10,  # Dense units applied after the self-attention layer
             activation="softmax",  # Output activation function
-            advanced_reg=True,
         )
-        self.airon_nn = Model(inputs=inputs, outputs=outputs)
+        self.airon_nn = tf.keras.models.Model(inputs=inputs, outputs=outputs)
         self.airon_nn_impact = kwargs["airon_nn_impact"]
         self.__airon_nn_compile()
 

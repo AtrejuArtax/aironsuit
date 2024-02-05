@@ -9,10 +9,11 @@ import hyperopt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from airontools.constructors.utils import Model, get_latent_model
-from airontools.interactors import clear_session, load_model, save_model, summary
+from airontools.constructors.models.model import Model
+from airontools.constructors.utils import get_latent_model
+from airontools.interactors import load_model, save_model, summary
+from airontools.path_utils import path_management
 from airontools.tensorboard_utils import save_representations
-from airontools.tools import path_management
 from hyperopt import STATUS_FAIL, STATUS_OK, Trials
 
 from aironsuit._utils import to_sum
@@ -140,19 +141,20 @@ class AIronSuit(object):
         raw_callbacks = (
             raw_callbacks
             if raw_callbacks
-            else get_basic_callbacks(
-                path=self.logs_path,
-                patience=patience,
-                name=self.name,
-                verbose=verbose,
-                epochs=epochs,
+            else (
+                get_basic_callbacks(
+                    path=self.logs_path,
+                    patience=patience,
+                    name=self.name,
+                    verbose=verbose,
+                    epochs=epochs,
+                )
+                if use_basic_callbacks
+                else None
             )
-            if use_basic_callbacks
-            else None
         )
 
         def design_trial(hyper_candidates):
-
             # Save trials
             with open(os.path.join(self.results_path, "trials.hyperopt"), "wb") as f:
                 pickle.dump(trials, f)
@@ -252,13 +254,12 @@ class AIronSuit(object):
                     metric=metric if isinstance(metric, str) else "val_loss",
                 )
 
-            clear_session()
+            tf.keras.backend.clear_session()
             del self.model
 
             return {"loss": evaluation, "status": status}
 
         def design():
-
             if len(trials.trials) < max_evals:
                 self.fmin = hyperopt.fmin(
                     design_trial,
@@ -320,15 +321,17 @@ class AIronSuit(object):
         raw_callbacks = (
             callbacks
             if callbacks
-            else get_basic_callbacks(
-                path=self.logs_path,
-                patience=patience,
-                name=self.name,
-                verbose=verbose,
-                epochs=epochs,
+            else (
+                get_basic_callbacks(
+                    path=self.logs_path,
+                    patience=patience,
+                    name=self.name,
+                    verbose=verbose,
+                    epochs=epochs,
+                )
+                if use_basic_callbacks
+                else None
             )
-            if use_basic_callbacks
-            else None
         )
         self.__train(
             epochs=epochs,
@@ -409,7 +412,7 @@ class AIronSuit(object):
         Parameters:
             name (str): Model name.
         """
-        save_model(model=self.model, name=name)
+        save_model(model=self.model, filepath=name)
 
     def load_model(self, name, **kwargs):
         """Load the model.
@@ -421,7 +424,7 @@ class AIronSuit(object):
 
     def clear_session(self):
         """Clear session."""
-        clear_session()
+        tf.keras.backend.clear_session()
 
     def summary(self):
         """Show model summary."""
@@ -440,7 +443,7 @@ class AIronSuit(object):
 
         To visualize the representations on TensorBoard follow the steps:
         1) Use the command line: ' + 'tensorboard --logdir=<logs_path>
-        alt-1) I previous step does not work, use the command line:
+        alt-1) If previous step does not work, use the command line:
             python <where TensorBoard package is installed>/main.py --logdir=<logs_path>
         2) Use an internet browser: http://localhost:6006/#projector'
 
