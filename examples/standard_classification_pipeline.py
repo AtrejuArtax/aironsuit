@@ -1,16 +1,12 @@
-import argparse
 import os
 import pickle
 import random
-import warnings
 from collections import Counter
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import tensorflow as tf
-from airontools.constructors.models.supervised.image_classifier import \
-    ImageClassifierNN
-from airontools.devices import get_available_gpus
+from airontools.constructors.models.supervised.image_classifier import ImageClassifierNN
 from airontools.preprocessing_utils import train_val_split
 from hyperopt import Trials
 from sklearn.metrics import classification_report
@@ -18,13 +14,7 @@ from sklearn.metrics import classification_report
 from aironsuit.design.utils import choice_hp, uniform_hp
 from aironsuit.suit import AIronSuit
 
-random.seed(0)
-np.random.seed(0)
-PROJECT = "classification_pipeline"
-EXECUTION_MODE = (
-    os.environ["EXECUTION_MODE"] if "EXECUTION_MODE" in os.environ else "development"
-)
-WORKING_PATH = os.path.join(os.path.expanduser("~"), "airon", PROJECT, EXECUTION_MODE)
+WORKING_PATH = os.path.expanduser("~")
 
 
 def image_classifier(input_shape: Tuple[None, int], n_classes: int, **kwargs):
@@ -39,18 +29,25 @@ def image_classifier(input_shape: Tuple[None, int], n_classes: int, **kwargs):
     return classifier_nn
 
 
-def pipeline(
-    new_design: bool,
-    design: bool,
-    max_n_samples: int,
-    max_evals: int,
-    epochs: int,
-    batch_size: int,
-    patience: int,
-    verbose: int,
-):
-    # Net name
-    model_name = PROJECT + "_NN"
+def run_standard_classification_pipeline_example(
+    working_dir: str,
+    new_design: Optional[bool] = True,
+    design: Optional[bool] = True,
+    max_n_samples: Optional[int] = None,
+    max_evals: Optional[int] = 250,
+    epochs: Optional[int] = 1000,
+    batch_size: Optional[int] = 32,
+    patience: Optional[int] = 3,
+    verbose: Optional[int] = 0,
+) -> Optional[float]:
+
+    random.seed(0)
+    np.random.seed(0)
+
+    # Configuration
+    example_name = "standard_classification_pipeline_example"
+    model_name = "NN"
+    working_path = os.path.join(working_dir, example_name)
 
     # Data Pre-processing #
 
@@ -124,7 +121,7 @@ def pipeline(
         # Automatic model design
         print("\n")
         print("Automatic model design \n")
-        trials_file_name = os.path.join(WORKING_PATH, "trials.hyperopt")
+        trials_file_name = os.path.join(working_path, "trials.hyperopt")
         trials_exist = os.path.isfile(trials_file_name)
         if new_design or not trials_exist:
             trials = Trials()
@@ -136,7 +133,7 @@ def pipeline(
                 trials = Trials()
         aironsuit = AIronSuit(
             model_constructor=image_classifier,
-            results_path=WORKING_PATH,
+            results_path=working_path,
             name=model_name,
         )
         aironsuit.design(
@@ -169,7 +166,7 @@ def pipeline(
         try:
             specs = model_specs.copy()
             best_file_name = os.path.join(
-                WORKING_PATH, "design", "best_exp_" + model_name
+                working_path, "design", "best_exp_" + model_name
             )
             with open(best_file_name + "_hparams", "rb") as handle:
                 specs.update(pickle.load(handle))
@@ -190,54 +187,18 @@ def pipeline(
         # Classification report
         y_pred = aironsuit.inference(x_test)
         test_report = classification_report(
-            np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1)
+            y_true=np.argmax(y_test, axis=1),
+            y_pred=np.argmax(y_pred, axis=1),
+            output_dict=True,
         )
         print("Evaluation report:")
         print(test_report)
-        with open(WORKING_PATH + "test_report", "wb") as f:
+        with open(working_path + "test_report", "wb") as f:
             pickle.dump(test_report, f, protocol=pickle.HIGHEST_PROTOCOL)
+        accuracy = test_report["accuracy"]
+
+        return accuracy
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--h", action="store_true")
-    parser.add_argument("--use_cpu", dest="use_cpu", action="store_true")
-    parser.add_argument("--new_design", dest="new_design", default=True)
-    parser.add_argument("--design", dest="design", default=True)
-    parser.add_argument(
-        "--max_n_samples",
-        dest="max_n_samples",
-        type=int,
-        default=None if EXECUTION_MODE == "production" else 1000,
-    )
-    parser.add_argument(
-        "--max_evals",
-        dest="max_evals",
-        type=int,
-        default=250 if EXECUTION_MODE == "production" else 2,
-    )
-    parser.add_argument(
-        "--epochs",
-        dest="epochs",
-        type=int,
-        default=1000 if EXECUTION_MODE == "production" else 25,
-    )
-    parser.add_argument("--batch_size", dest="batch_size", type=int, default=32)
-    parser.add_argument(
-        "--patience",
-        dest="patience",
-        type=int,
-        default=5 if EXECUTION_MODE == "production" else 2,
-    )
-    parser.add_argument("--verbose", dest="verbose", type=int, default=0)
-
-    opts = parser.parse_args()
-    print("".join(f"{k}={v}\n" for k, v in vars(opts).items()))
-
-    if opts.use_cpu:
-        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-    elif len(get_available_gpus()) == 0:
-        warnings.warn("no gpus where found")
-    del opts.h, opts.use_cpu
-
-    pipeline(**vars(opts))
+    run_standard_classification_pipeline_example(working_dir=WORKING_PATH)
