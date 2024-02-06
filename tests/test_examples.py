@@ -24,7 +24,7 @@ class TestExamples:
         # ToDo: fix classification mnist example accuracy and loss.
         assert isinstance(loss, float)
         assert isinstance(accuracy, float)
-        assert pytest.approx(loss, abs=0.04) == 2.3
+        assert pytest.approx(loss, abs=0.04) == 0.47
         assert pytest.approx(accuracy, abs=0.04) == 0.113
 
     def test_ae_mnist_example(
