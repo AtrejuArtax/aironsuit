@@ -57,9 +57,10 @@ class TestExamples:
             working_dir=os.path.join(
                 WORKING_DIR, "standard_classification_pipeline_example"
             ),
-            max_n_samples=1000,
-            max_evals=3,
-            epochs=3,
+            max_n_samples=300,
+            max_evals=2,
+            epochs=2,
+            patience=2,
         )
         assert isinstance(accuracy, float)
         assert accuracy > 0.8

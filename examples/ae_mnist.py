@@ -24,9 +24,9 @@ def run_ae_mnist_example(working_dir: str) -> float:
     example_name = "ae_mnist_example"
     model_name = "AE_NN"
     working_path = os.path.join(working_dir, example_name)
-    epochs = 3
-    patience = 3
-    max_evals = 3
+    epochs = 2
+    patience = 2
+    max_evals = 2
     max_n_samples = 1000
 
     # Make/remove paths

@@ -27,9 +27,9 @@ def run_ensemble_mnist_example(working_dir: str) -> float:
     model_name = "Ensemble"
     working_path = os.path.join(working_dir, example_name)
     num_classes = 10
-    epochs = 1
-    patience = 3
-    max_evals = 1
+    epochs = 2
+    patience = 2
+    max_evals = 2
 
     # Make/remove paths
     path_management(working_path, modes=["rm", "make"])

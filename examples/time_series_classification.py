@@ -24,9 +24,9 @@ def run_time_series_classification_example(working_dir: str) -> Tuple[float, flo
     example_name = "ensemble_mnist_example"
     model_name = "NN"
     working_path = os.path.join(working_dir, example_name)
-    epochs = 3
-    patience = 3
-    max_evals = 3
+    epochs = 2
+    patience = 2
+    max_evals = 2
 
     # Make/remove paths
     path_management(working_path, modes=["rm", "make"])

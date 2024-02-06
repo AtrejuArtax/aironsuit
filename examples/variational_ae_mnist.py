@@ -24,10 +24,10 @@ def run_vae_mnist_example(working_dir: str) -> float:
     example_name = "vae_mnist_example"
     model_name = "VAE_NN"
     working_path = os.path.join(working_dir, example_name)
-    epochs = 3
-    patience = 3
-    max_evals = 3
-    max_n_samples = 1000
+    epochs = 2
+    patience = 2
+    max_evals = 2
+    max_n_samples = 300
 
     # Make/remove paths
     path_management(working_path, modes=["rm", "make"])
