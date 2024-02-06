@@ -1,7 +1,6 @@
 import os
 import pickle
 import random
-from typing import Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -18,7 +17,7 @@ from aironsuit.suit import AIronSuit
 WORKING_PATH = os.path.expanduser("~")
 
 
-def run_ensemble_mnist_example(working_dir: str) -> Tuple[float, float]:
+def run_ensemble_mnist_example(working_dir: str) -> float:
 
     random.seed(0)
     np.random.seed(0)
@@ -144,11 +143,10 @@ def run_ensemble_mnist_example(working_dir: str) -> Tuple[float, float]:
     )
 
     # Evaluate
-    loss, accuracy = aironsuit.model.evaluate(x_test, y_test)
-    print("Test loss:", loss)
+    accuracy = aironsuit.model.evaluate(x_test, y_test)
     print("Test accuracy:", accuracy)
 
-    return loss, accuracy
+    return accuracy
 
 
 if __name__ == "__main__":

@@ -43,10 +43,9 @@ class TestExamples:
         self,
     ):
         """Test ensemble mnist example."""
-        loss, accuracy = run_ensemble_mnist_example(
+        accuracy = run_ensemble_mnist_example(
             working_dir=os.path.join(WORKING_DIR, "ensemble_mnist_example"),
         )
-        assert isinstance(loss, float)
         assert isinstance(accuracy, float)
         assert accuracy > 0.8
 

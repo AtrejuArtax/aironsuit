@@ -186,7 +186,9 @@ def run_standard_classification_pipeline_example(
         # Classification report
         y_pred = aironsuit.inference(x_test)
         test_report = classification_report(
-            np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1)
+            y_true=np.argmax(y_test, axis=1),
+            y_pred=np.argmax(y_pred, axis=1),
+            output_dict=True,
         )
         print("Evaluation report:")
         print(test_report)
