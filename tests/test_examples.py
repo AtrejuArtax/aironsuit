@@ -4,6 +4,7 @@ from os.path import abspath
 
 import pytest
 
+from examples.ae_mnist_tf import ae_mnist_example
 from examples.classification_mnist_tf import classification_mnist_example
 
 WORKING_DIR = os.sep.join(
@@ -25,3 +26,13 @@ class TestExamples:
         assert isinstance(accuracy, float)
         assert pytest.approx(loss, abs=0.04) == 2.3
         assert pytest.approx(accuracy, abs=0.04) == 0.113
+
+    def test_ae_mnist_example(
+        self,
+    ):
+        """Test AE mnist example."""
+        loss = ae_mnist_example(
+            working_dir=os.path.join(WORKING_DIR, "ae_mnist_example"),
+        )
+        assert isinstance(loss, float)
+        assert pytest.approx(loss, abs=0.04) == 0.1201

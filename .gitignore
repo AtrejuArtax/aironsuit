@@ -57,4 +57,4 @@ build/
 raw*
 
 # Test generated files
-**test_generated_files/*
+tests/test_generated_files/

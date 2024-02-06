@@ -1,2 +1,0 @@
-model_checkpoint_path: "simple_mnist_classifier_NN"
-all_model_checkpoint_paths: "simple_mnist_classifier_NN"
