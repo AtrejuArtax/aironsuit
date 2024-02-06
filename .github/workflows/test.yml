@@ -9,6 +9,8 @@ on:
       - reopened
   workflow_call:
 
+env:
+  PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: python
 jobs:
   test:
     runs-on: ubuntu-latest
