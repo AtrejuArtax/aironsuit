@@ -14,9 +14,9 @@ from aironsuit.suit import AIronSuit
 HOME = os.path.expanduser("~")
 
 
-def classification_mnist_example(working_dir: str) -> Tuple[float, float]:
+def run_classification_mnist_example(working_dir: str) -> Tuple[float, float]:
 
-    # Set-Up #
+    # Configuration
     project_name = "simple_mnist_classifier"
     working_path = os.path.join(working_dir, "airon", project_name)
     model_name = project_name + "_NN"
@@ -141,12 +141,12 @@ def classification_mnist_example(working_dir: str) -> Tuple[float, float]:
     )
 
     # Evaluate
-    score = aironsuit.model.evaluate(x_test, y_test)
-    loss, accuracy = score
-    print("Test loss:", score[0])
-    print("Test accuracy:", score[1])
+    loss, accuracy = aironsuit.model.evaluate(x_test, y_test)
+    print("Test loss:", loss)
+    print("Test accuracy:", accuracy)
+
     return loss, accuracy
 
 
 if __name__ == "__main__":
-    classification_mnist_example(working_dir=HOME)
+    run_classification_mnist_example(working_dir=HOME)

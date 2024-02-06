@@ -1,4 +1,3 @@
-# Databricks notebook source
 import os
 from typing import Tuple
 
@@ -15,9 +14,9 @@ from aironsuit.suit import AIronSuit
 HOME = os.path.expanduser("~")
 
 
-def ae_mnist_example(working_dir: str) -> float:
+def run_ae_mnist_example(working_dir: str) -> float:
 
-    # Set-Up #
+    # Configuration
     model_name = "AE_NN"
     working_path = os.path.join(working_dir, "airon", model_name)
     epochs = 3
@@ -105,4 +104,4 @@ def ae_mnist_example(working_dir: str) -> float:
 
 
 if __name__ == "__main__":
-    ae_mnist_example(working_dir=HOME)
+    run_ae_mnist_example(working_dir=HOME)
