@@ -4,8 +4,8 @@ from os.path import abspath
 
 import pytest
 
-from examples.ae_mnist_tf import ae_mnist_example
-from examples.classification_mnist_tf import classification_mnist_example
+from examples.ae_mnist import ae_mnist_example
+from examples.classification_mnist import classification_mnist_example
 
 WORKING_DIR = os.sep.join(
     abspath(__file__).split(os.sep)[:-1] + ["test_generated_files", "examples"]
