@@ -9,6 +9,7 @@ from examples.standard_classification_pipeline import (
     run_standard_classification_pipeline_example,
 )
 from examples.time_series_classification import run_time_series_classification_example
+from examples.variational_ae_mnist import run_vae_mnist_example
 
 WORKING_DIR = os.sep.join(
     abspath(__file__).split(os.sep)[:-1] + ["test_generated_files", "examples"]
@@ -74,3 +75,13 @@ class TestExamples:
         assert isinstance(loss, float)
         assert isinstance(accuracy, float)
         assert accuracy > 0.1
+
+    def test_vae_mnist_example(
+        self,
+    ):
+        """Test VAE mnist example."""
+        loss = run_vae_mnist_example(
+            working_dir=os.path.join(WORKING_DIR, "vae_mnist_example"),
+        )
+        assert isinstance(loss, float)
+        assert loss < 0.3

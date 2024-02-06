@@ -1,4 +1,5 @@
 import os
+import random
 from typing import Tuple
 
 import numpy as np
@@ -15,6 +16,9 @@ WORKING_PATH = os.path.expanduser("~")
 
 
 def run_time_series_classification_example(working_dir: str) -> Tuple[float, float]:
+
+    random.seed(0)
+    np.random.seed(0)
 
     # Configuration
     example_name = "ensemble_mnist_example"
