@@ -55,3 +55,6 @@ build/
 *.egg-info
 
 raw*
+
+# Test generated files
+**test_generated_files/*
