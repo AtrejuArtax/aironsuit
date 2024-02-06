@@ -19,7 +19,7 @@ def run_ae_mnist_example(working_dir: str) -> float:
     # Configuration
     model_name = "AE_NN"
     working_path = os.path.join(working_dir, "airon", model_name)
-    epochs = 3
+    epochs = 10
     patience = 3
     max_evals = 3
     max_n_samples = 1000

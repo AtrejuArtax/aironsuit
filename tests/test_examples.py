@@ -22,11 +22,10 @@ class TestExamples:
         loss, accuracy = run_classification_mnist_example(
             working_dir=os.path.join(WORKING_DIR, "classification_mnist_example"),
         )
-        # ToDo: fix classification mnist example accuracy and loss.
         assert isinstance(loss, float)
         assert isinstance(accuracy, float)
-        assert pytest.approx(loss, abs=0.04) == 0.47
-        assert pytest.approx(accuracy, abs=0.04) == 0.113
+        assert pytest.approx(loss, abs=0.04) == 0.3972090184688568
+        assert pytest.approx(accuracy, abs=0.04) == 0.9423
 
     def test_ae_mnist_example(
         self,
@@ -48,5 +47,5 @@ class TestExamples:
         # ToDo: fix classification mnist example accuracy and loss.
         assert isinstance(loss, float)
         assert isinstance(accuracy, float)
-        assert pytest.approx(loss, abs=0.04) == 0.4730
-        assert pytest.approx(accuracy, abs=0.04) == 0.9302
+        assert pytest.approx(loss, abs=0.04) == 0.6854
+        assert pytest.approx(accuracy, abs=0.04) == 0.8853
