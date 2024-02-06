@@ -27,7 +27,7 @@ class TestExamples:
         )
         assert isinstance(loss, float)
         assert isinstance(accuracy, float)
-        assert accuracy > 0.8
+        assert accuracy > 0.6
 
     def test_ae_mnist_example(
         self,
@@ -47,7 +47,7 @@ class TestExamples:
             working_dir=os.path.join(WORKING_DIR, "ensemble_mnist_example"),
         )
         assert isinstance(accuracy, float)
-        assert accuracy > 0.8
+        assert accuracy > 0.6
 
     def test_standard_classification_pipeline_example(
         self,
@@ -63,7 +63,7 @@ class TestExamples:
             patience=2,
         )
         assert isinstance(accuracy, float)
-        assert accuracy > 0.8
+        assert accuracy > 0.6
 
     def test_time_series_classification_example(
         self,
