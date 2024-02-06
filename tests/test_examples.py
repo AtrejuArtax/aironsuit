@@ -2,6 +2,8 @@ import os
 import os.path
 from os.path import abspath
 
+import pytest
+
 from examples.classification_mnist_tf import classification_mnist_example
 
 WORKING_DIR = os.sep.join(
@@ -18,5 +20,8 @@ class TestExamples:
         loss, accuracy = classification_mnist_example(
             working_dir=os.path.join(WORKING_DIR, "classification_mnist_example"),
         )
+        # ToDo: fix classification mnist example accuracy and loss.
         assert isinstance(loss, float)
         assert isinstance(accuracy, float)
+        assert pytest.approx(loss, abs=0.04) == 2.3
+        assert pytest.approx(accuracy, abs=0.04) == 0.113
