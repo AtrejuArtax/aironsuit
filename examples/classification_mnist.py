@@ -1,4 +1,5 @@
 import os
+import random
 from typing import Tuple
 
 import numpy as np
@@ -10,7 +11,6 @@ from hyperopt import Trials
 
 from aironsuit.design.utils import choice_hp
 from aironsuit.suit import AIronSuit
-import random
 
 WORKING_PATH = os.path.expanduser("~")
 

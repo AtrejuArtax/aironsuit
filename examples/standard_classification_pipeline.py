@@ -2,7 +2,7 @@ import os
 import pickle
 import random
 from collections import Counter
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import numpy as np
 import tensorflow as tf

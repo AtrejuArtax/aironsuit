@@ -1,5 +1,6 @@
 import os
 import pickle
+import random
 from typing import Tuple
 
 import numpy as np
@@ -13,7 +14,6 @@ from sklearn.neural_network import MLPClassifier
 
 from aironsuit.design.utils import choice_hp, uniform_hp
 from aironsuit.suit import AIronSuit
-import random
 
 WORKING_PATH = os.path.expanduser("~")
 
@@ -34,8 +34,6 @@ def run_ensemble_mnist_example(working_dir: str) -> Tuple[float, float]:
 
     # Make/remove paths
     path_management(working_path, modes=["rm", "make"])
-
-    # COMMAND ----------
 
     # Load and preprocess data
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()

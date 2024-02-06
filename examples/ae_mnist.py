@@ -1,4 +1,5 @@
 import os
+import random
 from typing import Tuple
 
 import numpy as np
@@ -7,7 +8,6 @@ from airontools.constructors.models.unsupervised.ae import AE
 from airontools.path_utils import path_management
 from airontools.preprocessing_utils import train_val_split
 from hyperopt import Trials
-import random
 
 from aironsuit.design.utils import choice_hp
 from aironsuit.suit import AIronSuit
