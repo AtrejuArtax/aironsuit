@@ -10,18 +10,22 @@ from hyperopt import Trials
 
 from aironsuit.design.utils import choice_hp
 from aironsuit.suit import AIronSuit
+import random
 
-HOME = os.path.expanduser("~")
+WORKING_PATH = os.path.expanduser("~")
 
 
 def run_classification_mnist_example(working_dir: str) -> Tuple[float, float]:
 
+    random.seed(0)
+    np.random.seed(0)
+
     # Configuration
-    project_name = "simple_mnist_classifier"
-    working_path = os.path.join(working_dir, "airon", project_name)
-    model_name = project_name + "_NN"
+    example_name = "classification_mnist_example"
+    model_name = "NN"
+    working_path = os.path.join(working_dir, example_name)
     num_classes = 10
-    epochs = 10
+    epochs = 3
     patience = 3
     max_evals = 1
 
@@ -149,4 +153,4 @@ def run_classification_mnist_example(working_dir: str) -> Tuple[float, float]:
 
 
 if __name__ == "__main__":
-    run_classification_mnist_example(working_dir=HOME)
+    run_classification_mnist_example(working_dir=WORKING_PATH)

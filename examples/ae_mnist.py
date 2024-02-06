@@ -7,19 +7,24 @@ from airontools.constructors.models.unsupervised.ae import AE
 from airontools.path_utils import path_management
 from airontools.preprocessing_utils import train_val_split
 from hyperopt import Trials
+import random
 
 from aironsuit.design.utils import choice_hp
 from aironsuit.suit import AIronSuit
 
-HOME = os.path.expanduser("~")
+WORKING_PATH = os.path.expanduser("~")
 
 
 def run_ae_mnist_example(working_dir: str) -> float:
 
+    random.seed(0)
+    np.random.seed(0)
+
     # Configuration
+    example_name = "ae_mnist_example"
     model_name = "AE_NN"
-    working_path = os.path.join(working_dir, "airon", model_name)
-    epochs = 10
+    working_path = os.path.join(working_dir, example_name)
+    epochs = 3
     patience = 3
     max_evals = 3
     max_n_samples = 1000
@@ -104,4 +109,4 @@ def run_ae_mnist_example(working_dir: str) -> float:
 
 
 if __name__ == "__main__":
-    run_ae_mnist_example(working_dir=HOME)
+    run_ae_mnist_example(working_dir=WORKING_PATH)
