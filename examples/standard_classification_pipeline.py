@@ -154,6 +154,7 @@ def run_standard_classification_pipeline_example(
             verbose=verbose,
             optimise_hypers_on_the_fly=True,
             metric="loss",
+            try_to_reuse_weights=True,
         )
         del x_train, x_val, y_train, y_val
         aironsuit.summary()

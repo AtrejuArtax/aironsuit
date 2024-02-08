@@ -25,7 +25,7 @@ def run_classification_mnist_example(working_dir: str) -> Tuple[float, float]:
     model_name = "NN"
     working_path = os.path.join(working_dir, example_name)
     num_classes = 10
-    epochs = 2
+    epochs = 3
     patience = 2
     max_evals = 2
 
