@@ -8,7 +8,6 @@ import tensorflow as tf
 
 class CleanMemory(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
-        tf.keras.backend.clear_session()
         gc.collect()
 
 
