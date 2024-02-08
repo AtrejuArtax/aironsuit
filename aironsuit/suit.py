@@ -39,12 +39,12 @@ class AIronSuit(object):
 
     def __init__(
         self,
-        model_constructor=None,
-        model=None,
-        results_path=os.path.join(tempfile.gettempdir(), "airon") + os.sep,
-        logs_path=None,
-        custom_objects=None,
-        name="NN",
+        model_constructor: Optional[Callable] = None,
+        model: Optional[tf.keras.models.Model] = None,
+        results_path: str = os.path.join(tempfile.gettempdir(), "airon") + os.sep,
+        logs_path: Optional[str] = None,
+        custom_objects: Optional[object] = None,
+        name: str = "NN",
     ):
         """Parameters:
         model_constructor (): Function that returns a model.
@@ -73,29 +73,45 @@ class AIronSuit(object):
 
     def design(
         self,
-        x_train: Union[NDArray, List[NDArray]],
-        x_val: Union[NDArray, List[NDArray]],
+        x_train: Union[
+            Union[NDArray, tf.keras.utils.Sequence],
+            List[Union[NDArray, tf.keras.utils.Sequence]],
+        ],
+        x_val: Union[
+            Union[NDArray, tf.keras.utils.Sequence],
+            List[Union[NDArray, tf.keras.utils.Sequence]],
+        ],
         hyper_space: Dict[str, Any],
         max_evals: int,
         epochs: int,
         batch_size: Optional[int] = 32,
-        y_train: Optional[Union[NDArray, List[NDArray]]] = None,
-        y_val: Optional[Union[NDArray, List[NDArray]]] = None,
+        y_train: Optional[
+            Union[
+                Union[NDArray, tf.keras.utils.Sequence],
+                List[Union[NDArray, tf.keras.utils.Sequence]],
+            ]
+        ] = None,
+        y_val: Optional[
+            Union[
+                Union[NDArray, tf.keras.utils.Sequence],
+                List[Union[NDArray, tf.keras.utils.Sequence]],
+            ]
+        ] = None,
         sample_weight: Optional[Union[NDArray, List[NDArray]]] = None,
         sample_weight_val: Optional[Union[NDArray, List[NDArray]]] = None,
         model_specs: Optional[Dict[str, Any]] = None,
         metric: Optional[Union[str, Callable]] = None,
         trials: Optional[Trials] = None,
-        verbose: Optional[int] = 0,
-        seed: Optional[int] = 0,
+        verbose: int = 0,
+        seed: int = 0,
         raw_callbacks: Optional[List[tf.keras.callbacks.Callback]] = None,
-        use_basic_callbacks: Optional[bool] = True,
-        patience: Optional[int] = 3,
-        save_val_inference: Optional[bool] = False,
-        optimise_hypers_on_the_fly: Optional[bool] = False,
+        use_basic_callbacks: bool = True,
+        patience: int = 3,
+        save_val_inference: bool = False,
+        optimise_hypers_on_the_fly: bool = False,
         additional_train_kwargs: Optional[Dict[str, Any]] = None,
         additional_evaluation_kwargs: Optional[Dict[str, Any]] = None,
-        try_to_reuse_weights: Optional[bool] = False,
+        try_to_reuse_weights: bool = False,
     ):
         """Automatic model design.
 
@@ -296,16 +312,28 @@ class AIronSuit(object):
     def train(
         self,
         epochs,
-        x_train,
-        y_train,
-        x_val=None,
-        y_val=None,
-        batch_size=32,
-        callbacks=None,
-        verbose=0,
-        use_basic_callbacks=True,
-        patience=3,
-        optimise_hypers_on_the_fly=False,
+        x_train: Union[
+            Union[NDArray, tf.keras.utils.Sequence],
+            List[Union[NDArray, tf.keras.utils.Sequence]],
+        ],
+        y_train: Union[
+            Union[NDArray, tf.keras.utils.Sequence],
+            List[Union[NDArray, tf.keras.utils.Sequence]],
+        ],
+        x_val: Union[
+            Union[NDArray, tf.keras.utils.Sequence],
+            List[Union[NDArray, tf.keras.utils.Sequence]],
+        ] = None,
+        y_val: Union[
+            Union[NDArray, tf.keras.utils.Sequence],
+            List[Union[NDArray, tf.keras.utils.Sequence]],
+        ] = None,
+        batch_size: int = 32,
+        callbacks: Optional[List[tf.keras.callbacks.Callback]] = None,
+        verbose: int = 0,
+        use_basic_callbacks: bool = True,
+        patience: int = 3,
+        optimise_hypers_on_the_fly: bool = False,
     ):
         """Weight optimization.
 
