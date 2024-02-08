@@ -508,6 +508,7 @@ class AIronSuit(object):
         additional_evaluation_kwargs = (
             additional_evaluation_kwargs if additional_evaluation_kwargs is None else {}
         )
+        fit_args = []
         train_kwargs = kwargs.copy()
         if isinstance(self.model, Model):
             train_kwargs["verbose"] = verbose
@@ -516,29 +517,35 @@ class AIronSuit(object):
                 callbacks = init_callbacks(raw_callbacks)
             else:
                 callbacks = raw_callbacks
-            train_kwargs.update({"callbacks": callbacks})
-        fit_args = [x_train]
+            train_kwargs["callbacks"] = callbacks
+        if not isinstance(x_train, tf.keras.utils.Sequence):
+            fit_args += [x_train]
+        else:
+            train_kwargs["x"] = x_train
         if y_train is not None:
             fit_args += [y_train]
-        val_data = []
-        for val_data_ in [x_val, y_val, sample_weight_val]:
-            if val_data_ is not None:
-                val_data += [val_data_]
-        if len(val_data) != 0:
-            train_kwargs.update({"validation_data": tuple(val_data)})
-        if all([isinstance(data, tf.data.Dataset) for data in fit_args]):
-            train_kwargs["validation_data"] = tf.data.Dataset.zip(
-                train_kwargs["validation_data"]
-            ).batch(batch_size)
-            if sample_weight is not None:
-                warnings.warn(
-                    "sample weight for training combined with tf datasets is not supported at the moment"
-                )
-            fit_args = [tf.data.Dataset.zip(tuple(fit_args)).batch(batch_size)]
+        if not isinstance(x_val, tf.keras.utils.Sequence):
+            val_data = []
+            for val_data_ in [x_val, y_val, sample_weight_val]:
+                if val_data_ is not None:
+                    val_data += [val_data_]
+            if len(val_data) != 0:
+                train_kwargs.update({"validation_data": tuple(val_data)})
+            if all([isinstance(data, tf.data.Dataset) for data in fit_args]):
+                train_kwargs["validation_data"] = tf.data.Dataset.zip(
+                    train_kwargs["validation_data"]
+                ).batch(batch_size)
+                if sample_weight is not None:
+                    warnings.warn(
+                        "sample weight for training combined with tf datasets is not supported at the moment"
+                    )
+                fit_args = [tf.data.Dataset.zip(tuple(fit_args)).batch(batch_size)]
+            else:
+                if sample_weight is not None:
+                    train_kwargs["sample_weight"] = sample_weight
+                train_kwargs["batch_size"] = batch_size
         else:
-            if sample_weight is not None:
-                train_kwargs["sample_weight"] = sample_weight
-            train_kwargs["batch_size"] = batch_size
+            train_kwargs.update({"validation_data": x_val})
         self.model.fit(*fit_args, **train_kwargs)
         if optimise_hypers_on_the_fly:
             if "epochs" in train_kwargs.keys():
@@ -592,10 +599,16 @@ class AIronSuit(object):
         return_number=True,
         **kwargs
     ):
-        evaluate_args = [x]
-        if y is not None:
-            evaluate_args += [y]
+        evaluate_args = []
         evaluate_kwargs = kwargs.copy()
+        if not isinstance(x, tf.keras.utils.Sequence):
+            evaluate_args += [x]
+        else:
+            evaluate_kwargs["x"] = x
+        if y is not None and not isinstance(y, tf.keras.utils.Sequence):
+            evaluate_args += [y]
+        elif not isinstance(y, tf.keras.utils.Sequence):
+            evaluate_kwargs["y"] = y
         if isinstance(self.model, Model):
             evaluate_kwargs["verbose"] = verbose
         if sample_weight is not None:
