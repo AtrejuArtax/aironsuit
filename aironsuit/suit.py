@@ -39,12 +39,12 @@ class AIronSuit(object):
 
     def __init__(
         self,
-        model_constructor=None,
-        model=None,
-        results_path=os.path.join(tempfile.gettempdir(), "airon") + os.sep,
-        logs_path=None,
-        custom_objects=None,
-        name="NN",
+        model_constructor: Optional[Callable] = None,
+        model: Optional[tf.keras.models.Model] = None,
+        results_path: str = os.path.join(tempfile.gettempdir(), "airon") + os.sep,
+        logs_path: Optional[str] = None,
+        custom_objects: Optional[object] = None,
+        name: str = "NN",
     ):
         """Parameters:
         model_constructor (): Function that returns a model.
@@ -73,29 +73,31 @@ class AIronSuit(object):
 
     def design(
         self,
-        x_train: Union[NDArray, List[NDArray]],
-        x_val: Union[NDArray, List[NDArray]],
+        x_train: Union[NDArray, List[NDArray], tf.keras.utils.Sequence],
+        x_val: Union[NDArray, List[NDArray], tf.keras.utils.Sequence],
         hyper_space: Dict[str, Any],
         max_evals: int,
         epochs: int,
         batch_size: Optional[int] = 32,
-        y_train: Optional[Union[NDArray, List[NDArray]]] = None,
-        y_val: Optional[Union[NDArray, List[NDArray]]] = None,
+        y_train: Optional[
+            Union[NDArray, List[NDArray], tf.keras.utils.Sequence]
+        ] = None,
+        y_val: Optional[Union[NDArray, List[NDArray], tf.keras.utils.Sequence]] = None,
         sample_weight: Optional[Union[NDArray, List[NDArray]]] = None,
         sample_weight_val: Optional[Union[NDArray, List[NDArray]]] = None,
         model_specs: Optional[Dict[str, Any]] = None,
         metric: Optional[Union[str, Callable]] = None,
         trials: Optional[Trials] = None,
-        verbose: Optional[int] = 0,
-        seed: Optional[int] = 0,
+        verbose: int = 0,
+        seed: int = 0,
         raw_callbacks: Optional[List[tf.keras.callbacks.Callback]] = None,
-        use_basic_callbacks: Optional[bool] = True,
-        patience: Optional[int] = 3,
-        save_val_inference: Optional[bool] = False,
-        optimise_hypers_on_the_fly: Optional[bool] = False,
+        use_basic_callbacks: bool = True,
+        patience: int = 3,
+        save_val_inference: bool = False,
+        optimise_hypers_on_the_fly: bool = False,
         additional_train_kwargs: Optional[Dict[str, Any]] = None,
         additional_evaluation_kwargs: Optional[Dict[str, Any]] = None,
-        try_to_reuse_weights: Optional[bool] = False,
+        try_to_reuse_weights: bool = False,
     ):
         """Automatic model design.
 
@@ -296,31 +298,31 @@ class AIronSuit(object):
     def train(
         self,
         epochs,
-        x_train,
-        y_train,
-        x_val=None,
-        y_val=None,
-        batch_size=32,
-        callbacks=None,
-        verbose=0,
-        use_basic_callbacks=True,
-        patience=3,
-        optimise_hypers_on_the_fly=False,
+        x_train: Union[NDArray, List[NDArray], tf.keras.utils.Sequence],
+        y_train: Union[NDArray, List[NDArray], tf.keras.utils.Sequence],
+        x_val: Optional[Union[NDArray, List[NDArray], tf.keras.utils.Sequence]] = None,
+        y_val: Optional[Union[NDArray, List[NDArray], tf.keras.utils.Sequence]] = None,
+        batch_size: int = 32,
+        callbacks: Optional[List[tf.keras.callbacks.Callback]] = None,
+        verbose: int = 0,
+        use_basic_callbacks: bool = True,
+        patience: int = 3,
+        optimise_hypers_on_the_fly: bool = False,
     ):
         """Weight optimization.
 
         Parameters:
-            epochs (int): Number of epochs for model training.
-            x_train (list, np.array): Input data for training.
-            y_train (list, np.array): Output data for training.
-            x_val (list, np.array): Input data for validation.
-            y_val (list, np.array): Output data for validation.
-            batch_size (int): Batch size.
-            callbacks (dict): Dictionary of callbacks.
-            verbose (int): Verbosity.
-            use_basic_callbacks (bool): Whether to use basic callbacks or not. Callbacks argument has preference.
-            patience (int): Patience in epochs for validation los improvement, only active when use_basic_callbacks.
-            optimise_hypers_on_the_fly (bool): Whether to perform optimisation of hypers on the fly.
+            epochs: Number of epochs for model training.
+            x_train: Input data for training.
+            y_train: Output data for training.
+            x_val: Input data for validation.
+            y_val: Output data for validation.
+            batch_size: Batch size.
+            callbacks: Dictionary of callbacks.
+            verbose: Verbosity.
+            use_basic_callbacks: Whether to use basic callbacks or not. Callbacks argument has preference.
+            patience: Patience in epochs for validation los improvement, only active when use_basic_callbacks.
+            optimise_hypers_on_the_fly: Whether to perform optimisation of hypers on the fly.
         """
         raw_callbacks = (
             callbacks
@@ -349,56 +351,60 @@ class AIronSuit(object):
             optimise_hypers_on_the_fly=optimise_hypers_on_the_fly,
         )
 
-    def inference(self, x):
+    def inference(self, x: Union[NDArray, List[NDArray], tf.keras.utils.Sequence]):
         """Inference.
 
         Parameters:
-            x (list, np.array): Input data for training.
+            x: Input data for training.
         """
         return self.model.predict(x)
 
-    def latent_inference(self, x, layer_names=None):
+    def latent_inference(
+        self,
+        x: Union[NDArray, List[NDArray], tf.keras.utils.Sequence],
+        layer_names: Optional[List[str]] = None,
+    ):
         """Latent inference.
 
         Parameters:
-            x (list, np.array): Input data for training.
-            layer_names (str): Layer names.
+            x: Input data for training.
+            layer_names: Layer names.
         """
         assert all([var is not None for var in [layer_names, self.latent_model]])
         if layer_names:
             self.latent_model = get_latent_model(self.model, layer_names)
         return self.latent_model.predict(x)
 
-    def create_latent_model(self, hidden_layer_names):
+    def create_latent_model(self, hidden_layer_name: str):
         """Create latent model given a model and hidden layer names.
 
         Parameters:
-            hidden_layer_names (str): Layer names.
+            hidden_layer_name: Hidden layer name.
         """
         assert self.model is not None
-        self.latent_model = get_latent_model(self.model, hidden_layer_names)
+        self.latent_model = get_latent_model(self.model, hidden_layer_name)
 
     def evaluate(
         self,
-        x,
-        y=None,
-        batch_size=32,
-        sample_weight=None,
-        metric=None,
-        verbose=0,
-        return_sum=False,
+        x: Union[NDArray, List[NDArray], tf.keras.utils.Sequence],
+        y: Optional[Union[NDArray, List[NDArray], tf.keras.utils.Sequence]] = None,
+        batch_size: int = 32,
+        sample_weight: Optional[Union[NDArray, List[NDArray]]] = None,
+        metric: Optional[Union[str, Callable]] = None,
+        verbose: int = 0,
+        return_sum: bool = False,
         **kwargs
     ):
         """Evaluate.
 
         Parameters:
-            x (list, np.array): Input data for evaluation.
-            y (list, np.array): Output data for evaluation.
-            batch_size (int): Number of samples per batch.
-            sample_weight (np.array): Weight per sample to be computed for the evaluation.
-            metric (str, int, list, function): Metric to be used for model design. If None validation loss is used.
-            verbose (int): Verbosity.
-            return_sum (bool): Whether to return just the sum of the metrics.
+            x: Input data for evaluation.
+            y: Output data for evaluation.
+            batch_size: Number of samples per batch.
+            sample_weight: Weight per sample to be computed for the evaluation.
+            metric: Metric to be used for model design. If None validation loss is used.
+            verbose: Verbosity.
+            return_sum: Whether to return just the sum of the metrics.
         """
         return self.__evaluate(
             x,
@@ -411,20 +417,19 @@ class AIronSuit(object):
             **kwargs
         )
 
-    def save_model(self, name):
+    def save_model(self, name: str):
         """Save the model.
         Parameters:
-            name (str): Model name.
+            name: Model name.
         """
         save_model(model=self.model, filepath=name)
 
-    def load_model(self, name, **kwargs):
+    def load_model(self, name: str, **kwargs):
         """Load the model.
         Parameters:
-            name (str): Model name.
-            kwargs (dict): Custom or other arguments.
+            name: Model name.
         """
-        self.model = load_model(name, custom_objects=self.__custom_objects)
+        self.model = load_model(name, custom_objects=self.__custom_objects, **kwargs)
 
     def clear_session(self):
         """Clear session."""
@@ -437,11 +442,10 @@ class AIronSuit(object):
 
     def visualize_representations(
         self,
-        x,
-        metadata=None,
-        logs_path=None,
-        hidden_layer_name=None,
-        latent_model_output=False,
+        x: Union[NDArray, List[NDArray], tf.keras.utils.Sequence],
+        metadata: Optional[Union[NDArray, List[NDArray]]] = None,
+        hidden_layer_name: Optional[str] = None,
+        latent_model_output: bool = False,
     ):
         """Visualize representations.
 
@@ -504,6 +508,7 @@ class AIronSuit(object):
         additional_evaluation_kwargs = (
             additional_evaluation_kwargs if additional_evaluation_kwargs is None else {}
         )
+        fit_args = []
         train_kwargs = kwargs.copy()
         if isinstance(self.model, Model):
             train_kwargs["verbose"] = verbose
@@ -512,29 +517,35 @@ class AIronSuit(object):
                 callbacks = init_callbacks(raw_callbacks)
             else:
                 callbacks = raw_callbacks
-            train_kwargs.update({"callbacks": callbacks})
-        fit_args = [x_train]
+            train_kwargs["callbacks"] = callbacks
+        if not isinstance(x_train, tf.keras.utils.Sequence):
+            fit_args += [x_train]
+        else:
+            train_kwargs["x"] = x_train
         if y_train is not None:
             fit_args += [y_train]
-        val_data = []
-        for val_data_ in [x_val, y_val, sample_weight_val]:
-            if val_data_ is not None:
-                val_data += [val_data_]
-        if len(val_data) != 0:
-            train_kwargs.update({"validation_data": tuple(val_data)})
-        if all([isinstance(data, tf.data.Dataset) for data in fit_args]):
-            train_kwargs["validation_data"] = tf.data.Dataset.zip(
-                train_kwargs["validation_data"]
-            ).batch(batch_size)
-            if sample_weight is not None:
-                warnings.warn(
-                    "sample weight for training combined with tf datasets is not supported at the moment"
-                )
-            fit_args = [tf.data.Dataset.zip(tuple(fit_args)).batch(batch_size)]
+        if not isinstance(x_val, tf.keras.utils.Sequence):
+            val_data = []
+            for val_data_ in [x_val, y_val, sample_weight_val]:
+                if val_data_ is not None:
+                    val_data += [val_data_]
+            if len(val_data) != 0:
+                train_kwargs.update({"validation_data": tuple(val_data)})
+            if all([isinstance(data, tf.data.Dataset) for data in fit_args]):
+                train_kwargs["validation_data"] = tf.data.Dataset.zip(
+                    train_kwargs["validation_data"]
+                ).batch(batch_size)
+                if sample_weight is not None:
+                    warnings.warn(
+                        "sample weight for training combined with tf datasets is not supported at the moment"
+                    )
+                fit_args = [tf.data.Dataset.zip(tuple(fit_args)).batch(batch_size)]
+            else:
+                if sample_weight is not None:
+                    train_kwargs["sample_weight"] = sample_weight
+                train_kwargs["batch_size"] = batch_size
         else:
-            if sample_weight is not None:
-                train_kwargs["sample_weight"] = sample_weight
-            train_kwargs["batch_size"] = batch_size
+            train_kwargs.update({"validation_data": x_val})
         self.model.fit(*fit_args, **train_kwargs)
         if optimise_hypers_on_the_fly:
             if "epochs" in train_kwargs.keys():
@@ -588,10 +599,16 @@ class AIronSuit(object):
         return_number=True,
         **kwargs
     ):
-        evaluate_args = [x]
-        if y is not None:
-            evaluate_args += [y]
+        evaluate_args = []
         evaluate_kwargs = kwargs.copy()
+        if not isinstance(x, tf.keras.utils.Sequence):
+            evaluate_args += [x]
+        else:
+            evaluate_kwargs["x"] = x
+        if y is not None and not isinstance(y, tf.keras.utils.Sequence):
+            evaluate_args += [y]
+        elif not isinstance(y, tf.keras.utils.Sequence):
+            evaluate_kwargs["y"] = y
         if isinstance(self.model, Model):
             evaluate_kwargs["verbose"] = verbose
         if sample_weight is not None:
