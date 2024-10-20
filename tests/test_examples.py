@@ -27,7 +27,7 @@ class TestExamples:
         )
         assert isinstance(loss, float)
         assert isinstance(accuracy, float)
-        # ToDo: fix performance inconsistency
+        # ToDo: fix inconsistent performance
         assert accuracy > 0.1
 
     def test_ae_mnist_example(
@@ -75,6 +75,7 @@ class TestExamples:
         )
         assert isinstance(loss, float)
         assert isinstance(accuracy, float)
+        # ToDo: fix inconsistent performance
         assert accuracy > 0.1
 
     def test_vae_mnist_example(
